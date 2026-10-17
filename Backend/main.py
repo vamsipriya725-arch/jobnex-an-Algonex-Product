@@ -119,13 +119,13 @@ def get_analyses():
 
         # Fetch the latest 20 analyses
         query = """SELECT
-                Analysis_id,
+                id AS Analysis_id,
                 matched_score,
                 matched_skills,
                 missing_skills,
-                created_At
+                created_at AS created_At
             FROM resume_analyzer
-            ORDER BY Analysis_id DESC
+            ORDER BY id DESC
             LIMIT 3"""
 
         cursor.execute(query)
