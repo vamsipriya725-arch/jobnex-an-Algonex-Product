@@ -1,5 +1,5 @@
 """
-core/security.py — JWT creation, verification, and password hashing.
+core/security.py — JWT creation, verification, password hashing, and email normalization.
 """
 from datetime import datetime, timedelta, timezone
 from typing import Optional
@@ -16,12 +16,20 @@ settings = get_settings()
 pwd_context = CryptContext(schemes=["pbkdf2_sha256"], deprecated="auto")
 
 
+def normalize_email(email: str) -> str:
+    """Lowercase and strip whitespace from email addresses."""
+    return (email or "").strip().lower()
+
+
 def hash_password(plain: str) -> str:
     return pwd_context.hash(plain)
 
 
 def verify_password(plain: str, hashed: str) -> bool:
-    return pwd_context.verify(plain, hashed)
+    try:
+        return pwd_context.verify(plain, hashed)
+    except (ValueError, TypeError):
+        return False
 
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:

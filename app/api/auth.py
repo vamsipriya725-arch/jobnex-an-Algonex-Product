@@ -4,11 +4,13 @@ api/auth.py — User registration, login, and Gmail OAuth endpoints.
 import logging
 from fastapi import APIRouter, Depends, HTTPException, status, Request
 from fastapi.responses import RedirectResponse
+from fastapi.security import OAuth2PasswordRequestForm
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, func
 
 from app.core.database import get_db
-from app.core.security import hash_password, verify_password, create_access_token
+from app.core.security import hash_password, verify_password, create_access_token, normalize_email
 from app.core.deps import get_current_user
 from app.models.user import User
 from app.models.gmail_token import GmailToken
@@ -21,20 +23,53 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 settings = get_settings()
 
 
+async def _login_user(email: str, password: str, db: AsyncSession) -> TokenOut:
+    """Helper to authenticate user by email and password."""
+    clean_email = normalize_email(email)
+    result = await db.execute(
+        select(User).where(func.lower(User.email) == clean_email)
+    )
+    user = result.scalar_one_or_none()
+
+    if not user or not verify_password(password, user.hashed_password):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid email or password",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    if not user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Account is disabled",
+        )
+
+    token = create_access_token({"sub": str(user.id)})
+    logger.info("User logged in: user_id=%s", user.id)
+    return TokenOut(access_token=token, user=UserOut.model_validate(user))
+
+
 @router.post("/register", response_model=TokenOut, status_code=201)
 async def register(payload: UserCreate, db: AsyncSession = Depends(get_db)):
     """Register a new user account."""
-    result = await db.execute(select(User).where(User.email == payload.email))
+    clean_email = normalize_email(payload.email)
+    result = await db.execute(
+        select(User).where(func.lower(User.email) == clean_email)
+    )
     if result.scalar_one_or_none():
         raise HTTPException(status_code=400, detail="Email already registered")
 
     user = User(
-        email=payload.email,
+        email=clean_email,
         hashed_password=hash_password(payload.password),
-        full_name=payload.full_name,
+        full_name=payload.full_name.strip(),
     )
     db.add(user)
-    await db.commit()
+    try:
+        await db.commit()
+    except IntegrityError:
+        await db.rollback()
+        raise HTTPException(status_code=400, detail="Email already registered")
     await db.refresh(user)
 
     token = create_access_token({"sub": str(user.id)})
@@ -44,19 +79,17 @@ async def register(payload: UserCreate, db: AsyncSession = Depends(get_db)):
 
 @router.post("/login", response_model=TokenOut)
 async def login(payload: UserLogin, db: AsyncSession = Depends(get_db)):
-    """Login with email and password."""
-    result = await db.execute(select(User).where(User.email == payload.email))
-    user = result.scalar_one_or_none()
+    """Login with JSON payload (email and password)."""
+    return await _login_user(payload.email, payload.password, db)
 
-    if not user or not verify_password(payload.password, user.hashed_password):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid email or password",
-        )
 
-    token = create_access_token({"sub": str(user.id)})
-    logger.info("User logged in: user_id=%s", user.id)
-    return TokenOut(access_token=token, user=UserOut.model_validate(user))
+@router.post("/token", response_model=TokenOut)
+async def login_form(
+    form_data: OAuth2PasswordRequestForm = Depends(),
+    db: AsyncSession = Depends(get_db),
+):
+    """OAuth2 password-flow login endpoint used by Swagger UI Authorize button."""
+    return await _login_user(form_data.username, form_data.password, db)
 
 
 @router.get("/me", response_model=UserOut)

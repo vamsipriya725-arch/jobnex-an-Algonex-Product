@@ -67,12 +67,9 @@ app.add_middleware(
 )
 
 # ── API Routes ────────────────────────────────────────────────────────────────
-app.include_router(auth_router)
-app.include_router(profile_router)
-app.include_router(jobs_router)
-app.include_router(contacts_router)
-app.include_router(ref_jobs_router)
-app.include_router(ref_emails_router)
+for router in [auth_router, profile_router, jobs_router, contacts_router, ref_jobs_router, ref_emails_router]:
+    app.include_router(router)
+    app.include_router(router, prefix="/api")
 
 
 # ── Serve Frontend ────────────────────────────────────────────────────────────

@@ -444,3 +444,76 @@ async def test_list_referral_emails(client: AsyncClient):
     resp = await client.get("/referral-emails", headers=h)
     assert resp.status_code == 200
     assert len(resp.json()) >= 1
+
+
+# ── Auth & Login Robustness Tests ──────────────────────────────────────────
+
+@pytest.mark.asyncio
+async def test_auth_login_case_insensitive(client: AsyncClient):
+    """Email authentication is case-insensitive on login."""
+    reg = await client.post("/auth/register", json={
+        "email": "JaswanthUser@Example.COM",
+        "password": "Password123!",
+        "full_name": "Jaswanth Test",
+    })
+    assert reg.status_code == 201
+
+    # Login with lowercase email
+    login_resp = await client.post("/auth/login", json={
+        "email": "jaswanthuser@example.com",
+        "password": "Password123!",
+    })
+    assert login_resp.status_code == 200
+    assert "access_token" in login_resp.json()
+
+
+@pytest.mark.asyncio
+async def test_auth_login_oauth2_form(client: AsyncClient):
+    """OAuth2 password form login on /auth/token works for Swagger UI."""
+    await client.post("/auth/register", json={
+        "email": "form_user@example.com",
+        "password": "MySecretPassword1!",
+        "full_name": "Form User",
+    })
+
+    form_resp = await client.post("/auth/token", data={
+        "username": "form_user@example.com",
+        "password": "MySecretPassword1!",
+    })
+    assert form_resp.status_code == 200
+    assert "access_token" in form_resp.json()
+
+
+@pytest.mark.asyncio
+async def test_auth_login_invalid_credentials(client: AsyncClient):
+    """Invalid password returns 401 with proper error details."""
+    await client.post("/auth/register", json={
+        "email": "correct_user@example.com",
+        "password": "CorrectPassword1!",
+        "full_name": "Correct User",
+    })
+
+    bad_resp = await client.post("/auth/login", json={
+        "email": "correct_user@example.com",
+        "password": "WrongPassword999!",
+    })
+    assert bad_resp.status_code == 401
+    assert bad_resp.json()["detail"] == "Invalid email or password"
+
+
+@pytest.mark.asyncio
+async def test_auth_api_prefix_login(client: AsyncClient):
+    """Routes mounted on /api/auth/login and /auth/login both work."""
+    reg = await client.post("/api/auth/register", json={
+        "email": "prefix_user@example.com",
+        "password": "Password123!",
+        "full_name": "Prefix User",
+    })
+    assert reg.status_code == 201
+
+    login_resp = await client.post("/api/auth/login", json={
+        "email": "prefix_user@example.com",
+        "password": "Password123!",
+    })
+    assert login_resp.status_code == 200
+    assert "access_token" in login_resp.json()
