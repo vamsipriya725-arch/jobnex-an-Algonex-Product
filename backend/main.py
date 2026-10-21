@@ -37,6 +37,12 @@ app.include_router(interview_prep_router)
 # pyrefly: ignore[missing-import]
 from chatbot_assistant import create_router as create_chat_router
 app.include_router(create_chat_router())
+# pyrefly: ignore[missing-import]
+from application_dashboard import create_router as create_dashboard_router
+try:
+    app.include_router(create_dashboard_router())
+except Exception as e:
+    logger.warning("Could not connect to MySQL for dashboard router: %s", e)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[

@@ -13,7 +13,7 @@ import suggestions_resources as sr
 # pyrefly: ignore[missing-import]
 from analyzer import analyse_resume
 # pyrefly: ignore[missing-import]
-from suggestions_resource import (
+from suggestions_resources import (
     Resource,
     normalize_skill,
     parse_missing_skills,
