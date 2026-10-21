@@ -1,113 +1,172 @@
-# JobNex - An Algonex Product
+# 🚀 Jobnex – Resume & Job Description Analyzer
 
-JobNex is an intelligent Resume Analyzer web application designed to evaluate candidate resumes against job descriptions (JD), calculating skill match percentages, identifying missing proficiencies, and providing actionable career recommendations.
+<p align="center">
+  <b>Smart Resume Matcher & Skill Gap Analyzer built with FastAPI, MySQL, and Modern Web Technologies.</b>
+</p>
+
+<p align="center">
+  <a href="https://github.com/BhavaniKandula/Jobnex">
+    <img src="https://img.shields.io/badge/Version-1.0.0-blue.svg" alt="Version 1.0.0">
+  </a>
+  <a href="https://fastapi.tiangolo.com">
+    <img src="https://img.shields.io/badge/Backend-FastAPI-009688.svg" alt="FastAPI">
+  </a>
+  <a href="https://www.python.org">
+    <img src="https://img.shields.io/badge/Python-3.10%2B-3776AB.svg" alt="Python">
+  </a>
+  <a href="https://www.mysql.com">
+    <img src="https://img.shields.io/badge/Database-MySQL-4479A1.svg" alt="MySQL">
+  </a>
+</p>
 
 ---
 
-## 🚀 Features
+## 📖 Overview
 
-- **Resume & Job Description Analysis**: Compare candidate resume text directly against job requirements.
-- **Skill Match Score**: Automated percentage matching score based on required technical skillsets.
-- **Skill Gap Insights**: Pinpoint matching skills as well as missing keywords and technologies.
-- **Career Suggestions**: Tailored suggestions to help candidates bridge skill gaps.
-- **History Tracking**: Stores analysis results in a MySQL database for candidate audit and analytics.
+**Jobnex** is an intelligent web application designed to help job seekers and recruiters evaluate resume fit against specific job descriptions. By parsing key technical skills and matching them in real time, Jobnex computes a compatibility score, flags missing competencies, and offers tailored suggestions to optimize resumes for target roles.
+
+---
+
+## ✨ Key Features
+
+- **🎯 Skill Matching**: Compares candidate resumes with target job descriptions across in-demand skills (Python, SQL, React, FastAPI, Docker, and more).
+- **📊 Match Scoring**: Calculates an instant match percentage indicating candidate suitability.
+- **💡 Smart Recommendations**: Generates actionable feedback and suggestions to bridge skill gaps.
+- **💾 Persistent History**: Automatically logs analyses into a MySQL database for historical tracking and review.
+- **⚡ High Performance REST API**: Built on **FastAPI** with CORS middleware, structured error handling, and asynchronous support.
+- **🖥️ Responsive Interface**: Simple and intuitive web client built with HTML5, modern CSS3, and JavaScript.
 
 ---
 
 ## 🛠️ Tech Stack
 
-- **Frontend**: HTML5, Vanilla CSS3, JavaScript (Fetch API)
-- **Backend**: FastAPI (Python 3.10+), Pydantic, Uvicorn
-- **Database**: MySQL (`jobnex` database, `resume_analyzer` table)
+| Domain | Technologies |
+| :--- | :--- |
+| **Backend** | Python, FastAPI, Uvicorn, Pydantic |
+| **Database** | MySQL, `mysql-connector-python` |
+| **Frontend** | HTML5, CSS3, JavaScript (Fetch API) |
+| **Version Control** | Git & GitHub |
 
 ---
 
 ## 📂 Project Structure
 
 ```text
-JobNex/
-├── Backend/
-│   ├── Algonex/              # Virtual environment (ignored in git)
-│   ├── analyzer.py           # Core resume analysis logic
-│   ├── database.py           # MySQL database connector
-│   ├── insert_test.py        # Database insertion test script
-│   ├── main.py               # FastAPI application & REST endpoints
-│   ├── requirements.txt      # Python dependencies
-│   ├── test_analyzer.py      # Unit test for analysis logic
-│   └── test_db.py            # Unit test for database connection
-├── Frontend/
-│   ├── Index.html            # Main UI interface
-│   ├── script.js             # API communication and UI handler
-│   └── style.css             # Frontend styling
-├── .gitignore                # Git ignore patterns
-└── README.md                 # Project documentation
+Jobnex/
+├── .gitignore               # Ignored files (virtual environments, caches, envs)
+├── README.md                # Project documentation
+├── backend/
+│   ├── analyzer.py          # Resume parsing, skill extraction & scoring logic
+│   ├── database.py          # MySQL database connection handler
+│   ├── insert_test.py       # DB insert verification script
+│   ├── main.py              # FastAPI server endpoints (/api/analyze, /api/analyses)
+│   ├── requirements.txt     # Python dependencies
+│   ├── test_analyzer.py     # Analyzer test script
+│   └── test_db.py           # Database connectivity test script
+└── Frontend/
+    ├── index.html           # Main user interface
+    ├── script.js            # Frontend logic & API communication
+    └── style.css            # Stylesheet & layout design
 ```
 
 ---
 
-## ⚡ Getting Started
+## 🚀 Getting Started
 
 ### 1. Prerequisites
-- Python 3.10+ installed
-- MySQL Server installed and running
+- **Python 3.10+** installed
+- **MySQL Server** installed and running
+- **Git**
 
-### 2. Database Setup
-Create the `jobnex` database and the `resume_analyzer` table in MySQL:
+---
+
+### 2. Clone the Repository
+```bash
+git clone https://github.com/BhavaniKandula/Jobnex.git
+cd Jobnex
+```
+
+---
+
+### 3. Database Setup
+Log into your MySQL shell and create the database and table:
 
 ```sql
 CREATE DATABASE IF NOT EXISTS jobnex;
+
 USE jobnex;
 
 CREATE TABLE IF NOT EXISTS resume_analyzer (
-    id INT AUTO_INCREMENT PRIMARY KEY,
+    Analysis_id INT AUTO_INCREMENT PRIMARY KEY,
     resume_text TEXT NOT NULL,
     jd_text TEXT NOT NULL,
     matched_skills JSON,
     missing_skills JSON,
     matched_score DECIMAL(5, 2),
     suggestions JSON,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_At TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 ```
 
-Configure database credentials in `Backend/database.py` if needed:
-```python
-host = "127.0.0.1"
-port = "3306"
-user = "root"
-password = "YOUR_PASSWORD"
-database = "jobnex"
-```
-
-### 3. Backend Setup
-1. Open a terminal and navigate to `Backend`:
-   ```bash
-   cd Backend
-   ```
-2. Create and activate a virtual environment (optional but recommended):
-   ```bash
-   python -m venv venv
-   # Windows:
-   venv\Scripts\activate
-   # macOS/Linux:
-   source venv/bin/activate
-   ```
-3. Install dependencies:
-   ```bash
-   pip install -r requirements.txt
-   ```
-4. Start the FastAPI server:
-   ```bash
-   uvicorn main:app --reload --port 8000
-   ```
-   API will be running at: `http://127.0.0.1:8000`  
-   Interactive API docs (Swagger): `http://127.0.0.1:8000/docs`
-
-### 4. Frontend Setup
-1. Navigate to `Frontend` directory.
-2. Open `Index.html` directly in any web browser or use a live server (e.g., Live Server extension in VS Code on port 5500/5501).
+> **Note**: Verify or update your MySQL credentials in [`backend/database.py`](backend/database.py).
 
 ---
 
-## 👥 Contributors & Attribution
-Developed as an **Algonex Product**.
+### 4. Backend Setup & Run
+
+1. Navigate to the backend directory:
+   ```bash
+   cd backend
+   ```
+
+2. (Optional) Create and activate a virtual environment:
+   ```bash
+   python -m venv venv
+   # On Windows:
+   venv\Scripts\activate
+   # On macOS/Linux:
+   source venv/bin/activate
+   ```
+
+3. Install required packages:
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+4. Start the FastAPI development server:
+   ```bash
+   uvicorn main:app --reload --host 127.0.0.1 --port 8000
+   ```
+
+The backend will be running at `http://127.0.0.1:8000`. You can also explore interactive API documentation at `http://127.0.0.1:8000/docs`.
+
+---
+
+### 5. Running the Frontend
+
+1. Open `Frontend/index.html` in your web browser (or use VS Code **Live Server** on port 5500/5501).
+2. Paste the resume text and job description into the input fields.
+3. Click **"Analyze resume"** to receive the match score and recommendations in real time!
+
+---
+
+## 📡 API Endpoints
+
+| Method | Endpoint | Description |
+| :--- | :--- | :--- |
+| `GET` | `/` | Health check endpoint |
+| `POST` | `/api/analyze` | Analyzes resume against job description & saves results |
+| `GET` | `/api/analyses` | Retrieves recent analysis history |
+
+---
+
+## 🤝 Contributing
+
+Contributions, issues, and feature requests are welcome!  
+Feel free to check out the [issues page](https://github.com/BhavaniKandula/Jobnex/issues).
+
+---
+
+## 📄 License
+
+This project is licensed under the MIT License - see the LICENSE file for details.

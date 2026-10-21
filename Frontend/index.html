@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jobnex</title>
+    <link rel="stylesheet" href="style.css">
+
+</head>
+
+<body>
+    <main class="container">
+        <h1>Welcome to Jobnex</h1>
+        <p>Get ready to see your resume fit for given job description</p>
+        <form id="analyze-form">
+            <label for="resume_text">Give resume</label>
+            <textarea id="resume_text" placeholder="upload your resume here" required></textarea>
+            <label for="jd_text">Give job description</label>
+            <textarea id="jd_text" placeholder="paste your jd here" required></textarea>
+            <button type="submit" id="analyze-button">Analyze resume</button>
+
+
+        </form>
+        <p id="status" role="status"></p>
+        <section id="results" hidden>
+            <h2> Analyze Results</h2>
+            <pre id="result-data"> </pre>
+        </section>
+    </main>
+</body>
+<script src="script.js"></script>
+
+</html>

@@ -1,51 +1,56 @@
-import json 
+import json
 from ai_analyzer import analyze_resume_with_ai
 
-resume_text=''' VAMSI PRIYA TAVVA
-+91 9908366216 · vamsipriya725@gmail.com · linkedin.com/in/tavva-vamsipriya · github.com/vamsipriya725-arch · Bengaluru, India
-P R O F E S S I O N A L S U M M A R Y
-Python Developer with hands-on experience building FastAPI applications, REST APIs, and LLM-integrated systems, with a strong
-academic foundation in Information Technology. Applies data analysis skills and current industry trends in AI and cloud to deliver tested,
-deployment-ready solutions across full-stack and backend projects.
-E X P E R I E N C E
-Python Developer Intern | Algonex IT Solutions | Apr 2026 – Jun 2026
-• Implemented features across 5+ application modules using Python, FastAPI, React, and SQL, delivering working software aligned
-with project planning milestones each sprint.
-• Built and tested REST APIs for authentication, data management, and CRUD workflows, resolving 20+ functional and edge-case
-issues before deployment.
-• Deployed applications on Vercel and Netlify, configured integrations, and verified application behavior post-deployment.
-SQL AI Fellow | Algonex IT Solutions | Jan 2026 – Apr 2026
-• Delivered 20+ Python scripts and MySQL database modules across a structured 4-month program, meeting 100% of sprint deadlines
-through basic project management practices.
-• Implemented 20+ optimized SQL queries for data extraction, transformation, and CRUD operations on relational databases supporting
-live AI projects.
-• Managed schema design and data operations in MySQL, supporting backend data workflows powering AI model inputs across 3+
-cross-functional project modules.
-P R O J E C T S
-AI Resume Analyzer & Job Match Platform | Python, React, MySQL, LLM, REST API, Git
-• Engineered an LLM-powered analysis module that evaluates resume-JD fit using data analysis techniques, generating match scores,
-skill gap reports, and personalized learning paths.
-• Developed Python REST APIs connecting a React frontend to a MySQL database storing users, resumes, and analysis results; managed
-feature-based Git workflow across the team.
-Event Management Platform | Python, FastAPI, Supabase, Vercel | AIDLC
-• Built a Python/FastAPI platform spanning 5+ modules, integrating Supabase authentication, real-time data synchronization, and
-schema design informed by 10+ user interviews.
-• Validated workflows through 3 feedback iterations, resolving 20+ edge cases before release, demonstrating end-to-end project
-execution from planning to deployment.
-E D U C A T I O N
-Bachelor of Technology in Information Technology | Lakireddy Bali Reddy College of Engineering | 2021
-– May 2025 | CGPA: 8.59
-S K I L L S
-Technical: Python, SQL, JavaScript, FastAPI, REST APIs, React, MySQL, HTML, CSS, Django, Flask, data analysis, data extraction,
-OOP, data structures and algorithms, AIDLC, Git, GitHub, Vercel, Netlify, Streamlit, Supabase
-Tools: Git, GitHub, Vercel, Netlify, Streamlit Community Cloud, Supabase, Antigravity
-C E R T I F I C A T I O N S
-• Python Certification, HackerRank
-• SQL (Basic) Certification, HackerRank
-• Microsoft Certified: Fabric Data Engineer Associate, Microsoft
-• Generative AI Skill Badge, Google Cloud'''
+resume_text = """BADIPATI ANIL KUMAR
+Data Analyst  |  SQL  |  Python  |  Power BI  |  Excel
+[Phone Number]  |  [Email Address]  |  [City, State]  |  [LinkedIn URL]  |  [GitHub URL]
 
-jd_text='''Skip to content
+PROFESSIONAL SUMMARY
+Data Analyst with a B.E. in Computer Science and Engineering (2025) and hands-on experience in SQL, Python, Power BI and Excel. Completed an SQL with Python Developer internship at Algonex IT Solutions and a 10-week AICTE-EduSkills Data Engineering Virtual Internship supported by AWS Academy. Completed Microsoft's Power BI learning series (data preparation, DAX, data modeling, report design) and earned the Kaggle Python Coder badge. Strong in data cleaning, exploratory analysis, dashboard building and turning data into clear business insights. Seeking a Data Analyst role.
+
+TECHNICAL SKILLS
+Data Analysis: Data Cleaning, Data Transformation, Exploratory Data Analysis (EDA), Data Visualization, Dashboards, Reporting, KPI Tracking
+Databases & SQL: SQL, MySQL, Relational Databases, Joins, Aggregations, Subqueries, Database Design
+Programming: Python (Pandas, NumPy, Matplotlib), Machine Learning basics
+BI & Spreadsheets: Power BI (Power Query, DAX, Data Modeling, Report Design, Copilot in Power BI), Microsoft Excel (Formulas, Pivot Tables, Charts)
+Tools & Platforms: Git, GitHub, IBM Watson Studio, IBM watsonx Assistant, Jupyter Notebook, Kaggle
+Soft Skills: Problem Solving, Logical Thinking, Communication, Interpersonal Skills, Teamwork
+
+PROFESSIONAL EXPERIENCE
+SQL with Python Developer Intern  |  Algonex IT Solutions, Bengaluru, Karnataka
+- Wrote SQL queries to extract, filter, join and aggregate data from relational databases for analysis and reporting.
+- Developed Python scripts to clean, transform and analyze data pulled from SQL databases.
+- Applied database concepts such as tables, keys and relationships to keep data organized and consistent.
+- Collaborated with the team to understand requirements and deliver working solutions within deadlines.
+
+Data Engineering Virtual Intern  |  AICTE - EduSkills, supported by AWS Academy  |  Sep 2023 - Nov 2023
+- Completed a 10-week virtual internship covering data engineering and cloud fundamentals on AWS.
+- Earned the AICTE-EduSkills Certificate of Virtual Internship (NEAT Cell, AICTE).
+
+PROJECTS
+Smart Safety Crackers Factory using IoT and Machine Learning  |  Final-Year Major Project  |  2024 - 2025
+- Designed an IoT-based safety monitoring system for a firecracker manufacturing unit to detect hazardous conditions and raise alerts.
+- Collected and processed sensor data in Python and applied machine learning to identify unsafe conditions.
+- Tools: Python, IoT sensors, Machine Learning.
+
+Virtual Assistant Chatbot  |  IBM watsonx Assistant  |  2024
+- Built and deployed a web-chat virtual assistant on IBM watsonx Assistant with a customized background and greeting.
+- Configured conversation actions and tested the live preview through a shareable web link.
+- Tools: IBM watsonx Assistant, IBM Watson Studio.
+
+EDUCATION
+B.E. Computer Science and Engineering  |  Nehru Institute of Engineering and Technology, Coimbatore  |  2021 - 2025
+- Aggregate: 73.4%
+
+CERTIFICATIONS
+- Microsoft Learn - Prepare and Visualize Data with Microsoft Power BI (Oct 2026). Modules: Get Started with Microsoft Data Analytics; Get Data in Power BI; Clean, Transform and Load Data in Power BI; Choose a Power BI Model Framework; Create DAX Calculations in Semantic Models; Design Power BI Reports; Design Effective Reports in Power BI; Enhance Power BI Report Designs for the User Experience; Perform Analytics in Power BI; Prepare Data for Analysis with Power BI; Get Started Building with Power BI; Get Started with Copilot in Power BI.
+- Python Coder Badge - Kaggle (Oct 2026)
+- Data Analytics - LearnTube by CareerNinja, in association with @placementdrive (Mar 2024)
+- IBM Watson Studio - IBM Career Education Program (Aug 2024)
+- Data Engineering Virtual Internship - AICTE-EduSkills, AWS Academy (Nov 2023)
+"""
+
+jd_text = jd_text='''Skip to content
 HomeIBM
 IBM Careers
 Login
@@ -68,26 +73,26 @@ Students completing Engineering Degree ( BE/B.Tech/ME/M.Tech) by May 2027 with C
 Required education
 Bachelor's Degree
 Required technical and professional expertise
-• Exposure to Academic Programs: Currently enrolled at a university or educational institution, or recently completed qualification.
+* Exposure to Academic Programs: Currently enrolled at a university or educational institution, or recently completed qualification.
 
-• Understanding of Business Operations: Familiarity with basic business concepts and processes, gained through academic studies or previous internships.
+* Understanding of Business Operations: Familiarity with basic business concepts and processes, gained through academic studies or previous internships.
 
-• Basic Administrative Skills: Experience with administrative tasks, such as data entry, record-keeping, or document management.
+* Basic Administrative Skills: Experience with administrative tasks, such as data entry, record-keeping, or document management.
 
-• Foundational Communication Skills: Ability to effectively communicate ideas and collaborate with colleagues in a team environment.
+* Foundational Communication Skills: Ability to effectively communicate ideas and collaborate with colleagues in a team environment.
 
-• Application of Theoretical Knowledge: Exposure to applying theoretical concepts and skills learned in an academic setting to practical problems or projects.
+* Application of Theoretical Knowledge: Exposure to applying theoretical concepts and skills learned in an academic setting to practical problems or projects.
 
 
 
 These are basic call outs and actual required skills may differ
 
 Preferred technical and professional experience
-• Familiarity with Industry Trends: Exposure to current industry trends and developments in a specific field, gained through academic studies or personal projects, would be beneficial in this role.
+* Familiarity with Industry Trends: Exposure to current industry trends and developments in a specific field, gained through academic studies or personal projects, would be beneficial in this role.
 
-• Basic Project Management: Experience working on small projects or contributing to group assignments, demonstrating an understanding of project planning and execution principles.
+* Basic Project Management: Experience working on small projects or contributing to group assignments, demonstrating an understanding of project planning and execution principles.
 
-• Data Analysis Skills: Exposure to data analysis tools and techniques, such as data visualization or statistical analysis, would be advantageous in supporting business operations and projects.
+* Data Analysis Skills: Exposure to data analysis tools and techniques, such as data visualization or statistical analysis, would be advantageous in supporting business operations and projects.
 
 These are high-level callouts, and the specific skills required may vary based on the role.
 
@@ -133,17 +138,15 @@ No
 Apply now
 
 '''
-
-result=analyze_resume_with_ai(resume_text,jd_text)
-try:
-    data=json.loads(result)
-    print("Matchscore:",data["matched_score"])
-    print("Matching skills:",data["matched_skills"])
-    print("Missing skills:",data["missing_skills"])
-    print("Suggestions:",data["suggestions"])
-    print("Summary:",data["summary"])
-except(json.JSONDecodeError,KeyError) as error:
-    print("Hey! Fix the json or column names")
-    print("Hey! Error is:",error)
-
-
+if __name__ == "__main__":
+    result = analyze_resume_with_ai(resume_text, jd_text)
+    try:
+        data = json.loads(result)
+        print("Matchscore:", data["matched_score"])
+        print("Matching skills:", data["matched_skills"])
+        print("Missing skills:", data["missing_skills"])
+        print("Suggestions:", data["suggestions"])
+        print("Summary:", data["summary"])
+    except (json.JSONDecodeError, KeyError) as error:
+        print("Hey! Fix the json or column names")
+        print("Hey! Error is:", error)

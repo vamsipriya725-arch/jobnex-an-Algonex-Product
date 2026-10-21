@@ -1,44 +1,62 @@
+# Environment variables & secrets
+.env
+*.env
+.env.*
+!.env.example
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
 *$py.class
-
-# C extensions
 *.so
 
 # Distribution / packaging
+.Python
 build/
+develop-eggs/
 dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
 *.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
 
-# Virtual Environments
-Algonex/
-Backend/Algonex/
-backend/Algonex/
+# Virtual environments
+algonex/
 venv/
 .venv/
 env/
 ENV/
+env.bak/
+venv.bak/
+backend/Algonex/
+Backend/Algonex/
 
-# Environment variables
-.env
-.env.*
-.env.local
+# Databases
+*.db
+*.sqlite3
+referrals.db
 
-# IDEs and Editors
+# IDE & OS settings
 .vscode/
 .idea/
 *.swp
 *.swo
+*.log
+.DS_Store
+Thumbs.db
 
-# Agents and Skills
+# Agent & local tooling files
 .agents/
 .aider-desk/
 skills-lock.json
-
-# Test cache
-.pytest_cache/
-
-# OS files
-.DS_Store
-Thumbs.db
+.gemini/

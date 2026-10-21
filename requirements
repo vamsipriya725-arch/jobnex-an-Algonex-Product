@@ -1,0 +1,9 @@
+fastapi
+uvicorn
+bcrypt
+PyJWT
+google-auth
+pydantic
+sqlalchemy
+pymysql
+mysql-connector-python
