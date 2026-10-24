@@ -46,8 +46,9 @@ class DailyJobsLogicTests(unittest.TestCase):
 
     @patch("daily_jobs.daily_db")
     @patch("daily_jobs.fetch_jobs")
+    @patch("daily_jobs.score_with_gemini", side_effect=Exception("offline test"))
     @patch("daily_jobs.analyze_resume")
-    def test_run_daily_successful_flow(self, mock_analyze, mock_fetch, mock_db):
+    def test_run_daily_successful_flow(self, mock_analyze, mock_gemini, mock_fetch, mock_db):
         mock_db.get_settings.return_value = {
             "resume_text": "Experienced Python developer",
             "keywords": "python",

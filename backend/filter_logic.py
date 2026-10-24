@@ -41,6 +41,11 @@ CERTIFICATIONS = {
     ],
     "cissp": ["cissp"],
     "ceh": ["ceh", "certified ethical hacker"],
+    "terraform certification": ["hashicorp certified", "terraform associate", "terraform certification"],
+    "snowflake certification": ["snowpro", "snowflake certified"],
+    "databricks certification": ["databricks certified", "databricks data engineer"],
+    "salesforce certification": ["salesforce certified", "salesforce administrator", "salesforce developer"],
+    "agile certification": ["pmi-acp", "safe agilist", "leading safe", "icagile"],
 }
 
 # "2 years", "2+ years", "3.5 yrs", "3-5 years" (range lo modati number teesukuntam)
@@ -51,6 +56,16 @@ YEARS_RE = re.compile(
     (?:\s*(?:-|to)\s*(?P<high>\d+(?:\.\d+)?))?   # optional range (3-5, 3 to 5)
     \s*\+?\s*
     (?:years?|yrs?)\b                            # year / years / yr / yrs
+    """,
+    re.VERBOSE | re.IGNORECASE,
+)
+
+# Date range: 2020 - 2024, 2021 to Present, 2019-present
+DATE_RANGE_RE = re.compile(
+    r"""
+    \b(?P<start_year>(?:19|20)\d{2})\b
+    \s*(?:-|to|–)\s*
+    \b(?P<end_year>(?:19|20)\d{2}|present|current|now)\b
     """,
     re.VERBOSE | re.IGNORECASE,
 )
@@ -92,12 +107,30 @@ def find_year_mentions(text):
     return values
 
 
-def extract_resume_years(text):
-    """Resume lo experience years. "fresher" ani unte 0. Emi dorakkapothe None."""
-    values = find_year_mentions(text)
+def find_date_range_years(text):
+    """Resume lo date ranges (e.g. 2020 - 2024 or 2021 - Present) nundi years calculate chestundi."""
+    from datetime import date
+    current_year = date.today().year
+    years = []
+    for match in DATE_RANGE_RE.finditer(text):
+        start = int(match.group("start_year"))
+        end_str = match.group("end_year").lower()
+        end = current_year if end_str in ("present", "current", "now") else int(end_str)
+        diff = end - start
+        if 0 < diff <= 45:
+            years.append(float(diff))
+    return years
 
-    if values:
-        return max(values)
+
+def extract_resume_years(text):
+    """Resume lo experience years. Date ranges mariyu direct year mentions rendu cover chestundi.
+    "fresher" ani unte 0. Emi dorakkapothe None."""
+    values = find_year_mentions(text)
+    ranges = find_date_range_years(text)
+
+    all_mentions = values + ranges
+    if all_mentions:
+        return max(all_mentions)
 
     if re.search(r"\bfresher\b", text, re.IGNORECASE):
         return 0.0
@@ -155,8 +188,24 @@ def has_requested_certification(text, name):
     return any(has_phrase(text, alias) for alias in aliases)
 
 
-def filter_resumes(resumes, min_experience_years=None, required_certifications=None):
-    """Resumes list nundi, experience and certification conditions meet ayyevi matrame istundi.
+INDIAN_REGIONS = {
+    "india", "hyderabad", "bengaluru", "bangalore", "pune", "mumbai",
+    "chennai", "delhi", "noida", "gurgaon", "gurugram", "kolkata",
+    "ahmedabad", "kochi", "kerala", "telangana", "andhra", "karnataka"
+}
+
+
+def detect_region(text: str) -> str:
+    """Resume lo Indian tech hub / country peru unte 'india', lekapothe 'global'."""
+    text_lower = text.lower()
+    for reg in INDIAN_REGIONS:
+        if has_phrase(text_lower, reg):
+            return "india"
+    return "global"
+
+
+def filter_resumes(resumes, min_experience_years=None, required_certifications=None, region=None):
+    """Resumes list nundi, experience, certification and optional region meet ayyevi matrame istundi.
     resumes: [{"id": ..., "resume_text": "..."}, ...]"""
     required_certifications = required_certifications or []
     matched = []
@@ -171,6 +220,11 @@ def filter_resumes(resumes, min_experience_years=None, required_certifications=N
 
         if not all(has_requested_certification(text, name) for name in required_certifications):
             continue
+
+        if region:
+            detected = detect_region(text)
+            if region.lower() == "india" and detected != "india":
+                continue
 
         matched.append(
             {
@@ -208,6 +262,7 @@ class FilterRequest(BaseModel):
     resumes: list[ResumeItem] = Field(min_length=1, max_length=100)
     min_experience_years: float | None = Field(default=None, ge=0)
     required_certifications: list[str] = Field(default_factory=list)
+    region: str | None = Field(default=None)
 
 
 @router.post("/check")
@@ -270,6 +325,7 @@ def filter_candidates(request: FilterRequest):
         resumes,
         min_experience_years=request.min_experience_years,
         required_certifications=request.required_certifications,
+        region=request.region,
     )
 
     connection = None

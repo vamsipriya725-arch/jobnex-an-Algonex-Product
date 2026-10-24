@@ -11,13 +11,13 @@ backend_dir = Path(__file__).resolve().parent
 if str(backend_dir) not in sys.path:
     sys.path.insert(0, str(backend_dir))
 
-from fastapi import FastAPI, HTTPException, Query, Response
+from fastapi import FastAPI, HTTPException, Query, Response, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field, field_validator
 
 from database import get_connection
 from analyzer import analyze_resume, analyse_resume
-from resume_privacy import router as resume_router, redact_text
+from resume_privacy import router as resume_router, redact_text, save_to_vault, count_pii_entities
 from filter_logic import router as filter_router
 
 import apply_db
@@ -89,6 +89,7 @@ app.add_middleware(
 class AnalyzeRequest(BaseModel):
     resume_text: str = Field(..., min_length=1)
     jd_text: str = Field(..., min_length=1)
+    use_ai: bool = False
 
     @field_validator("resume_text", "jd_text")
     @classmethod
@@ -114,10 +115,40 @@ def favicon():
     return Response(status_code=204)
 
 
+@app.post("/api/upload-resume")
+async def upload_resume(file: UploadFile = File(...)):
+    """Accepts PDF, DOCX, or TXT file and extracts plaintext."""
+    filename = file.filename or "resume"
+    content = await file.read()
+    text = ""
+
+    if filename.lower().endswith(".pdf"):
+        try:
+            import io
+            from pypdf import PdfReader
+            reader = PdfReader(io.BytesIO(content))
+            extracted = [page.extract_text() or "" for page in reader.pages]
+            text = "\n".join(extracted).strip()
+        except Exception as e:
+            logger.exception("Failed to parse PDF")
+            raise HTTPException(status_code=422, detail=f"Failed to read PDF: {e}")
+    else:
+        text = content.decode("utf-8", errors="ignore").strip()
+
+    if not text:
+        raise HTTPException(status_code=422, detail="No readable text found in uploaded file.")
+
+    return {
+        "filename": filename,
+        "text": text,
+        "char_count": len(text),
+    }
+
+
 @app.post("/api/analyze")
 @app.post("/api/analyse")
 def analyze(request: AnalyzeRequest):
-    result = analyze_resume(request.resume_text, request.jd_text)
+    result = analyze_resume(request.resume_text, request.jd_text, use_ai=request.use_ai)
     safe_resume_text = redact_text(request.resume_text)
 
     connection = None
@@ -149,6 +180,13 @@ def analyze(request: AnalyzeRequest):
         connection.commit()
         analysis_id = cursor.lastrowid
 
+        # Save original unredacted resume in secure privacy vault for authorized reveal
+        try:
+            save_to_vault(connection, analysis_id, request.resume_text, count_pii_entities(request.resume_text))
+            connection.commit()
+        except Exception as vault_err:
+            logger.warning("Could not save to privacy vault: %s", vault_err)
+
     except Exception as error:
         if connection is not None and getattr(connection, "is_connected", lambda: True)():
             connection.rollback()
@@ -167,6 +205,7 @@ def analyze(request: AnalyzeRequest):
 
     return {
         "Analysis_Id": analysis_id,
+        "redacted_resume": safe_resume_text,
         **result,
     }
 

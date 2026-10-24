@@ -49,6 +49,17 @@ def test_unknown_experience_is_none():
     assert extract_resume_years("Python developer who knows FastAPI and MySQL") is None
 
 
+def test_years_from_date_range():
+    assert extract_resume_years("Software engineer at Google (2020 - 2024)") == 4.0
+
+
+def test_terraform_and_snowflake_certification():
+    text = "Terraform Associate certified and SnowPro Core certified engineer"
+    certs = find_certifications(text)
+    assert "terraform certification" in certs
+    assert "snowflake certification" in certs
+
+
 def test_required_years_range_takes_lower_value():
     assert extract_required_years("Need 3-5 years of experience in backend development") == 3.0
 
@@ -145,6 +156,15 @@ def test_filter_rejects_unknown_experience_when_min_given():
 def test_filter_result_has_details():
     result = filter_resumes(RESUMES, min_experience_years=5)
     assert result == [{"id": 2, "experience_years": 5.0, "certifications": ["pmp", "scrum master"]}]
+
+
+def test_regional_filter_india():
+    candidates = [
+        {"id": "c1", "resume_text": "Backend dev with 4 years experience in Hyderabad, India."},
+        {"id": "c2", "resume_text": "Developer with 4 years experience in London, UK."}
+    ]
+    matched = filter_resumes(candidates, min_experience_years=3, region="india")
+    assert [c["id"] for c in matched] == ["c1"]
 
 
 # ---------------- Endpoints (TestClient) ----------------

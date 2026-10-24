@@ -40,11 +40,12 @@ except ImportError:
 def get_db_config(database: Optional[str] = None) -> dict:
     """Build the MySQL connection settings from environment variables."""
     return {
-        "host": os.getenv("MYSQL_HOST", "localhost"),
-        "port": int(os.getenv("MYSQL_PORT", "3306")),
-        "user": os.getenv("MYSQL_USER", "root"),
-        "password": os.getenv("MYSQL_PASSWORD", ""),
-        "database": database or os.getenv("MYSQL_DATABASE", "jobnext"),
+        "host": os.getenv("MYSQL_HOST") or os.getenv("DB_HOST", "127.0.0.1"),
+        "port": int(os.getenv("MYSQL_PORT") or os.getenv("DB_PORT", 3306)),
+        "user": os.getenv("MYSQL_USER") or os.getenv("DB_USER", "root"),
+        "password": os.getenv("MYSQL_PASSWORD") or os.getenv("DB_PASSWORD", "2003@algonex"),
+        "database": database or os.getenv("MYSQL_DATABASE") or os.getenv("DB_NAME", "jobnex"),
+        "use_pure": True,
     }
 
 
@@ -83,7 +84,9 @@ Q = load_queries()  # use as Q["insert_application"], Q["get_history"], ...
 @contextmanager
 def get_connection(db_config: dict) -> Iterator["mysql.connector.MySQLConnection"]:
     """Open a connection; commit on success, rollback on error, always close."""
-    conn = mysql.connector.connect(**db_config)
+    cfg = dict(db_config)
+    cfg.setdefault("use_pure", True)
+    conn = mysql.connector.connect(**cfg)
     try:
         yield conn
         conn.commit()
@@ -103,6 +106,7 @@ def ensure_database(db_config: dict) -> None:
     if not re.fullmatch(r"[A-Za-z0-9_]+", name):
         raise ValueError("Database name may contain only letters, digits and _")
     server_only = {k: v for k, v in db_config.items() if k != "database"}
+    server_only.setdefault("use_pure", True)
     conn = mysql.connector.connect(**server_only)
     try:
         cur = conn.cursor()

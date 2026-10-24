@@ -28,7 +28,6 @@ CODING_TYPE = "coding"
 # Rows with this role hold URL templates containing {role}. Not a real role.
 TEMPLATE_ROLE = "_template"
 
-# Keywords that hint at each role. Lowercase only, because we lowercase the text.
 ROLE_KEYWORDS = {
     "data analyst": [
         "data analyst", "sql", "excel", "power bi", "tableau", "pandas",
@@ -37,6 +36,23 @@ ROLE_KEYWORDS = {
     "python developer": [
         "python developer", "python", "django", "flask", "fastapi",
         "rest api", "oop", "backend",
+    ],
+    "frontend developer": [
+        "frontend developer", "react", "vue", "angular", "javascript", "typescript",
+        "html", "css", "tailwind", "next.js", "redux",
+    ],
+    "java developer": [
+        "java developer", "java", "spring boot", "hibernate", "maven",
+    ],
+    "devops engineer": [
+        "devops engineer", "docker", "kubernetes", "terraform", "ci/cd",
+        "jenkins", "ansible",
+    ],
+    "cloud architect": [
+        "cloud architect", "aws solutions architect", "gcp architect", "azure architect",
+    ],
+    "machine learning engineer": [
+        "machine learning engineer", "deep learning", "pytorch", "tensorflow", "nlp",
     ],
 }
 
