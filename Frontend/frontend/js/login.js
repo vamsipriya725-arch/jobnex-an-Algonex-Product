@@ -150,10 +150,12 @@ document.addEventListener("DOMContentLoaded", () => {
     const backendUser = await syncWithBackendAuth(email, password, name, chosenRole, isRegister);
 
     if (window.JobNexAuth) {
+      const displayName = backendUser?.user?.full_name || name;
       window.JobNexAuth.login({
         id: backendUser?.user?.id ? String(backendUser.user.id) : `u-${Date.now()}`,
-        name: backendUser?.user?.full_name || name,
+        name: displayName,
         email: backendUser?.user?.email || email,
+        avatar: backendUser?.user?.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=2563eb&color=fff&bold=true`,
         role: chosenRole,
       });
     }

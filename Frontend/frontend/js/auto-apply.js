@@ -170,15 +170,17 @@ document.addEventListener("DOMContentLoaded", () => {
           reason: `Matched ${regionSelect ? regionSelect.value : "Global"} criteria (${minMatch}% threshold)`,
         });
 
-        // Persist application to MySQL Workbench
+        // Persist application to MySQL Workbench under user's email
         const appPayload = {
-          user_id: user?.id || "1",
+          user_id: user?.email || user?.id || "1",
+          user_email: user?.email || "",
+          user_name: user?.name || "",
           job_title: roleSelect ? roleSelect.value : "Software Engineer",
           company: "Accenture",
           job_url: "https://accenture.com/careers/jobnex-auto-apply",
           source: "auto_apply",
           status: "Applied",
-          notes: `Auto-applied with ${minMatch}% match threshold (${user.name || "Candidate"}).`,
+          notes: `Auto-applied with ${minMatch}% match threshold (${user.name || "Candidate"} - ${user.email || ""}).`,
         };
         fetch("/api/applications", {
           method: "POST",

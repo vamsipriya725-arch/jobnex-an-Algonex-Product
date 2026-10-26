@@ -127,7 +127,8 @@ document.addEventListener("DOMContentLoaded", () => {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            user_id: user?.id || 1,
+            user_id: user?.email || user?.id || 1,
+            user_email: user?.email || "",
             company: comp,
             to_email: recEmail,
             role: role,

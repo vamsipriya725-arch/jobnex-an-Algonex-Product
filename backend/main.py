@@ -124,6 +124,7 @@ async def add_no_cache_headers(request: Request, call_next):
 
 
 class AnalyzeRequest(BaseModel):
+    user_email: Optional[str] = None
     resume_text: str = Field(..., min_length=1)
     jd_text: str = Field(..., min_length=1)
     use_ai: bool = True
@@ -391,13 +392,14 @@ def analyze(request: AnalyzeRequest):
 
         query = """
             INSERT INTO resume_analyzer
-                (resume_text, jd_text, matched_skills, missing_skills, matched_score, suggestions)
-            VALUES (%s, %s, %s, %s, %s, %s)
+                (user_email, resume_text, jd_text, matched_skills, missing_skills, matched_score, suggestions)
+            VALUES (%s, %s, %s, %s, %s, %s, %s)
         """
 
         cursor.execute(
             query,
             (
+                request.user_email,
                 safe_resume_text,
                 request.jd_text,
                 json.dumps(result["matched_skills"]),
@@ -412,7 +414,7 @@ def analyze(request: AnalyzeRequest):
 
         # Save original unredacted resume in secure privacy vault for authorized reveal
         try:
-            save_to_vault(connection, analysis_id, request.resume_text, count_pii_entities(request.resume_text))
+            save_to_vault(connection, analysis_id, request.resume_text, count_pii_entities(request.resume_text), request.user_email)
             connection.commit()
         except Exception as vault_err:
             logger.warning("Could not save to privacy vault: %s", vault_err)
@@ -691,6 +693,7 @@ def get_all_users():
 
 # Save resume analysis directly into MySQL Workbench table resume_analyzer
 class SaveAnalysisRequest(BaseModel):
+    user_email: Optional[str] = None
     resume_text: str
     jd_text: str
     matched_score: float
@@ -707,10 +710,11 @@ def save_analysis(req: SaveAnalysisRequest):
         cur = conn.cursor()
         query = """
             INSERT INTO resume_analyzer
-                (resume_text, jd_text, matched_score, matched_skills, missing_skills, suggestions, created_At)
-            VALUES (%s, %s, %s, %s, %s, %s, NOW())
+                (user_email, resume_text, jd_text, matched_score, matched_skills, missing_skills, suggestions, created_At)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, NOW())
         """
         cur.execute(query, (
+            req.user_email,
             redact_text(req.resume_text),
             req.jd_text,
             req.matched_score,
@@ -722,6 +726,7 @@ def save_analysis(req: SaveAnalysisRequest):
         return {
             "success": True,
             "id": cur.lastrowid,
+            "user_email": req.user_email,
             "message": "Analysis successfully stored in MySQL Workbench table resume_analyzer",
         }
     except Exception as e:

@@ -205,7 +205,8 @@ app.get("/api/applications", async (req, res) => {
 // Create Application (Parameterized INSERT)
 app.post("/api/applications", async (req, res) => {
   try {
-    const { user_id = "1", job_title, company, job_url = "", source = "manual", status = "Applied", notes = "" } = req.body;
+    const { user_id = "1", user_email = "", job_title, company, job_url = "", source = "manual", status = "Applied", notes = "" } = req.body;
+    const finalUserId = user_email || String(user_id || "1");
 
     if (!job_title || !company) {
       return res.status(400).json({ success: false, error: "job_title and company are required fields." });
@@ -213,14 +214,14 @@ app.post("/api/applications", async (req, res) => {
 
     const [result] = await pool.execute(
       "INSERT INTO applications (user_id, job_title, company, job_url, source, status, notes, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, NOW(), NOW())",
-      [String(user_id), job_title, company, job_url, source, status, notes]
+      [finalUserId, job_title, company, job_url, source, status, notes]
     );
 
     // Also mirror to job_applications table for MySQL Workbench
     try {
       await pool.execute(
-        "INSERT INTO job_applications (job_title, company, job_url, apply_email, job_description, match_score, status, status_message, created_at, updated_at) VALUES (?, ?, ?, '', ?, ?, 'queued', ?, NOW(), NOW())",
-        [job_title, company, job_url, notes || "Application submitted via web portal", 85, `Status: ${status}`]
+        "INSERT INTO job_applications (job_title, company, job_url, apply_email, job_description, match_score, status, status_message, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, 'queued', ?, NOW(), NOW())",
+        [job_title, company, job_url, finalUserId, notes || "Application submitted via web portal", 85, `Status: ${status}`]
       );
     } catch (tblErr) {
       // Table may have varying schema
@@ -229,6 +230,7 @@ app.post("/api/applications", async (req, res) => {
     res.status(201).json({
       success: true,
       id: result.insertId,
+      user_id: finalUserId,
       message: "Application recorded successfully in MySQL Workbench.",
     });
   } catch (err) {
@@ -662,11 +664,29 @@ app.post(["/auth/google", "/api/auth/google"], async (req, res) => {
         avatar_url: userAvatar,
         auth_provider: "google",
       };
-    } else if (googleSub && !user.google_sub) {
+    } else {
       await pool.execute(
-        "UPDATE users SET google_sub = ?, avatar_url = COALESCE(avatar_url, ?), auth_provider = 'google' WHERE id = ?",
-        [googleSub, userAvatar, user.id]
+        "UPDATE users SET full_name = COALESCE(?, full_name), avatar_url = COALESCE(?, avatar_url), google_sub = COALESCE(?, google_sub), auth_provider = 'google' WHERE id = ?",
+        [userName, userAvatar, googleSub, user.id]
       );
+      user.full_name = userName || user.full_name;
+      user.avatar_url = userAvatar || user.avatar_url;
+    }
+
+    // Automatically sync candidate profile with user's Google email and photo
+    try {
+      await pool.execute(
+        `INSERT INTO candidate_profiles (user_id, user_email, full_name, avatar_url, title, bio, location, years_experience, skills, created_at, updated_at)
+         VALUES (?, ?, ?, ?, 'Software Engineer', 'Google Authenticated Tech Candidate', 'Remote', 3, '[]', NOW(), NOW())
+         ON DUPLICATE KEY UPDATE 
+            user_email = VALUES(user_email),
+            full_name = COALESCE(VALUES(full_name), full_name),
+            avatar_url = COALESCE(VALUES(avatar_url), avatar_url),
+            updated_at = NOW()`,
+        [user.id, userEmail, user.full_name, user.avatar_url]
+      );
+    } catch (profErr) {
+      console.warn("candidate_profile auto-sync note:", profErr.message);
     }
 
     const token = crypto.randomBytes(32).toString("hex");
@@ -692,7 +712,14 @@ app.post(["/auth/google", "/api/auth/google"], async (req, res) => {
 // Current User Details
 app.get(["/auth/me", "/api/auth/me"], async (req, res) => {
   try {
-    const [rows] = await pool.execute("SELECT id, email, full_name, avatar_url, auth_provider, is_active, created_at FROM users ORDER BY id DESC LIMIT 1");
+    const email = req.query.email;
+    let rows;
+    if (email) {
+      [rows] = await pool.execute("SELECT id, email, full_name, avatar_url, auth_provider, is_active, created_at FROM users WHERE email = ? LIMIT 1", [email.toLowerCase().trim()]);
+    }
+    if (!rows || rows.length === 0) {
+      [rows] = await pool.execute("SELECT id, email, full_name, avatar_url, auth_provider, is_active, created_at FROM users ORDER BY id DESC LIMIT 1");
+    }
     if (rows.length > 0) {
       return res.json(rows[0]);
     }
@@ -715,7 +742,14 @@ app.get("/api/users", async (req, res) => {
 // Candidate Profile Endpoints
 app.get("/api/candidate/profile", async (req, res) => {
   try {
-    const [rows] = await pool.execute("SELECT * FROM candidate_profiles ORDER BY id DESC LIMIT 1");
+    const email = req.query.email;
+    let rows;
+    if (email) {
+      [rows] = await pool.execute("SELECT * FROM candidate_profiles WHERE user_email = ? ORDER BY id DESC LIMIT 1", [email.toLowerCase().trim()]);
+    }
+    if (!rows || rows.length === 0) {
+      [rows] = await pool.execute("SELECT * FROM candidate_profiles ORDER BY id DESC LIMIT 1");
+    }
     res.json({ success: true, profile: rows[0] || null });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
@@ -724,12 +758,21 @@ app.get("/api/candidate/profile", async (req, res) => {
 
 app.post("/api/candidate/profile", async (req, res) => {
   try {
-    const { user_id = 1, title = "Software Engineer", bio = "", location = "Remote", years_experience = 3, resume_url = "", skills = [] } = req.body;
+    const { user_id = 1, user_email = "", full_name = "", avatar_url = "", title = "Software Engineer", bio = "", location = "Remote", years_experience = 3, resume_url = "", skills = [] } = req.body;
     await pool.execute(
-      `INSERT INTO candidate_profiles (user_id, title, bio, location, years_experience, resume_url, skills, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
-       ON DUPLICATE KEY UPDATE title = VALUES(title), bio = VALUES(bio), location = VALUES(location), years_experience = VALUES(years_experience), skills = VALUES(skills), updated_at = NOW()`,
-      [user_id, title, bio, location, years_experience, resume_url, JSON.stringify(skills)]
+      `INSERT INTO candidate_profiles (user_id, user_email, full_name, avatar_url, title, bio, location, years_experience, resume_url, skills, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
+       ON DUPLICATE KEY UPDATE 
+          user_email = VALUES(user_email),
+          full_name = COALESCE(VALUES(full_name), full_name),
+          avatar_url = COALESCE(VALUES(avatar_url), avatar_url),
+          title = VALUES(title), 
+          bio = VALUES(bio), 
+          location = VALUES(location), 
+          years_experience = VALUES(years_experience), 
+          skills = VALUES(skills), 
+          updated_at = NOW()`,
+      [user_id, user_email || null, full_name || null, avatar_url || null, title, bio, location, years_experience, resume_url, JSON.stringify(skills)]
     );
     res.json({ success: true, message: "Profile saved in MySQL Workbench candidate_profiles table" });
   } catch (err) {
@@ -741,6 +784,7 @@ app.post("/api/candidate/profile", async (req, res) => {
 app.post("/api/save-analysis", async (req, res) => {
   try {
     const {
+      user_email = null,
       resume_text = "",
       jd_text = "",
       matched_score = 75,
@@ -750,8 +794,9 @@ app.post("/api/save-analysis", async (req, res) => {
     } = req.body;
 
     const [result] = await pool.execute(
-      "INSERT INTO resume_analyzer (resume_text, jd_text, matched_score, matched_skills, missing_skills, suggestions, created_At) VALUES (?, ?, ?, ?, ?, ?, NOW())",
+      "INSERT INTO resume_analyzer (user_email, resume_text, jd_text, matched_score, matched_skills, missing_skills, suggestions, created_At) VALUES (?, ?, ?, ?, ?, ?, ?, NOW())",
       [
+        user_email || null,
         resume_text.slice(0, 10000),
         jd_text.slice(0, 10000),
         Number(matched_score) || 75,
@@ -764,6 +809,7 @@ app.post("/api/save-analysis", async (req, res) => {
     res.json({
       success: true,
       id: result.insertId,
+      user_email: user_email,
       message: "Analysis saved in MySQL Workbench table resume_analyzer!",
     });
   } catch (err) {

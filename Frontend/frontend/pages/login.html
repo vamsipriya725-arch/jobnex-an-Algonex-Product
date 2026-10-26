@@ -457,6 +457,7 @@
             </svg>
             <span>Continue with Google</span>
           </button>
+          <div id="gsi-button-container" style="display:flex; justify-content:center; margin-top:8px; min-height: 40px;"></div>
 
           <p class="footer-switch">
             <span id="switch-prompt">New to Jobnex?</span>
@@ -912,13 +913,30 @@
         }
 
         playSound("success");
+        toast.textContent = "Signed in as " + email + "! Syncing to MySQL…";
         toast.style.display = "block";
         submitBtn.disabled = true;
         submitBtn.textContent = "Redirecting...";
 
+        const candidateName = email.split("@")[0].replace(/[._-]/g, " ");
+        const formattedName = candidateName.charAt(0).toUpperCase() + candidateName.slice(1);
+        const avatarUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(formattedName)}&background=2563eb&color=fff&bold=true`;
+
         if (window.JobNexAuth) {
-          window.JobNexAuth.login({ name: email.split("@")[0] || "User", email: email, role: "JOB_SEEKER" });
+          window.JobNexAuth.login({
+            name: formattedName,
+            email: email,
+            avatar: avatarUrl,
+            role: "JOB_SEEKER"
+          });
         }
+
+        // Sync local login with MySQL
+        fetch("/auth/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email: email, password: password || "password123" }),
+        }).catch(() => {});
 
         let navigated = false;
         const navigateToNext = () => {
@@ -936,40 +954,98 @@
 
       const GOOGLE_CLIENT_ID = "530050814425-2hvfcnoba5ujoo0tsel740sru1meob4g.apps.googleusercontent.com";
 
-      async function handleGoogleCredentialResponse(response) {
-        if (!response || !response.credential) return;
+      function decodeGoogleJwt(token) {
         try {
-          toast.textContent = "Verifying with Google & saving to MySQL…";
-          toast.style.display = "block";
-          const res = await fetch("/auth/google", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ credential: response.credential }),
-          });
-          if (res.ok) {
-            const data = await res.json();
-            finishGoogleSignIn(data.user?.full_name || "Google User", data.user?.email || "google.user@jobnex.ai");
-            return;
-          }
+          const base64Url = token.split(".")[1];
+          if (!base64Url) return null;
+          const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
+          const jsonPayload = decodeURIComponent(
+            atob(base64)
+              .split("")
+              .map(c => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2))
+              .join("")
+          );
+          return JSON.parse(jsonPayload);
         } catch (e) {
-          console.warn("Google auth sync note:", e);
+          console.warn("Google JWT decode error:", e);
+          return null;
         }
-        finishGoogleSignIn();
       }
 
-      function finishGoogleSignIn(userName = "Google Verified Candidate", userEmail = "google.user@jobnex.ai") {
-        playSound("success");
-        toast.textContent = "Signed in with Google! Welcome to JobNex…";
+      async function handleGoogleCredentialResponse(response) {
+        if (!response || !response.credential) return;
+        const payload = decodeGoogleJwt(response.credential) || {};
+        const userName = payload.name || payload.given_name || "Google User";
+        const userEmail = (payload.email || "").toLowerCase().trim();
+        const userAvatar = payload.picture || `https://ui-avatars.com/api/?name=${encodeURIComponent(userName)}&background=2563eb&color=fff&bold=true`;
+        const googleSub = payload.sub || "";
+
+        toast.textContent = `Welcome ${userName}! Saving your account to MySQL…`;
         toast.style.display = "block";
+
+        // Store immediately in JobNexAuth with user's real Google photo and email
         if (window.JobNexAuth) {
-          window.JobNexAuth.login({ name: userName, email: userEmail, role: "JOB_SEEKER" });
+          window.JobNexAuth.login({
+            id: googleSub || `u-${Date.now()}`,
+            name: userName,
+            email: userEmail,
+            avatar: userAvatar,
+            role: "JOB_SEEKER",
+            google_sub: googleSub,
+          });
         }
-        // Save to MySQL Workbench users table
-        fetch("/auth/google", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ name: userName, email: userEmail }),
-        }).catch(() => {});
+
+        // Persist to MySQL Workbench users and candidate_profiles tables
+        const syncPayload = {
+          credential: response.credential,
+          email: userEmail,
+          name: userName,
+          avatar: userAvatar,
+          google_sub: googleSub,
+        };
+
+        const syncUrls = [
+          "/auth/google",
+          "/api/auth/google",
+          "http://127.0.0.1:3000/auth/google",
+          "http://127.0.0.1:8000/auth/google",
+        ];
+
+        for (const url of syncUrls) {
+          try {
+            const res = await fetch(url, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(syncPayload),
+            });
+            if (res.ok) {
+              const resData = await res.json();
+              if (resData.access_token) {
+                localStorage.setItem("jobnex_access_token", resData.access_token);
+              }
+              break;
+            }
+          } catch (e) {
+            // Continue fallback
+          }
+        }
+
+        finishGoogleSignIn(userName, userEmail, userAvatar);
+      }
+
+      function finishGoogleSignIn(userName = "Candidate", userEmail = "", userAvatar = "") {
+        playSound("success");
+        toast.textContent = `Signed in as ${userEmail || userName}! Welcome to JobNex…`;
+        toast.style.display = "block";
+
+        if (window.JobNexAuth) {
+          window.JobNexAuth.login({
+            name: userName,
+            email: userEmail,
+            avatar: userAvatar || (userName ? `https://ui-avatars.com/api/?name=${encodeURIComponent(userName)}&background=2563eb&color=fff&bold=true` : ""),
+            role: "JOB_SEEKER",
+          });
+        }
 
         let navigated = false;
         const navigateToNext = () => {
@@ -991,8 +1067,26 @@
               client_id: GOOGLE_CLIENT_ID,
               callback: handleGoogleCredentialResponse,
               auto_select: false,
+              cancel_on_tap_outside: true,
             });
-          } catch (e) {}
+
+            // Render native Google button in container if available
+            const gsiContainer = document.getElementById("gsi-button-container");
+            if (gsiContainer) {
+              window.google.accounts.id.renderButton(gsiContainer, {
+                theme: "outline",
+                size: "large",
+                width: 320,
+                text: "continue_with",
+                shape: "pill",
+              });
+            }
+
+            // Prompt One-Tap
+            window.google.accounts.id.prompt();
+          } catch (e) {
+            console.warn("Google GIS init note:", e);
+          }
         }
       }
 
@@ -1004,11 +1098,10 @@
         if (window.google && window.google.accounts && window.google.accounts.id) {
           window.google.accounts.id.prompt((notification) => {
             if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
-              finishGoogleSignIn();
+              const gsiBtn = document.querySelector("#gsi-button-container div[role=button]");
+              if (gsiBtn) gsiBtn.click();
             }
           });
-        } else {
-          finishGoogleSignIn();
         }
       });
     });

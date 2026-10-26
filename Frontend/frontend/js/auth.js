@@ -9,7 +9,7 @@ const DEFAULT_USER = {
   email: "",
   phone: "",
   role: "JOB_SEEKER",
-  avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=128&auto=format&fit=crop&q=80",
+  avatar: "",
   headline: "Tech Professional & Candidate",
   currentCompany: "",
   resumeFileName: "",
@@ -23,6 +23,13 @@ const Auth = {
       if (stored) {
         const parsed = JSON.parse(stored);
         if (parsed && parsed.name && !parsed.name.toLowerCase().includes("sandeep")) {
+          // Clean legacy stock photos or dummy names
+          if (parsed.avatar && parsed.avatar.includes("534528741775-53994a69daeb")) {
+            parsed.avatar = parsed.name ? `https://ui-avatars.com/api/?name=${encodeURIComponent(parsed.name)}&background=2563eb&color=fff` : "";
+          }
+          if (parsed.name === "Google Verified Candidate" && parsed.email) {
+            parsed.name = parsed.email.split("@")[0];
+          }
           return parsed;
         }
       }
@@ -48,11 +55,17 @@ const Auth = {
   login(firstArg, role = "JOB_SEEKER") {
     let email = "";
     let name = "";
+    let avatar = "";
+    let id = "";
+    let google_sub = "";
     let chosenRole = role;
 
     if (typeof firstArg === "object" && firstArg !== null) {
       email = firstArg.email || "";
       name = firstArg.name || "";
+      avatar = firstArg.avatar || "";
+      id = firstArg.id || "";
+      google_sub = firstArg.google_sub || "";
       chosenRole = firstArg.role || chosenRole;
     } else if (typeof firstArg === "string") {
       email = firstArg;
@@ -62,15 +75,27 @@ const Auth = {
       const raw = email.split("@")[0];
       name = raw.split(/[._-]/).map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
     }
-    if (!name) {
-      name = chosenRole === "RECRUITER" ? "Recruiter" : "Candidate";
+    if (!name || name === "Google Verified Candidate") {
+      name = email ? email.split("@")[0] : (chosenRole === "RECRUITER" ? "Recruiter" : "Candidate");
     }
 
     const prev = this.getUser();
+    let finalAvatar = avatar;
+    if (!finalAvatar) {
+      if (prev.avatar && !prev.avatar.includes("534528741775-53994a69daeb")) {
+        finalAvatar = prev.avatar;
+      } else {
+        finalAvatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=2563eb&color=fff`;
+      }
+    }
+
     const user = {
       ...prev,
+      id: id || prev.id || `u-${Date.now()}`,
       email: email || prev.email || "",
       name: name,
+      avatar: finalAvatar,
+      google_sub: google_sub || prev.google_sub || "",
       role: chosenRole
     };
     this.setUser(user);
