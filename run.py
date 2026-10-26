@@ -33,9 +33,12 @@ def main():
 
     os.environ["DISABLE_SQLALCHEMY_CEXT"] = "1"
 
+    venv_python = os.path.join(ROOT_DIR, ".venv", "Scripts", "python.exe")
+    python_exec = venv_python if os.path.exists(venv_python) else sys.executable
+
     # 1. Start FastAPI Backend via uvicorn
     backend_cmd = [
-        sys.executable, "-m", "uvicorn",
+        python_exec, "-m", "uvicorn",
         "main:app",
         "--host", "127.0.0.1",
         "--port", "8000"
@@ -49,7 +52,7 @@ def main():
     frontend_process = None
     portal_dir = os.path.join(FRONTEND_DIR, "frontend")
     serve_target = portal_dir if os.path.exists(portal_dir) else FRONTEND_DIR
-    frontend_cmd = [sys.executable, "-m", "http.server", "3000", "--directory", serve_target]
+    frontend_cmd = [python_exec, "-m", "http.server", "3000", "--directory", serve_target]
     try:
         frontend_process = subprocess.Popen(
             frontend_cmd,
