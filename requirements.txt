@@ -17,3 +17,4 @@ PyJWT
 google-auth
 sqlalchemy
 pymysql
+beautiful
