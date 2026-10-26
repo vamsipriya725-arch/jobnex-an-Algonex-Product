@@ -51,24 +51,42 @@
     <div class="max-w-4xl mx-auto">
       <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex flex-col h-[78vh]">
         <!-- Top Header -->
-        <div class="px-6 py-4 bg-gradient-to-r from-slate-900 via-brand-950 to-slate-900 text-white flex items-center justify-between border-b border-brand-500/20">
+        <div class="px-4 sm:px-6 py-4 bg-gradient-to-r from-slate-900 via-brand-950 to-slate-900 text-white flex items-center justify-between border-b border-brand-500/20">
           <div class="flex items-center gap-3">
-            <div class="w-10 h-10 rounded-xl bg-brand-500 flex items-center justify-center text-white shadow-md">
+            <div class="relative w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-600 via-brand-500 to-indigo-500 flex items-center justify-center text-white shadow-md shrink-0 border border-brand-400/40">
               <i data-lucide="bot" class="w-6 h-6 animate-pulse"></i>
+              <span class="absolute -top-1 -right-1 flex h-3 w-3">
+                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span class="relative inline-flex rounded-full h-3 w-3 bg-emerald-500 border-2 border-slate-900"></span>
+              </span>
             </div>
             <div>
               <div class="flex items-center gap-2">
-                <h1 class="font-semibold text-base tracking-tight text-white m-0">JobNex AI Assistant</h1>
-                <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+                <h1 class="font-semibold text-sm sm:text-base tracking-tight text-white m-0">JobNex AI Career Agent</h1>
+                <span class="text-[10px] bg-emerald-500/20 text-emerald-300 font-semibold px-2 py-0.5 rounded-full border border-emerald-500/30 flex items-center gap-1">
+                  <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                  Online
+                </span>
               </div>
-              <p class="text-[11px] text-slate-300 m-0">
-                I'm here to help you with jobs, courses, interview prep and more!
+              <p class="text-[11px] text-slate-300 m-0 line-clamp-1">
+                Real-time career copilot • Job search, skills, and interview prep
               </p>
             </div>
           </div>
 
-          <div class="text-[10px] bg-brand-500/20 border border-brand-400/30 px-2.5 py-1 rounded-full text-brand-300 font-bold uppercase tracking-wider hidden sm:block">
-            Gemini 3.8 Flash • Online
+          <div class="flex items-center gap-2">
+            <div class="text-[10px] bg-brand-500/20 border border-brand-400/30 px-2.5 py-1 rounded-full text-brand-300 font-bold uppercase tracking-wider hidden sm:block">
+              Gemini AI • Connected
+            </div>
+            <button
+              type="button"
+              id="clear-chat-btn"
+              title="Clear conversation history"
+              class="p-2 rounded-lg bg-white/10 hover:bg-white/20 text-slate-200 hover:text-white transition-all text-xs flex items-center gap-1 cursor-pointer"
+            >
+              <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+              <span class="hidden md:inline">Reset</span>
+            </button>
           </div>
         </div>
 

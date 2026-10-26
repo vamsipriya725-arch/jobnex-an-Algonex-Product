@@ -13,13 +13,25 @@ ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
 BACKEND_DIR = os.path.join(ROOT_DIR, "backend")
 FRONTEND_DIR = os.path.join(ROOT_DIR, "Frontend")
 
+if sys.platform == "win32":
+    try:
+        if hasattr(sys.stdout, "reconfigure"):
+            sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+        if hasattr(sys.stderr, "reconfigure"):
+            sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
+
 def main():
     print("=" * 60)
-    print("🚀 Starting JobNex Integrated Environment")
+    print("[JobNex] Starting Integrated Environment")
     print("=" * 60)
-    print("📡 Backend:   http://127.0.0.1:8000 (FastAPI API & Docs)")
-    print("📡 Frontend:  http://localhost:3000 (Career Portal & Auth)")
+    print(">> Backend:   http://127.0.0.1:8000 (FastAPI API & Docs)")
+    print(">> Frontend:  http://localhost:3000 (Career Portal & Auth)")
+    print(">> AI Agent:  http://127.0.0.1:8000/frontend/pages/ai-assistant.html")
     print("=" * 60)
+
+    os.environ["DISABLE_SQLALCHEMY_CEXT"] = "1"
 
     # 1. Start FastAPI Backend via uvicorn
     backend_cmd = [
@@ -33,23 +45,23 @@ def main():
         cwd=BACKEND_DIR
     )
 
-    # 2. Start Frontend dev server via node
+    # 2. Start Frontend server on port 3000
     frontend_process = None
-    serve_js = os.path.join(FRONTEND_DIR, "serve.js")
-    if os.path.exists(serve_js):
-        frontend_cmd = ["node", "serve.js"]
-        try:
-            frontend_process = subprocess.Popen(
-                frontend_cmd,
-                cwd=FRONTEND_DIR
-            )
-        except Exception as e:
-            print(f"⚠️ Could not start Node frontend server ({e}). Backend running standalone.")
+    portal_dir = os.path.join(FRONTEND_DIR, "frontend")
+    serve_target = portal_dir if os.path.exists(portal_dir) else FRONTEND_DIR
+    frontend_cmd = [sys.executable, "-m", "http.server", "3000", "--directory", serve_target]
+    try:
+        frontend_process = subprocess.Popen(
+            frontend_cmd,
+            cwd=ROOT_DIR
+        )
+    except Exception as e:
+        print(f"[Warning] Could not start Frontend server ({e}). Backend running standalone.")
 
-    print("\n✅ System active! Press Ctrl+C to terminate both servers cleanly.\n")
+    print("\n[OK] System active! Press Ctrl+C to terminate both servers cleanly.\n")
 
     def shutdown(sig, frame):
-        print("\n🛑 Shutting down JobNex servers...")
+        print("\n[JobNex] Shutting down servers...")
         if frontend_process:
             frontend_process.terminate()
         if backend_process:

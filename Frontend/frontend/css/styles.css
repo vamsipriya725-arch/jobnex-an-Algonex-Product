@@ -258,3 +258,28 @@ body {
 .card-shake {
   animation: cardShake 0.5s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
 }
+
+/* JobNex Floating Robo Agent Launcher */
+#jobnex-robo-launcher {
+  animation: robo-float-entrance 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes robo-float-entrance {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+#jobnex-robo-fab:hover svg {
+  animation: robo-wiggle 0.35s ease-in-out infinite alternate;
+}
+
+@keyframes robo-wiggle {
+  0% { transform: rotate(-6deg) scale(1.08); }
+  100% { transform: rotate(6deg) scale(1.08); }
+}
