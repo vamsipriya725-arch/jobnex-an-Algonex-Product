@@ -12,7 +12,7 @@ function updateNavbarUser() {
 
   const isInsidePages = window.location.pathname.includes("/pages/");
   const loginUrl = isInsidePages ? "login.html" : "pages/login.html";
-  const resumeUrl = isInsidePages ? "resume-privacy.html" : "pages/resume-privacy.html";
+  const resumeUrl = isInsidePages ? "resume-analyzer.html" : "pages/resume-analyzer.html";
 
   if (loggedIn) {
     authSection.innerHTML = `
@@ -54,14 +54,13 @@ function initNav(activePageName) {
   // Update navigation links dynamically
   const links = [
     { id: "nav-home", href: homePrefix + "index.html", key: "home" },
-    { id: "nav-jobs", href: prefix + "jobs.html", key: "jobs" },
-    { id: "nav-resources", href: prefix + "resources.html", key: "resources" },
+    { id: "nav-analyzer", href: prefix + "resume-analyzer.html", key: "resume-analyzer" },
+    { id: "nav-privacy", href: prefix + "resume-analyzer.html", key: "resume-analyzer" },
     { id: "nav-interview", href: prefix + "interview-prep.html", key: "interview-prep" },
     { id: "nav-skills", href: prefix + "skill-gap.html", key: "skill-gap" },
     { id: "nav-autoapply", href: prefix + "auto-apply.html", key: "auto-apply" },
     { id: "nav-referral", href: prefix + "cold-referral.html", key: "cold-referral" },
     { id: "nav-dashboard", href: prefix + "dashboard.html", key: "dashboard" },
-    { id: "nav-privacy", href: prefix + "resume-privacy.html", key: "resume-privacy" },
     { id: "nav-ai", href: prefix + "ai-assistant.html", key: "ai-assistant" },
   ];
 

@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Resume Analysis & Blind Privacy | JobNex</title>
-  <meta name="description" content="AI resume parser, job description keyword matching, and recruiter-blind privacy controls to protect candidate confidentiality.">
+  <title>Resume Analyzer | JobNex</title>
+  <meta name="description" content="Analyze your resume against any job description. Get ready to see your resume fit with instant ATS match score, keyword analysis, and actionable suggestions.">
   <link rel="icon" type="image/svg+xml" href="../assets/favicon.svg">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -47,330 +47,206 @@
 <body class="bg-slate-50 text-slate-900 font-sans min-h-screen flex flex-col">
   <div id="navbar-container"></div>
 
-  <main class="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8 w-full">
-    <!-- Header -->
-    <div class="bg-white rounded-xl p-6 sm:p-8 border border-slate-200 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-      <div class="flex items-center gap-3">
-        <div class="w-12 h-12 rounded-lg bg-gradient-to-tr from-brand-600 to-accent-violet flex items-center justify-center text-white shadow-md">
-          <i data-lucide="shield-check" class="w-6 h-6"></i>
+  <main class="flex-1 max-w-5xl mx-auto px-4 sm:px-6 py-8 space-y-6 w-full">
+    <!-- Header Banner -->
+    <div class="bg-white rounded-2xl p-6 sm:p-8 border border-slate-200 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+      <div class="flex items-center gap-4">
+        <div class="w-14 h-14 rounded-2xl bg-gradient-to-tr from-brand-600 via-brand-500 to-indigo-600 flex items-center justify-center text-white shadow-md shrink-0">
+          <i data-lucide="file-search" class="w-7 h-7"></i>
         </div>
         <div>
-          <h1 class="text-2xl font-semibold text-slate-900 tracking-tight m-0">
-            Resume Analysis & Blind Privacy
-          </h1>
-          <p class="text-xs text-slate-700 m-0">
-            Upload your resume, compare against any JD, and control recruiter visibility settings
+          <div class="flex items-center gap-2">
+            <h1 class="text-2xl font-bold text-slate-900 tracking-tight m-0">Resume Analyzer</h1>
+            <span class="inline-flex items-center gap-1 bg-emerald-50 text-emerald-700 border border-emerald-200 text-[11px] font-bold px-2.5 py-0.5 rounded-full">
+              <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+              ATS Powered
+            </span>
+          </div>
+          <p class="text-xs sm:text-sm text-slate-600 mt-1 m-0">
+            Get ready to see your Resume fit for given Job description
           </p>
         </div>
       </div>
 
-      <!-- Navigation Tabs -->
-      <div class="flex items-center gap-2 bg-slate-100 p-1.5 rounded-xl border border-slate-200">
-        <button
-          id="tab-btn-resume"
-          type="button"
-          class="px-4 py-2 rounded-lg text-xs font-bold transition-all bg-white text-slate-900 shadow-xs cursor-pointer"
-        >
-          Resume & JD Match
-        </button>
-        <button
-          id="tab-btn-privacy"
-          type="button"
-          class="px-4 py-2 rounded-lg text-xs font-bold transition-all text-slate-600 hover:text-slate-900 cursor-pointer"
-        >
-          Blind Privacy Settings
-        </button>
+      <div class="flex items-center gap-2">
+        <a href="ai-assistant.html" class="inline-flex items-center gap-2 px-3.5 py-2 text-xs font-semibold rounded-xl bg-brand-50 text-brand-700 hover:bg-brand-100 transition-colors border border-brand-200">
+          <i data-lucide="bot" class="w-4 h-4 text-brand-600"></i>
+          <span>Ask AI Agent</span>
+        </a>
       </div>
     </div>
 
-    <!-- Notification Banner -->
-    <div id="resume-toast-notification" class="hidden p-4 bg-emerald-50 rounded-lg border border-emerald-200 text-emerald-900 text-xs font-bold flex items-center gap-3">
-      <i data-lucide="check-circle-2" class="w-5 h-5 text-emerald-600 shrink-0"></i>
-      <span id="resume-toast-text"></span>
-    </div>
-
-    <!-- TAB 1: RESUME & JD MATCH -->
-    <div id="section-resume-tab" class="space-y-8">
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <!-- Left: Upload & JD Input -->
-        <div class="space-y-6">
-          <!-- Resume Upload Box -->
-          <div class="bg-white rounded-xl p-6 border border-slate-200 shadow-xs space-y-4">
-            <h2 class="text-base font-semibold text-slate-900 m-0 flex items-center justify-between">
-              <span>Active Resume Document</span>
-              <span class="text-[10px] font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full">
-                ATS Verified
-              </span>
-            </h2>
-
-            <div class="p-4 bg-slate-50 rounded-xl border border-slate-200 flex items-center justify-between">
-              <div class="flex items-center gap-3">
-                <div class="w-10 h-10 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-brand-600 shrink-0">
-                  <i data-lucide="file-text" class="w-5 h-5"></i>
-                </div>
-                <div>
-                  <p id="display-resume-filename" class="text-xs font-bold text-slate-900 m-0">No resume file uploaded yet</p>
-                  <p class="text-[10px] text-slate-600 m-0">Click Replace File to upload PDF or DOCX</p>
-                </div>
-              </div>
-              <label for="resume-file-input" class="bg-white hover:bg-slate-100 text-slate-800 text-xs font-bold px-3 py-1.5 rounded-lg border border-slate-200 transition-all cursor-pointer">
-                Replace File
-              </label>
-              <input id="resume-file-input" type="file" accept=".pdf,.doc,.docx" class="hidden" />
-            </div>
-
-            <!-- Parsed Summary -->
-            <div class="space-y-2 pt-2">
-              <span class="text-xs font-bold text-slate-700">Parsed Technical Core:</span>
-              <div id="parsed-technical-core" class="flex flex-wrap gap-1.5">
-                <span class="text-xs text-slate-500 italic">Upload your resume document to parse technical core</span>
-              </div>
-            </div>
-          </div>
-
-          <!-- Target Job Description Input -->
-          <div class="bg-white rounded-xl p-6 border border-slate-200 shadow-xs space-y-4">
-            <div class="flex items-center justify-between">
-              <h2 class="text-base font-semibold text-slate-900 m-0">Target Job Description</h2>
-              <div class="flex items-center gap-1.5">
-                <button id="btn-sample-frontend" type="button" class="text-[11px] font-bold text-brand-600 hover:bg-brand-50 px-2 py-1 rounded cursor-pointer">Sample Frontend</button>
-                <span class="text-slate-300">•</span>
-                <button id="btn-sample-ds" type="button" class="text-[11px] font-bold text-brand-600 hover:bg-brand-50 px-2 py-1 rounded cursor-pointer">Data Science</button>
-              </div>
-            </div>
-
-            <!-- Fetch JD from URL Input Bar -->
+    <!-- Analyze Form Container -->
+    <div class="bg-white rounded-2xl p-6 sm:p-8 border border-slate-200 shadow-sm space-y-6">
+      <form id="analyze-Form" class="space-y-6">
+        <!-- Give Resume Section -->
+        <div class="space-y-2">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <label for="resume_text" class="text-sm font-bold text-slate-900 flex items-center gap-2">
+              <i data-lucide="file-text" class="w-4 h-4 text-brand-600"></i>
+              <span>Give Resume</span>
+            </label>
             <div class="flex items-center gap-2">
-              <div class="relative flex-1">
-                <i data-lucide="link" class="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2"></i>
-                <input
-                  id="jd-url-input"
-                  type="url"
-                  placeholder="Paste Job URL (e.g. LinkedIn, Indeed, Career page)..."
-                  class="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-900 outline-none focus:border-brand-500 focus:bg-white"
-                />
-              </div>
-              <button
-                id="btn-fetch-jd-url"
-                type="button"
-                class="bg-slate-800 hover:bg-slate-900 text-white font-bold text-xs px-3.5 py-2 rounded-lg transition-all flex items-center gap-1.5 shrink-0 cursor-pointer"
-              >
-                <i data-lucide="globe" class="w-3.5 h-3.5"></i>
-                <span>Fetch JD from URL</span>
+              <label for="resume_file" class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg cursor-pointer border border-slate-200 transition-all">
+                <i data-lucide="upload" class="w-3.5 h-3.5 text-slate-600"></i>
+                <span id="file-label-text">Upload File (.pdf, .docx, .txt)</span>
+              </label>
+              <input type="file" id="resume_file" accept=".pdf,.doc,.docx,.txt" class="hidden">
+              <button type="button" id="btn-sample-resume" class="px-2.5 py-1.5 text-xs font-semibold text-brand-600 hover:bg-brand-50 rounded-lg transition-all">
+                Load Sample
               </button>
             </div>
-
-            <textarea
-              id="jd-textarea-input"
-              rows="6"
-              class="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 outline-none focus:border-brand-500 focus:bg-white font-mono leading-relaxed"
-              placeholder="Paste job description text here, or enter a URL above and click 'Fetch JD from URL'..."
-            ></textarea>
-
-            <button
-              id="btn-analyze-jd"
-              type="button"
-              class="w-full bg-brand-600 hover:bg-brand-700 text-white font-bold text-xs py-3 rounded-xl shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer"
-            >
-              <i data-lucide="sparkles" class="w-4 h-4"></i>
-              <span>Analyze Resume against Job Description</span>
-            </button>
-
-            <button
-              id="btn-generate-ats-resume"
-              type="button"
-              class="w-full bg-gradient-to-r from-indigo-600 to-brand-600 hover:from-indigo-700 hover:to-brand-700 text-white font-bold text-xs py-3 rounded-xl shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer mt-2"
-            >
-              <i data-lucide="file-check" class="w-4 h-4"></i>
-              <span>Generate Tailored ATS Resume (.docx) with Gemini AI</span>
-            </button>
           </div>
+          <textarea
+            id="resume_text"
+            name="resume_text"
+            rows="8"
+            class="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-900 outline-none focus:border-brand-500 focus:bg-white font-mono leading-relaxed transition-all"
+            placeholder="Upload your resume here or paste raw text..."
+            required
+          ></textarea>
         </div>
 
-        <!-- Right: Real-time Analysis Scorecard & ATS Generation -->
-        <div class="bg-white rounded-xl p-6 sm:p-8 border border-slate-200 shadow-xs space-y-6">
-          <!-- ATS Generated Document Result Card (shown when generated) -->
-          <div id="ats-generated-card" class="hidden p-5 rounded-xl bg-gradient-to-b from-indigo-50/80 to-slate-50 border border-indigo-200 space-y-3.5">
-            <div class="flex items-center justify-between">
-              <div class="flex items-center gap-2">
-                <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                <h3 class="font-bold text-xs text-indigo-950 uppercase tracking-wider m-0">ATS-Optimized Resume Generated</h3>
-              </div>
-              <span id="ats-tailored-score-badge" class="text-xs font-bold px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200"></span>
-            </div>
-            <div>
-              <p id="ats-headline-text" class="text-xs font-bold text-slate-800 m-0"></p>
-              <p id="ats-summary-text" class="text-xs text-slate-600 mt-1.5 leading-relaxed m-0"></p>
-            </div>
-            <div class="pt-1">
-              <a id="btn-download-ats-docx" href="#" target="_blank" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs py-2.5 px-4 rounded-xl shadow-sm text-center flex items-center justify-center gap-2 transition-all cursor-pointer">
-                <i data-lucide="download" class="w-4 h-4"></i>
-                <span>Download ATS Word Document (.docx)</span>
-              </a>
+        <!-- Job Description Section -->
+        <div class="space-y-2">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <label for="jd_text" class="text-sm font-bold text-slate-900 flex items-center gap-2">
+              <i data-lucide="briefcase" class="w-4 h-4 text-brand-600"></i>
+              <span>Job description</span>
+            </label>
+            <div class="flex items-center gap-2">
+              <button type="button" id="btn-sample-frontend-jd" class="px-2.5 py-1.5 text-xs font-semibold text-brand-600 hover:bg-brand-50 rounded-lg transition-all">
+                Sample Frontend
+              </button>
+              <span class="text-slate-300">•</span>
+              <button type="button" id="btn-sample-ai-jd" class="px-2.5 py-1.5 text-xs font-semibold text-brand-600 hover:bg-brand-50 rounded-lg transition-all">
+                Sample AI/Backend
+              </button>
             </div>
           </div>
+          <textarea
+            id="jd_text"
+            name="jd_text"
+            rows="8"
+            class="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-900 outline-none focus:border-brand-500 focus:bg-white font-mono leading-relaxed transition-all"
+            placeholder="Paste your JD here..."
+            required
+          ></textarea>
+        </div>
 
-          <div class="flex items-center justify-between pb-4 border-b border-slate-100">
-            <div class="flex items-center gap-2">
-              <h2 class="text-base font-semibold text-slate-900 m-0">ATS Match Analysis Scorecard</h2>
-              <span class="inline-flex items-center gap-1 bg-gradient-to-r from-blue-600 to-indigo-600 text-white text-[9px] font-bold px-2 py-0.5 rounded-full">
-                <i data-lucide="sparkles" class="w-2.5 h-2.5"></i> Gemini AI
-              </span>
+        <!-- Action Button -->
+        <div>
+          <button
+            type="submit"
+            id="analyze-button"
+            class="w-full sm:w-auto px-8 py-3.5 bg-gradient-to-r from-brand-600 to-indigo-600 hover:from-brand-700 hover:to-indigo-700 text-white font-bold text-sm rounded-xl shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer"
+          >
+            <i data-lucide="sparkles" class="w-4 h-4"></i>
+            <span>Analyze-Resume</span>
+          </button>
+        </div>
+      </form>
+
+      <!-- Status Notification Paragraph -->
+      <p id="status" role="status" class="text-xs sm:text-sm font-semibold text-slate-600 min-h-[20px] transition-colors"></p>
+
+      <!-- Results Section -->
+      <section id="results" hidden class="space-y-6 pt-4 border-t border-slate-200">
+        <!-- Visual Scorecard -->
+        <div class="bg-gradient-to-br from-slate-50 to-brand-50/40 rounded-2xl p-6 sm:p-8 border border-slate-200 space-y-6">
+          <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div class="flex items-center gap-5">
+              <div class="w-20 h-20 rounded-full border-4 border-brand-500 bg-white flex items-center justify-center shadow-md shrink-0">
+                <span id="visual-score-value" class="text-2xl font-extrabold text-brand-700">0%</span>
+              </div>
+              <div>
+                <h3 class="text-lg font-bold text-slate-900 m-0">ATS Match Score</h3>
+                <p id="score-summary-text" class="text-xs text-slate-600 mt-1 m-0">Analysis of your resume against the provided Job Description.</p>
+              </div>
             </div>
-            <span id="match-level-badge" class="text-xs font-bold px-3 py-1 rounded-full bg-slate-100 text-slate-700">
-              Ready to Analyze
+            <span id="match-status-badge" class="px-3.5 py-1 rounded-full text-xs font-bold bg-slate-200 text-slate-800">
+              Computed
             </span>
           </div>
 
-          <div class="flex items-center gap-6 p-4 rounded-xl bg-gradient-to-r from-brand-50 to-emerald-50/50 border border-brand-100">
-            <div class="w-20 h-20 rounded-full border-4 border-slate-300 flex items-center justify-center bg-white shadow-xs shrink-0">
-              <span id="scorecard-score-value" class="text-2xl font-bold text-slate-600">0%</span>
-            </div>
-            <div>
-              <h3 class="font-bold text-sm text-slate-900 m-0">ATS Optimization Index</h3>
-              <p id="scorecard-summary-text" class="text-xs text-slate-600 mt-1 m-0">
-                Upload your resume and enter a Job Description or Job URL to compute your ATS match index.
-              </p>
-            </div>
-          </div>
-
-          <div class="space-y-4">
-            <div>
-              <span class="text-xs font-bold text-emerald-800 block mb-2">Matched Key Qualifications:</span>
-              <div id="matched-skills-list" class="flex flex-wrap gap-1.5">
-                <span class="text-xs text-slate-500 italic">No matches detected yet</span>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+            <!-- Matched Skills -->
+            <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-xs space-y-2">
+              <div class="flex items-center gap-2 text-xs font-bold text-emerald-800 uppercase tracking-wider">
+                <i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-600"></i>
+                <span>Matched Skills</span>
+              </div>
+              <div id="matched-skills-container" class="flex flex-wrap gap-1.5 pt-1">
+                <span class="text-xs text-slate-400 italic">None detected</span>
               </div>
             </div>
 
-            <div>
-              <span class="text-xs font-bold text-rose-800 block mb-2">Missing or Weak Signals:</span>
-              <div id="missing-skills-list" class="flex flex-wrap gap-1.5">
-                <span class="text-xs text-slate-500 italic">No missing requirements detected yet</span>
+            <!-- Missing Skills -->
+            <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-xs space-y-2">
+              <div class="flex items-center gap-2 text-xs font-bold text-rose-800 uppercase tracking-wider">
+                <i data-lucide="alert-triangle" class="w-4 h-4 text-rose-600"></i>
+                <span>Missing Requirements</span>
+              </div>
+              <div id="missing-skills-container" class="flex flex-wrap gap-1.5 pt-1">
+                <span class="text-xs text-slate-400 italic">None detected</span>
               </div>
             </div>
-
-            <div class="p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-2">
-              <span class="text-xs font-bold text-slate-900 block">AI Tailoring Recommendations:</span>
-              <ul id="ai-recommendations-list" class="text-xs text-slate-700 space-y-1.5 pl-4 list-disc m-0">
-                <li class="text-xs text-slate-500 italic">Actionable recommendations tailored to your uploaded document will appear here after analysis.</li>
-              </ul>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- TAB 2: BLIND PRIVACY SETTINGS -->
-    <div id="section-privacy-tab" class="hidden space-y-6">
-      <div class="bg-white rounded-xl p-6 sm:p-8 border border-slate-200 shadow-xs space-y-6">
-        <div class="flex items-center justify-between pb-4 border-b border-slate-100">
-          <div>
-            <h2 class="text-base font-semibold text-slate-900 m-0">Blind Candidate Privacy Controls</h2>
-            <p class="text-xs text-slate-700 m-0">
-              Prevent bias and prevent current employer detection by masking PII before hiring review.
-            </p>
-          </div>
-          <button
-            id="btn-preview-recruiter-view"
-            type="button"
-            class="bg-slate-100 hover:bg-brand-50 hover:text-brand-700 text-slate-700 font-bold text-xs px-4 py-2 rounded-xl border border-slate-200 transition-all flex items-center gap-1.5 cursor-pointer"
-          >
-            <i data-lucide="eye" class="w-4 h-4"></i>
-            <span>Live Recruiter Preview</span>
-          </button>
-        </div>
-
-        <div class="space-y-4">
-          <!-- Setting 1: Mask Current Employer -->
-          <div class="p-4 bg-slate-50 rounded-xl border border-slate-200 flex items-center justify-between">
-            <div class="space-y-0.5">
-              <span class="text-xs font-bold text-slate-900 block">Mask Current Employer Name</span>
-              <p class="text-[11px] text-slate-600 m-0">
-                Replaces current company name with &quot;Leading Tech Enterprise&quot; to preserve current job confidentiality.
-              </p>
-            </div>
-            <input id="toggle-mask-employer" type="checkbox" checked class="w-5 h-5 accent-brand-600 cursor-pointer" />
           </div>
 
-          <!-- Setting 2: Mask Contact Info -->
-          <div class="p-4 bg-slate-50 rounded-xl border border-slate-200 flex items-center justify-between">
-            <div class="space-y-0.5">
-              <span class="text-xs font-bold text-slate-900 block">Mask Phone Number and Personal Email</span>
-              <p class="text-[11px] text-slate-600 m-0">
-                Recruiters contact you via relay messaging until an official interview is accepted.
-              </p>
-            </div>
-            <input id="toggle-mask-contact" type="checkbox" checked class="w-5 h-5 accent-brand-600 cursor-pointer" />
+          <!-- Suggestions List -->
+          <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-xs space-y-3">
+            <h4 class="text-xs font-bold text-slate-900 uppercase tracking-wider flex items-center gap-2 m-0">
+              <i data-lucide="lightbulb" class="w-4 h-4 text-amber-500"></i>
+              <span>Optimization Suggestions</span>
+            </h4>
+            <ul id="suggestions-container" class="space-y-1.5 pl-4 list-disc text-xs text-slate-700 m-0">
+              <li class="italic text-slate-400">Suggestions will appear here</li>
+            </ul>
           </div>
 
-          <!-- Setting 3: Anonymous Avatar -->
-          <div class="p-4 bg-slate-50 rounded-xl border border-slate-200 flex items-center justify-between">
-            <div class="space-y-0.5">
-              <span class="text-xs font-bold text-slate-900 block">Anonymous Silhouette Profile Avatar</span>
-              <p class="text-[11px] text-slate-600 m-0">
-                Removes profile photos to eliminate subconscious demographic bias in initial screening.
-              </p>
-            </div>
-            <input id="toggle-anon-avatar" type="checkbox" checked class="w-5 h-5 accent-brand-600 cursor-pointer" />
+          <!-- Download ATS Resume docx button -->
+          <div class="flex flex-wrap items-center justify-between gap-3 pt-2">
+            <p class="text-xs text-slate-500 m-0">Saved to MySQL Workbench records automatically.</p>
+            <button
+              type="button"
+              id="btn-download-tailored-resume"
+              class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl shadow-xs transition-all flex items-center gap-2 cursor-pointer"
+            >
+              <i data-lucide="download" class="w-3.5 h-3.5"></i>
+              <span>Generate Tailored ATS Document (.docx)</span>
+            </button>
           </div>
         </div>
 
-        <div class="pt-2 flex justify-end">
-          <button
-            id="btn-save-privacy"
-            type="button"
-            class="bg-brand-600 hover:bg-brand-700 text-white font-bold text-xs px-6 py-2.5 rounded-xl shadow-md transition-all cursor-pointer"
-          >
-            Save Privacy Settings
-          </button>
+        <!-- Raw Analyze Results (Restored from Old Resume Analyzer) -->
+        <div class="space-y-3">
+          <div class="flex items-center justify-between">
+            <h2 class="text-base font-bold text-slate-900 m-0 flex items-center gap-2">
+              <i data-lucide="code" class="w-4 h-4 text-brand-600"></i>
+              <span>Analyze Results</span>
+            </h2>
+            <button
+              type="button"
+              id="btn-copy-results-json"
+              class="px-2.5 py-1 text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg border border-slate-200 transition-all flex items-center gap-1.5 cursor-pointer"
+            >
+              <i data-lucide="copy" class="w-3 h-3"></i>
+              <span>Copy JSON</span>
+            </button>
+          </div>
+          <pre id="result-data" class="bg-slate-900 text-emerald-400 p-4 sm:p-5 rounded-2xl text-xs font-mono overflow-x-auto whitespace-pre-wrap leading-relaxed shadow-inner max-h-96"></pre>
         </div>
-      </div>
+      </section>
     </div>
   </main>
 
-  <!-- Live Recruiter Preview Modal -->
-  <div id="recruiter-preview-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-4">
-    <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 space-y-5 animate-in zoom-in-95">
-      <div class="flex items-center justify-between pb-3 border-b border-slate-100">
-        <div class="flex items-center gap-2">
-          <i data-lucide="eye" class="w-4 h-4 text-brand-600"></i>
-          <h3 class="font-bold text-sm text-slate-900 m-0">What Recruiters See (Blind Profile)</h3>
-        </div>
-        <button id="btn-close-preview-modal" type="button" class="p-1 rounded-lg text-slate-400 hover:text-slate-600 cursor-pointer">
-          <i data-lucide="x" class="w-5 h-5"></i>
-        </button>
-      </div>
-
-      <div class="p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-3">
-        <div class="flex items-center gap-3">
-          <div class="w-12 h-12 rounded-full bg-slate-200 flex items-center justify-center text-slate-500 font-bold">
-            <i data-lucide="user" class="w-6 h-6"></i>
-          </div>
-          <div>
-            <h4 class="font-bold text-sm text-slate-900 m-0">Candidate #SK-8419 (Anonymous)</h4>
-            <p class="text-xs text-brand-600 font-semibold m-0">Full-Stack Engineer • 2+ Years Exp</p>
-          </div>
-        </div>
-
-        <div class="pt-2 border-t border-slate-200 text-xs text-slate-700 space-y-1">
-          <p class="m-0"><strong>Current Company:</strong> <span class="text-slate-500 italic">Leading Tech Enterprise (Masked)</span></p>
-          <p class="m-0"><strong>Location:</strong> India / Remote-Eligible</p>
-          <p class="m-0"><strong>Contact:</strong> <span class="text-slate-500 italic">relay-sk8419@jobnex.in (Relay Protected)</span></p>
-        </div>
-      </div>
-
-      <button id="btn-close-preview-modal-footer" type="button" class="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs py-2.5 rounded-xl transition-all cursor-pointer">
-        Close Preview
-      </button>
-    </div>
-  </div>
-
   <div id="footer-container"></div>
 
-  <script src="../data/mock-data.js"></script>
-  <script src="../js/utils.js"></script>
-  <script src="../js/auth.js"></script>
-  <script src="../js/nav.js"></script>
-  <script src="../js/resume-privacy.js"></script>
+  <!-- Scripts -->
+  <script src="../data/mock-data.js?v=2.2"></script>
+  <script src="../js/utils.js?v=2.2"></script>
+  <script src="../js/auth.js?v=2.2"></script>
+  <script src="../js/nav.js?v=2.2"></script>
+  <script src="../js/resume-analyzer.js?v=2.2"></script>
 </body>
 </html>

@@ -197,12 +197,14 @@ class TestAIAgentProduction(unittest.TestCase):
             self.assertEqual(mock_client.attempts[0], "model-primary")
 
     def test_gemini_missing_key_graceful_fallback(self):
-        with mock.patch.dict(os.environ, {}, clear=True):
-            # Without GEMINI_API_KEY, ChatbotAssistant must not crash, but return a friendly fallback
-            bot = ChatbotAssistant(resource_provider=lambda s: {})
-            res = bot.chat("Can you write a cover letter for me?")
-            self.assertEqual(res["source"], "fallback")
-            self.assertIn("JobNex", res["reply"])
+        def _no_key_gen(*args, **kwargs):
+            raise RuntimeError("GEMINI_API_KEY was not found")
+
+        # Without GEMINI_API_KEY, ChatbotAssistant must not crash, but return a friendly fallback
+        bot = ChatbotAssistant(ai_generator=_no_key_gen, resource_provider=lambda s: {})
+        res = bot.chat("Can you write a cover letter for me?")
+        self.assertEqual(res["source"], "fallback")
+        self.assertIn("JobNex", res["reply"])
 
 
 if __name__ == "__main__":
