@@ -643,6 +643,7 @@ ${activeJd}
       }
 
       displayAnalysisData(analysisData);
+      lastTailoredResumeResult = analysisData;
       persistAnalysisToMySQL(analysisData, resume, activeJd);
       if (window.JobNexUtils) window.JobNexUtils.playSound("success");
       showToast(`Analysis complete! Stored in MySQL Workbench (resume_analyzer) - Match: ${analysisData.matched_score}%`);
@@ -766,6 +767,7 @@ ${activeJd}
           ats_score: tailoredResult.ats_score || tailoredResult.matched_score || 92,
           headline: tailoredResult.headline,
           summary: tailoredResult.summary,
+          raw_resume_text: resume,
         });
         lastGeneratedResumeText = window.ResumePanel.resumeText;
       }
@@ -787,7 +789,13 @@ ${activeJd}
   if (openResumePanelBtn) {
     openResumePanelBtn.addEventListener("click", () => {
       if (window.ResumePanel) {
-        window.ResumePanel.open(lastGeneratedResumeText || lastTailoredResumeResult || currentResumeText);
+        const resume = currentResumeText || (resumeTextarea ? resumeTextarea.value.trim() : "");
+        window.ResumePanel.open(lastGeneratedResumeText || lastTailoredResumeResult || resume, {
+          ats_score: lastTailoredResumeResult?.ats_score || lastTailoredResumeResult?.matched_score || 90,
+          headline: lastTailoredResumeResult?.headline,
+          summary: lastTailoredResumeResult?.summary,
+          raw_resume_text: resume,
+        });
       }
     });
   }
