@@ -17,4 +17,3 @@ PyJWT
 google-auth
 sqlalchemy
 pymysql
-beautifulsoul4

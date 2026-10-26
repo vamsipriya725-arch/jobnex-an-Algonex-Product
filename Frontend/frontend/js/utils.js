@@ -74,12 +74,13 @@ function showToast(message, type = "success") {
   }, 3500);
 }
 
-// Reusable HTML Component Includer
+// Reusable HTML Component Includer with Cache-Busting
 async function loadComponent(targetId, componentRelativePath) {
   const container = document.getElementById(targetId);
   if (!container) return;
   try {
-    const res = await fetch(componentRelativePath);
+    const bustUrl = componentRelativePath + (componentRelativePath.includes("?") ? "&" : "?") + "v=" + Date.now();
+    const res = await fetch(bustUrl, { cache: "no-store" });
     if (!res.ok) throw new Error(`Failed to load ${componentRelativePath}`);
     const html = await res.text();
     container.innerHTML = html;

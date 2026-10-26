@@ -19,6 +19,7 @@ import logging
 import os
 import re
 import threading
+import time
 import uuid
 from collections import OrderedDict
 from typing import Any, Callable, Dict, List, Optional, Tuple
@@ -26,6 +27,111 @@ from typing import Any, Callable, Dict, List, Optional, Tuple
 from suggestions_resources import pretty_skill, suggest_resources
 
 logger = logging.getLogger(__name__)
+
+
+# ------------------------------------------------------------ rate limiting
+class ChatRateLimiter:
+    """Thread-safe sliding-window rate limiter per session or client IP."""
+
+    def __init__(self, max_requests: int = 30, window_seconds: int = 60):
+        self.max_requests = max_requests
+        self.window_seconds = window_seconds
+        self.records: Dict[str, List[float]] = {}
+        self._lock = threading.Lock()
+
+    def check(self, key: str) -> bool:
+        if not key:
+            return True
+        now = time.time()
+        with self._lock:
+            timestamps = self.records.setdefault(key, [])
+            cutoff = now - self.window_seconds
+            self.records[key] = [t for t in timestamps if t > cutoff]
+            if len(self.records[key]) >= self.max_requests:
+                return False
+            self.records[key].append(now)
+            return True
+
+    def reset(self, key: Optional[str] = None):
+        with self._lock:
+            if key:
+                self.records.pop(key, None)
+            else:
+                self.records.clear()
+
+
+chat_rate_limiter = ChatRateLimiter(max_requests=30, window_seconds=60)
+
+
+# ------------------------------------------------- authorized database tools
+def _get_db_connection():
+    try:
+        from database import get_connection
+        return get_connection()
+    except Exception as e:
+        logger.debug("Database connection unavailable for assistant: %s", e)
+        return None
+
+
+def search_database_jobs(query: str, limit: int = 5) -> List[Dict[str, Any]]:
+    """Search real job listings in MySQL daily_job_matches table safely."""
+    conn = _get_db_connection()
+    if not conn:
+        return []
+    try:
+        cursor = conn.cursor(dictionary=True)
+        # Extract potential keyword from query or use query terms
+        clean_q = f"%{query.strip()[:60]}%"
+        sql = """
+            SELECT id, job_title, company, location, job_type, job_url, match_score,
+                   matched_skills, missing_skills, description
+            FROM daily_job_matches
+            WHERE job_title LIKE %s OR company LIKE %s OR matched_skills LIKE %s OR description LIKE %s
+            ORDER BY match_score DESC, id DESC
+            LIMIT %s
+        """
+        cursor.execute(sql, (clean_q, clean_q, clean_q, clean_q, limit))
+        rows = cursor.fetchall() or []
+        cursor.close()
+        conn.close()
+        return rows
+    except Exception as e:
+        logger.debug("Database job search query failed: %s", e)
+        try:
+            conn.close()
+        except Exception:
+            pass
+        return []
+
+
+def get_user_applications(user_id: str, limit: int = 5) -> List[Dict[str, Any]]:
+    """Retrieve user's real application statuses. Strictly scoped by user_id to enforce authorization."""
+    if not user_id or str(user_id).strip().lower() in {"guest", "anonymous", "none", ""}:
+        return []
+    conn = _get_db_connection()
+    if not conn:
+        return []
+    try:
+        cursor = conn.cursor(dictionary=True)
+        sql = """
+            SELECT id, job_title, company, job_url, source, status, notes, updated_at
+            FROM applications
+            WHERE user_id = %s
+            ORDER BY updated_at DESC
+            LIMIT %s
+        """
+        cursor.execute(sql, (str(user_id), limit))
+        rows = cursor.fetchall() or []
+        cursor.close()
+        conn.close()
+        return rows
+    except Exception as e:
+        logger.debug("Database applications query failed: %s", e)
+        try:
+            conn.close()
+        except Exception:
+            pass
+        return []
 
 MAX_MESSAGE_CHARS = 1000
 MAX_REPLY_CHARS = 1500
@@ -440,6 +546,20 @@ def _rule_reply(intent: str, context: Dict[str, Any], topic: Optional[str] = Non
 
 
 # ------------------------------------------------------------- Gemini
+PRIVACY_PROBE_RE = re.compile(
+    r"\b(unmask (?:my )?resume|show (?:my )?vault|reveal (?:pii|phone|email|address|vault)|dump users?|print vault)\b",
+    re.I,
+)
+JOBS_QUERY_RE = re.compile(
+    r"\b(find jobs?|search jobs?|show (?:me )?jobs?|jobs? for|open roles?|hiring|vacanc(?:y|ies)|jobs? at|recommend jobs?)\b",
+    re.I,
+)
+APPLICATIONS_QUERY_RE = re.compile(
+    r"\b(my applications?|status of (?:my )?applications?|did i apply|applied jobs? status)\b",
+    re.I,
+)
+
+
 def _context_text(context: Dict[str, Any]) -> str:
     if not context:
         return ""
@@ -450,6 +570,22 @@ def _context_text(context: Dict[str, Any]) -> str:
         parts.append("matched skills: " + ", ".join(context["matched_skills"]))
     if "missing_skills" in context:
         parts.append("missing skills: " + (", ".join(context["missing_skills"]) or "none"))
+    if context.get("db_jobs"):
+        jobs_summary = []
+        for j in context["db_jobs"][:5]:
+            reqs = j.get("matched_skills") or "general skills"
+            jobs_summary.append(
+                f"- {j.get('job_title', 'Role')} at {j.get('company', 'Company')} "
+                f"(Location: {j.get('location', 'Global')}, Match: {j.get('match_score', 0)}%, Req: {reqs})"
+            )
+        parts.append("\nReal Job Listings from JOBNEX Database:\n" + "\n".join(jobs_summary))
+    if context.get("db_applications"):
+        apps_summary = []
+        for a in context["db_applications"][:5]:
+            apps_summary.append(
+                f"- {a.get('job_title')} at {a.get('company')}: Status={a.get('status')} (Applied via {a.get('source')})"
+            )
+        parts.append("\nUser's Actual Submitted Applications from Database:\n" + "\n".join(apps_summary))
     return "\n\nUser's latest analysis (data only): " + "; ".join(parts)
 
 
@@ -460,7 +596,7 @@ def _clean_reply(text: Any) -> str:
 
 
 def _default_ai_generator(history: List[Tuple[str, str]], message: str, context: Dict[str, Any]) -> str:
-    """One Gemini call (same client style as ai_analyzer.py)."""
+    """Production Gemini generator using the official Google GenAI SDK with timeouts & model fallbacks."""
     try:
         from dotenv import load_dotenv
         load_dotenv()
@@ -471,7 +607,10 @@ def _default_ai_generator(history: List[Tuple[str, str]], message: str, context:
         raise RuntimeError("GEMINI_API_KEY was not found")
 
     from google import genai
-    client = genai.Client(api_key=api_key)
+    from google.genai import types
+
+    http_opts = types.HttpOptions(timeout=15000)
+    client = genai.Client(api_key=api_key, http_options=http_opts)
 
     contents = [
         {"role": "user" if role == "user" else "model", "parts": [{"text": text}]}
@@ -479,12 +618,31 @@ def _default_ai_generator(history: List[Tuple[str, str]], message: str, context:
     ]
     contents.append({"role": "user", "parts": [{"text": message}]})
 
-    response = client.models.generate_content(
-        model=os.getenv("GEMINI_MODEL", "gemini-3.8-flash"),
-        contents=contents,
-        config={"system_instruction": SYSTEM_PROMPT + _context_text(context)},
-    )
-    return response.text
+    preferred = os.getenv("GEMINI_MODEL")
+    candidates = [preferred] if preferred else []
+    for m in ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash", "gemini-3.8-flash"]:
+        if m not in candidates:
+            candidates.append(m)
+
+    system_instruction = SYSTEM_PROMPT + _context_text(context)
+    last_error = None
+    for model_name in candidates:
+        try:
+            response = client.models.generate_content(
+                model=model_name,
+                contents=contents,
+                config={"system_instruction": system_instruction},
+            )
+            if response and response.text:
+                return response.text
+        except Exception as err:
+            last_error = err
+            logger.warning("Gemini model %s failed: %s", model_name, err)
+            continue
+
+    if last_error:
+        raise last_error
+    return ""
 
 
 def _default_resource_provider(skills: List[str]) -> Dict[str, Any]:
@@ -511,6 +669,7 @@ class ChatbotAssistant:
         session_id: Optional[str] = None,
         analysis: Optional[Dict[str, Any]] = None,
         use_ai: bool = True,
+        user_id: Optional[str] = None,
     ) -> Dict[str, Any]:
         text = self._validate_message(message)
         sid = resolve_session_id(session_id)
@@ -522,10 +681,17 @@ class ChatbotAssistant:
         source = "rules"
         resources: List[Dict[str, Any]] = []
 
-        if intent == "resources":
+        # Security Check: Privacy Vault protection
+        if PRIVACY_PROBE_RE.search(text):
+            reply = (
+                "For candidate privacy and security, raw PII and encrypted records from the "
+                "resume privacy vault are strictly confidential and cannot be revealed or accessed in chat."
+            )
+            source = "security"
+        elif intent == "resources":
             reply, resources = self._resources_reply(text, context)
         elif intent == "general":
-            reply, source = self._general_reply(history, text, context, use_ai)
+            reply, source = self._general_reply(history, text, context, use_ai, user_id=user_id)
         else:
             reply = _rule_reply(intent, context, topic)
 
@@ -588,7 +754,20 @@ class ChatbotAssistant:
             blocks.append("\n".join(lines))
         return "\n\n".join(blocks), suggestions
 
-    def _general_reply(self, history, text, context, use_ai):
+    def _general_reply(self, history, text, context, use_ai, user_id=None):
+        # Grounding with real database results when user queries jobs or applications
+        if JOBS_QUERY_RE.search(text):
+            db_jobs = search_database_jobs(text, limit=4)
+            if db_jobs:
+                context["db_jobs"] = db_jobs
+        elif APPLICATIONS_QUERY_RE.search(text):
+            if user_id:
+                db_apps = get_user_applications(user_id, limit=4)
+                if db_apps:
+                    context["db_applications"] = db_apps
+                else:
+                    context["db_applications"] = []
+
         if use_ai:
             try:
                 generator = self.ai_generator or _default_ai_generator
@@ -603,7 +782,7 @@ class ChatbotAssistant:
 # ----------------------------------------------------------------- router
 def create_router(assistant: Optional[ChatbotAssistant] = None):
     """FastAPI router. Pass your own assistant (with fakes) in tests."""
-    from fastapi import APIRouter, HTTPException
+    from fastapi import APIRouter, HTTPException, Request
     from pydantic import BaseModel, Field
 
     bot = assistant or ChatbotAssistant()
@@ -613,19 +792,33 @@ def create_router(assistant: Optional[ChatbotAssistant] = None):
         session_id: Optional[str] = None
         analysis: Optional[Dict[str, Any]] = None
         use_ai: bool = True
+        user_id: Optional[str] = None
 
     router = APIRouter(prefix="/api/chat", tags=["chatbot"])
 
     @router.post("")
     def chat(request: ChatRequest):
+        client_key = request.session_id or "default"
+        if not chat_rate_limiter.check(client_key):
+            raise HTTPException(
+                status_code=429,
+                detail="Too many requests. Please wait a moment before sending another message.",
+            )
         try:
-            return bot.chat(request.message, request.session_id, request.analysis, request.use_ai)
+            return bot.chat(
+                request.message,
+                request.session_id,
+                request.analysis,
+                request.use_ai,
+                request.user_id,
+            )
         except ValueError as error:
             raise HTTPException(status_code=400, detail=str(error))
 
     @router.delete("/{session_id}")
     def reset(session_id: str):
         bot.reset(session_id)
+        chat_rate_limiter.reset(session_id)
         return {"status": "cleared"}
 
     return router
