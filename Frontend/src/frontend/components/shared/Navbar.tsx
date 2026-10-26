@@ -37,12 +37,12 @@ export const Navbar: React.FC = () => {
 
   const navLinks = [
     { name: "Home", href: "/", icon: Home },
-    { name: "Resume Analyzer", href: "/resume-privacy", icon: FileText },
     { name: "Interview Prep", href: "/interview-prep", icon: BrainCircuit },
     { name: "Skill Gap", href: "/skill-gap", icon: BarChart3 },
     { name: "Auto-Apply", href: "/auto-apply", icon: Zap },
     { name: "Referral", href: "/cold-referral", icon: Send },
     { name: "Dashboard", href: "/dashboard", icon: UserCheck },
+    { name: "Resume & Privacy", href: "/resume-privacy", icon: ShieldCheck },
   ];
 
   return (
