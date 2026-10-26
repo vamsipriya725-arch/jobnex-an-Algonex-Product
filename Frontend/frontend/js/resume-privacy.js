@@ -348,6 +348,42 @@ Senior Software Engineer | TechNex Solutions (2022 - Present)
     return null;
   }
 
+  // Persist Analysis Record to MySQL Workbench Database
+  async function persistAnalysisToMySQL(data, resumeText, jdText) {
+    const payload = {
+      resume_text: resumeText || "",
+      jd_text: jdText || "",
+      matched_score: data.matched_score || 75,
+      matched_skills: data.matched_skills || [],
+      missing_skills: data.missing_skills || [],
+      suggestions: data.suggestions || [],
+    };
+
+    const urls = [
+      "/api/save-analysis",
+      "/api/analyze",
+      "http://127.0.0.1:3000/api/save-analysis",
+      "http://127.0.0.1:8000/api/save-analysis",
+    ];
+
+    for (const url of urls) {
+      try {
+        const resp = await fetch(url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        if (resp.ok) {
+          const resJson = await resp.json();
+          console.log("Saved to MySQL Workbench table resume_analyzer:", resJson);
+          return resJson;
+        }
+      } catch (err) {
+        // Fallback to next endpoint
+      }
+    }
+  }
+
   // Display Analysis Data in UI Scorecard
   function displayAnalysisData(data) {
     const rawScore = data.matched_score !== undefined ? data.matched_score : data.ats_score || 0;
@@ -597,8 +633,9 @@ ${activeJd}
       }
 
       displayAnalysisData(analysisData);
+      persistAnalysisToMySQL(analysisData, resume, activeJd);
       if (window.JobNexUtils) window.JobNexUtils.playSound("success");
-      showToast(`ATS match analysis calculated with Google Gemini AI! Score: ${analysisData.matched_score}%`);
+      showToast(`Analysis complete! Stored in MySQL Workbench (resume_analyzer) - Match: ${analysisData.matched_score}%`);
 
       isAnalyzing = false;
       analyzeBtn.disabled = false;

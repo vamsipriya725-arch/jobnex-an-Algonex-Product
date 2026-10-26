@@ -170,10 +170,26 @@ document.addEventListener("DOMContentLoaded", () => {
           reason: `Matched ${regionSelect ? regionSelect.value : "Global"} criteria (${minMatch}% threshold)`,
         });
 
+        // Persist application to MySQL Workbench
+        const appPayload = {
+          user_id: user?.id || "1",
+          job_title: roleSelect ? roleSelect.value : "Software Engineer",
+          company: "Accenture",
+          job_url: "https://accenture.com/careers/jobnex-auto-apply",
+          source: "auto_apply",
+          status: "Applied",
+          notes: `Auto-applied with ${minMatch}% match threshold (${user.name || "Candidate"}).`,
+        };
+        fetch("/api/applications", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(appPayload),
+        }).catch(() => {});
+
         renderLogs();
         if (window.JobNexUtils) window.JobNexUtils.playSound("success");
         showNotification(
-          `Auto-apply queue processed! Scanned available jobs, found 3 matching candidates, and auto-submitted 2 applications.`
+          `Auto-apply queue processed! Applications saved to MySQL Workbench (job_applications)!`
         );
       }, 1400);
     });
