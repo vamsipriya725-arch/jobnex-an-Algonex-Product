@@ -21,7 +21,8 @@ from sqlalchemy.orm import Session, declarative_base, sessionmaker
 SECRET_KEY = os.getenv("JWT_SECRET", "change-me-in-production")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_MINUTES = int(os.getenv("ACCESS_TOKEN_MINUTES", "60"))
-GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID", "530050814425-2hvfcnoba5ujoo0tsel740sru1meob4g.apps.googleusercontent.com")
+GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID", "")
+GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET", "")
 
 # MySQL Workbench Connection Details
 DB_USER = os.getenv("DB_USER", "root")

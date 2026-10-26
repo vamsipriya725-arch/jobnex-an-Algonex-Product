@@ -29,6 +29,8 @@ const DB_USER = process.env.DB_USER || "root";
 const DB_PASSWORD = process.env.DB_PASSWORD || "Algonex@123";
 const DB_NAME = process.env.DB_NAME || "jobnex";
 const BACKEND_URL = process.env.BACKEND_URL || "http://127.0.0.1:8000";
+const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || "";
+const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET || "";
 
 const app = express();
 
