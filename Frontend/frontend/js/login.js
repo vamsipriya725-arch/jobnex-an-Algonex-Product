@@ -167,7 +167,8 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     setTimeout(() => {
-      window.location.href = "resume-privacy.html";
+      const homeUrl = window.location.pathname.includes("/pages/") ? "../index.html" : "index.html";
+      window.location.href = homeUrl;
     }, 600);
   }
 
