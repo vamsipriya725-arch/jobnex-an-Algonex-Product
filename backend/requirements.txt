@@ -8,4 +8,7 @@ requests
 httpx
 apscheduler>=3.10,<4
 tzdata
+python-docx>=1.1.0
+pdfplumber>=0.11.0
 pytest
+beautifulsoup4>=4.12.0

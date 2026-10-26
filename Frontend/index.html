@@ -1,34 +1,1060 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Jobnex</title>
-    <link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="JobNex - Next-Gen AI Career and Hiring Portal. Log in or create an account for autonomous vector matching and blind resume privacy." />
+  <title>JobNex | Log In & Sign Up</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <!-- Three.js CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: #014BAA;
+      color: #ffffff;
+      font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+      min-height: 100vh;
+      overflow-x: hidden;
+      position: relative;
+    }
+
+    /* Ambient background glow layers */
+    .ambient-glow {
+      position: absolute;
+      left: -5%;
+      top: 10%;
+      width: 60%;
+      height: 90%;
+      background: radial-gradient(ellipse at 50% 55%, rgba(139, 140, 246, 0.45), transparent 62%);
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    /* Screen-wide shockwave on password failure */
+    #fail-fx {
+      pointer-events: none;
+      position: fixed;
+      inset: 0;
+      z-index: 40;
+      opacity: 0;
+      transition: opacity 0.3s;
+      background: radial-gradient(ellipse at 28% 55%, rgba(255, 60, 90, 0.45), transparent 60%), radial-gradient(ellipse at center, transparent 55%, rgba(120, 0, 20, 0.55) 100%);
+    }
+
+    .failfx-on {
+      animation: failFxAnim 1.8s ease-out both;
+    }
+
+    @keyframes failFxAnim {
+      0% { opacity: 0; }
+      15% { opacity: 1; }
+      100% { opacity: 0; }
+    }
+
+    /* Top Left Accessibility Badges */
+    .top-badges {
+      position: absolute;
+      top: 16px;
+      left: 16px;
+      z-index: 50;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .badge-btn {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 14px;
+      border-radius: 9999px;
+      font-size: 12px;
+      font-weight: 600;
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      backdrop-filter: blur(12px);
+      color: #ffffff;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.1s;
+    }
+
+    .badge-btn:hover {
+      background: rgba(255, 255, 255, 0.2);
+    }
+
+    /* Main Grid: 3D Stage + Form Card */
+    .main-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      min-height: 100vh;
+      width: 100%;
+      position: relative;
+      z-index: 10;
+    }
+
+    @media (min-width: 768px) {
+      .main-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+
+    /* 3D Canvas Section */
+    .stage-section {
+      position: relative;
+      min-height: 380px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    @media (min-width: 768px) {
+      .stage-section {
+        min-height: 100vh;
+      }
+    }
+
+    #character-canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    /* Auth Panel Card Section */
+    .card-section {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      z-index: 20;
+    }
+
+    @media (min-width: 640px) {
+      .card-section {
+        padding: 32px;
+      }
+    }
+
+    .auth-card {
+      width: 100%;
+      max-width: 430px;
+      padding: 32px;
+      border-radius: 24px;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      background: rgba(255, 255, 255, 0.09);
+      backdrop-filter: blur(16px);
+      box-shadow: 0 0 60px -20px rgba(139, 140, 246, 0.5);
+      transition: all 0.3s;
+    }
+
+    @keyframes cardShake {
+      10%, 90% { transform: translateX(-2px); }
+      20%, 80% { transform: translateX(5px); }
+      30%, 50%, 70% { transform: translateX(-9px); }
+      40%, 60% { transform: translateX(9px); }
+    }
+
+    .card-shake {
+      animation: cardShake 0.5s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+    }
+
+    .brand-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 4px;
+    }
+
+    .brand-logo-box {
+      width: 34px;
+      height: 34px;
+      border-radius: 9px;
+      background: #8B8CF6;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      color: #0b0b18;
+      font-size: 20px;
+      flex-shrink: 0;
+    }
+
+    .brand-title {
+      font-size: 24px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    .brand-subtitle {
+      font-size: 14px;
+      color: rgba(255, 255, 255, 0.6);
+      margin-bottom: 24px;
+    }
+
+    .form-title {
+      font-size: 20px;
+      font-weight: 700;
+      margin-bottom: 20px;
+      color: #ffffff;
+    }
+
+    /* Form Inputs */
+    .form-group {
+      margin-bottom: 16px;
+    }
+
+    .form-label {
+      display: block;
+      font-size: 12px;
+      font-weight: 500;
+      color: rgba(255, 255, 255, 0.7);
+      margin-bottom: 6px;
+    }
+
+    .input-wrapper {
+      position: relative;
+    }
+
+    .form-input {
+      width: 100%;
+      padding: 12px 14px;
+      border-radius: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      background: rgba(255, 255, 255, 0.06);
+      color: #ffffff;
+      font-size: 14px;
+      font-family: inherit;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+    }
+
+    .form-input::placeholder {
+      color: rgba(255, 255, 255, 0.35);
+    }
+
+    .form-input:focus {
+      border-color: #8B8CF6;
+      background: rgba(255, 255, 255, 0.1);
+      box-shadow: 0 0 0 2px rgba(139, 140, 246, 0.25);
+    }
+
+    .show-password-btn {
+      position: absolute;
+      right: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: none;
+      border: none;
+      color: rgba(255, 255, 255, 0.6);
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .show-password-btn:hover {
+      color: #ffffff;
+    }
+
+    .flex-between {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 4px;
+      margin-bottom: 20px;
+      font-size: 12px;
+    }
+
+    .checkbox-label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: rgba(255, 255, 255, 0.8);
+      cursor: pointer;
+    }
+
+    .forgot-link {
+      color: rgba(255, 255, 255, 0.7);
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+
+    .forgot-link:hover {
+      color: #ffffff;
+      text-decoration: underline;
+    }
+
+    /* Action Buttons (matching screenshot) */
+    .btn-login {
+      width: 100%;
+      padding: 13px;
+      border-radius: 12px;
+      border: none;
+      background: #c5cde0;
+      color: #0b152d;
+      font-size: 15px;
+      font-weight: 700;
+      font-family: inherit;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.1s;
+      margin-bottom: 12px;
+    }
+
+    .btn-login:hover {
+      background: #d8e0f2;
+    }
+
+    .btn-login:active {
+      transform: scale(0.99);
+    }
+
+    .btn-google {
+      width: 100%;
+      padding: 12px;
+      border-radius: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      background: #c5cde0;
+      color: #0b152d;
+      font-size: 14px;
+      font-weight: 600;
+      font-family: inherit;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      transition: background 0.2s;
+      margin-bottom: 20px;
+    }
+
+    .btn-google:hover {
+      background: #d8e0f2;
+    }
+
+    .footer-switch {
+      text-align: center;
+      font-size: 13px;
+      color: rgba(255, 255, 255, 0.7);
+      margin-bottom: 16px;
+    }
+
+    .footer-switch-btn {
+      background: none;
+      border: none;
+      color: #8B8CF6;
+      font-weight: 600;
+      text-decoration: underline;
+      cursor: pointer;
+      font-family: inherit;
+    }
+
+    .demo-hint {
+      text-align: center;
+      font-size: 11px;
+      color: rgba(255, 255, 255, 0.45);
+      line-height: 1.4;
+    }
+
+    /* Error Notification Banner */
+    .error-banner {
+      display: none;
+      margin-bottom: 16px;
+      padding: 12px 14px;
+      border-radius: 12px;
+      border: 1px solid rgba(244, 63, 94, 0.6);
+      background: rgba(76, 5, 25, 0.5);
+      color: #ffe4e6;
+      font-size: 12px;
+      line-height: 1.4;
+    }
+
+    /* Success Toast */
+    #toast-msg {
+      display: none;
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 100;
+      padding: 12px 24px;
+      border-radius: 9999px;
+      background: rgba(10, 16, 30, 0.85);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: #ffffff;
+      font-size: 14px;
+      font-weight: 600;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    }
+  </style>
 </head>
-
 <body>
-    <main class="container">
-        <h1>Welcome to Jobnex</h1>
-        <p>Get ready to see your resume fit for given job description</p>
-        <form id="analyze-form">
-            <label for="resume_text">Give resume</label>
-            <textarea id="resume_text" placeholder="upload your resume here" required></textarea>
-            <label for="jd_text">Give job description</label>
-            <textarea id="jd_text" placeholder="paste your jd here" required></textarea>
-            <button type="submit" id="analyze-button">Analyze resume</button>
+  <!-- Ambient glow layer -->
+  <div class="ambient-glow"></div>
 
+  <!-- Screen-wide fail shockwave -->
+  <div id="fail-fx"></div>
 
+  <!-- Top Left Badges -->
+  <div class="top-badges">
+    <button type="button" id="btn-toggle-sound" class="badge-btn">
+      <span id="sound-label">🔊 Sound: On</span>
+    </button>
+    <button type="button" id="btn-toggle-motion" class="badge-btn">
+      <span id="motion-label">🚫 Motion: Normal</span>
+    </button>
+  </div>
+
+  <!-- Main Grid: 3D Stage + Form Card -->
+  <main class="main-grid">
+    <!-- 3D Character Canvas Stage -->
+    <section class="stage-section">
+      <canvas id="character-canvas"></canvas>
+    </section>
+
+    <!-- Auth Card Panel -->
+    <section class="card-section">
+      <div id="auth-card" class="auth-card">
+        <!-- Logo -->
+        <div class="brand-header">
+          <svg width="34" height="34" viewBox="0 0 34 34" class="brand-logo-box">
+            <rect width="34" height="34" rx="9" fill="#8B8CF6" />
+            <path d="M11 9v11a4 4 0 0 0 8 0V9" fill="none" stroke="#0b0b18" stroke-width="3" stroke-linecap="round" />
+            <circle cx="24.5" cy="24.5" r="2.5" fill="#0b0b18" />
+          </svg>
+          <span class="brand-title">Jobnex</span>
+        </div>
+        <p class="brand-subtitle">Find your next job, faster.</p>
+
+        <!-- Error Notification Banner -->
+        <div id="error-banner" class="error-banner">
+          <strong style="display:block; margin-bottom: 2px;">Login failed</strong>
+          <span id="error-text">Incorrect email or password. Check both and try again.</span>
+        </div>
+
+        <!-- Form Heading -->
+        <h1 id="form-heading" class="form-title">Welcome back</h1>
+
+        <form id="login-form">
+          <!-- Full Name (Sign Up only) -->
+          <div id="group-fullname" class="form-group" style="display: none;">
+            <label class="form-label" for="input-fullname">Full Name</label>
+            <input
+              type="text"
+              id="input-fullname"
+              class="form-input focus-text"
+              placeholder="Your Full Name"
+            />
+          </div>
+
+          <!-- Email -->
+          <div class="form-group">
+            <label class="form-label" for="input-email">Email</label>
+            <input
+              type="email"
+              id="input-email"
+              class="form-input focus-text"
+              placeholder="you@example.com"
+              required
+            />
+          </div>
+
+          <!-- Password -->
+          <div class="form-group">
+            <label class="form-label" for="input-password">Password</label>
+            <div class="input-wrapper">
+              <input
+                type="password"
+                id="input-password"
+                class="form-input focus-password"
+                placeholder="Minimum 8 characters"
+                value="password123"
+                required
+              />
+              <button type="button" id="btn-show-pass" class="show-password-btn">Show</button>
+            </div>
+          </div>
+
+          <!-- Remember me & Forgot Password -->
+          <div class="flex-between">
+            <label class="checkbox-label">
+              <input type="checkbox" id="check-remember" checked />
+              <span>Remember me</span>
+            </label>
+            <a href="#" id="link-forgot" class="forgot-link">Forgot password?</a>
+          </div>
+
+          <!-- Login Submit -->
+          <button type="submit" id="btn-submit" class="btn-login">Login</button>
+
+          <!-- Continue with Google -->
+          <button type="button" id="btn-google" class="btn-google">
+            <svg width="18" height="18" viewBox="0 0 24 24">
+              <path fill="#EA4335" d="M12 5c1.5 0 2.8.5 3.9 1.4l2.9-2.9C17 1.8 14.7 1 12 1 7.5 1 3.7 3.6 1.9 7.3l3.7 2.9C6.5 7.4 9 5 12 5z"/>
+              <path fill="#4285F4" d="M23.5 12.3c0-.8-.1-1.7-.2-2.3H12v4.6h6.5c-.3 1.5-1.1 2.8-2.4 3.7l3.7 2.9c2.2-2 3.7-5 3.7-8.9z"/>
+              <path fill="#FBBC05" d="M5.6 14.8c-.2-.7-.4-1.5-.4-2.8s.2-2.1.4-2.8L1.9 6.3C.7 8.7 0 10.3 0 12s.7 3.3 1.9 5.7l3.7-2.9z"/>
+              <path fill="#34A853" d="M12 23c3.2 0 6-1.1 8-3l-3.7-2.9c-1.1.7-2.5 1.2-4.3 1.2-3 0-5.5-2.4-6.4-5.2L1.9 16C3.7 19.7 7.5 23 12 23z"/>
+            </svg>
+            <span>Continue with Google</span>
+          </button>
+
+          <!-- Switch to Sign Up -->
+          <p class="footer-switch">
+            <span id="switch-prompt">New to Jobnex?</span>
+            <button type="button" id="btn-switch-mode" class="footer-switch-btn">Sign up</button>
+          </p>
+
+          <p class="demo-hint">
+            Demo: any valid details sign in. Password <code>wrong-password</code> shows the error.
+          </p>
         </form>
-        <p id="status" role="status"></p>
-        <section id="results" hidden>
-            <h2> Analyze Results</h2>
-            <pre id="result-data"> </pre>
-        </section>
-    </main>
-</body>
-<script src="script.js"></script>
+      </div>
+    </section>
+  </main>
 
+  <div id="toast-msg">You're in! Taking you to your JobNex dashboard…</div>
+
+  <script>
+    // Audio Feedback Generator
+    let soundEnabled = true;
+    function playSound(type) {
+      if (!soundEnabled) return;
+      try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+
+        if (type === 'success') {
+          osc.frequency.setValueAtTime(523.25, ctx.currentTime);
+          osc.frequency.exponentialRampToValueAtTime(783.99, ctx.currentTime + 0.15);
+          gain.gain.setValueAtTime(0.08, ctx.currentTime);
+          gain.gain.linearRampToValueAtTime(0.001, ctx.currentTime + 0.25);
+          osc.start();
+          osc.stop(ctx.currentTime + 0.25);
+        } else if (type === 'error') {
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(220, ctx.currentTime);
+          osc.frequency.linearRampToValueAtTime(140, ctx.currentTime + 0.2);
+          gain.gain.setValueAtTime(0.1, ctx.currentTime);
+          gain.gain.linearRampToValueAtTime(0.001, ctx.currentTime + 0.25);
+          osc.start();
+          osc.stop(ctx.currentTime + 0.25);
+        }
+      } catch (e) {}
+    }
+
+    // Three.js 3D Character Engine
+    let triggerShot = null;
+    let setFocusKind = null;
+    let setIsTyping = null;
+    let reducedMotion = false;
+
+    function init3DCharacter() {
+      const canvas = document.getElementById("character-canvas");
+      if (!canvas || !window.THREE) return;
+
+      const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+      const scene = new THREE.Scene();
+      const camera = new THREE.PerspectiveCamera(32, 1, 0.1, 100);
+      camera.position.set(0, 1, 5.4);
+
+      // Lights
+      const ambient = new THREE.AmbientLight(0xffffff, 0.72);
+      scene.add(ambient);
+
+      const keyLight = new THREE.DirectionalLight(0xffffff, 1.35);
+      keyLight.position.set(2.5, 4, 3.5);
+      scene.add(keyLight);
+
+      const fillLight = new THREE.DirectionalLight(0x7382f6, 0.55);
+      fillLight.position.set(-3, 1.5, 2);
+      scene.add(fillLight);
+
+      const rimLights = [];
+      const rimTarget = new THREE.Color(0x8b8cf6);
+      [-1, 1].forEach((s) => {
+        const r = new THREE.DirectionalLight(0x8b8cf6, 1.2);
+        r.position.set(s * 2.4, 2.2, -3);
+        scene.add(r);
+        rimLights.push(r);
+      });
+
+      // Ground Shadow
+      const makeRadialTexture = (innerColor, outerColor) => {
+        const c = document.createElement("canvas");
+        c.width = c.height = 128;
+        const g = c.getContext("2d");
+        if (g) {
+          const gr = g.createRadialGradient(64, 64, 0, 64, 64, 64);
+          gr.addColorStop(0, innerColor);
+          gr.addColorStop(1, outerColor);
+          g.fillStyle = gr;
+          g.fillRect(0, 0, 128, 128);
+        }
+        return new THREE.CanvasTexture(c);
+      };
+
+      const groundShadow = new THREE.Mesh(
+        new THREE.PlaneGeometry(1.8, 1.8),
+        new THREE.MeshBasicMaterial({
+          map: makeRadialTexture("rgba(0,0,0,0.85)", "rgba(0,0,0,0)"),
+          transparent: true,
+          depthWrite: false,
+          opacity: 0.85,
+        })
+      );
+      groundShadow.rotation.x = -Math.PI / 2;
+      groundShadow.position.y = 0.004;
+      scene.add(groundShadow);
+
+      // Materials
+      const mat = (color, roughness = 0.7, metalness = 0) =>
+        new THREE.MeshStandardMaterial({ color, roughness, metalness });
+
+      const skinMat = mat(0xd8a07f, 0.55);
+      const sweaterMat = mat(0x73737d, 0.9);
+      const pantsMat = mat(0x1b1b21, 0.85);
+      const hairMat = mat(0x2a1b12, 0.8);
+      const beardMat = mat(0x3a2618, 0.9);
+      const shoeMat = mat(0x16161a);
+      const soleMat = mat(0xe9e9ee);
+      const frameMat = mat(0x161616, 0.35);
+      const leatherMat = mat(0x6b4a2f, 0.6);
+      const goldMat = mat(0xc9b37a, 0.3, 0.8);
+
+      // Character Group
+      const bodyGroup = new THREE.Group();
+      scene.add(bodyGroup);
+
+      const addMesh = (geo, material, x, y, z, parent = bodyGroup) => {
+        const mesh = new THREE.Mesh(geo, material);
+        mesh.position.set(x, y, z);
+        parent.add(mesh);
+        return mesh;
+      };
+
+      // Torso & Neck
+      const torso = addMesh(new THREE.CylinderGeometry(0.18, 0.22, 0.65, 24), sweaterMat, 0, 1.2, 0);
+      torso.scale.z = 0.75;
+      addMesh(new THREE.CylinderGeometry(0.055, 0.06, 0.1, 16), skinMat, 0, 1.55, 0);
+
+      // Legs & Shoes
+      [-1, 1].forEach((s) => {
+        addMesh(new THREE.CylinderGeometry(0.075, 0.075, 0.65, 16), pantsMat, s * 0.1, 0.52, 0);
+        addMesh(new THREE.BoxGeometry(0.12, 0.05, 0.27), shoeMat, s * 0.1, 0.06, 0.05);
+        addMesh(new THREE.BoxGeometry(0.125, 0.03, 0.28), soleMat, s * 0.1, 0.015, 0.05);
+      });
+
+      // Head Group
+      const headGroup = new THREE.Group();
+      headGroup.position.set(0, 1.62, 0);
+      bodyGroup.add(headGroup);
+
+      addMesh(new THREE.SphereGeometry(1, 32, 24), skinMat, 0, 0.13, 0, headGroup).scale.set(0.11, 0.135, 0.12);
+      addMesh(new THREE.SphereGeometry(1, 32, 20, 0, Math.PI * 2, 0, Math.PI * 0.5), hairMat, 0, 0.15, -0.01, headGroup).scale.set(0.118, 0.14, 0.128);
+      addMesh(new THREE.SphereGeometry(1, 32, 20, 0, Math.PI * 2, Math.PI * 0.5, Math.PI * 0.5), beardMat, 0, 0.1, 0.012, headGroup).scale.set(0.114, 0.095, 0.122);
+
+      // Glasses & Eyes
+      const eyeWhite = mat(0xf4f2ec, 0.3);
+      const pupil = new THREE.MeshBasicMaterial({ color: 0x111111 });
+      [-1, 1].forEach((s) => {
+        addMesh(new THREE.SphereGeometry(0.016, 12, 12), eyeWhite, s * 0.042, 0.15, 0.106, headGroup).scale.z = 0.5;
+        addMesh(new THREE.SphereGeometry(0.009, 10, 10), pupil, s * 0.042, 0.15, 0.115, headGroup);
+        addMesh(new THREE.TorusGeometry(0.036, 0.005, 10, 32), frameMat, s * 0.042, 0.15, 0.114, headGroup);
+        addMesh(new THREE.SphereGeometry(0.02, 10, 10), skinMat, s * 0.113, 0.13, 0, headGroup).scale.x = 0.4;
+      });
+      addMesh(new THREE.BoxGeometry(0.03, 0.005, 0.005), frameMat, 0, 0.155, 0.115, headGroup);
+      addMesh(new THREE.SphereGeometry(0.014, 12, 12), skinMat, 0, 0.125, 0.126, headGroup);
+
+      // Mouth
+      const mouth = addMesh(new THREE.TorusGeometry(0.03, 0.004, 8, 20, Math.PI), mat(0x6a2f2a, 0.5), 0, 0.083, 0.113, headGroup);
+      mouth.rotation.z = Math.PI;
+
+      // Arms
+      function buildArm(x) {
+        const armG = new THREE.Group();
+        armG.position.set(x, 1.45, 0);
+        bodyGroup.add(armG);
+        addMesh(new THREE.SphereGeometry(0.058, 14, 14), sweaterMat, 0, 0, 0, armG);
+        addMesh(new THREE.CylinderGeometry(0.05, 0.045, 0.26, 14), sweaterMat, 0, -0.15, 0, armG);
+
+        const forearmG = new THREE.Group();
+        forearmG.position.y = -0.3;
+        armG.add(forearmG);
+        armG.userData.forearm = forearmG;
+
+        addMesh(new THREE.CylinderGeometry(0.045, 0.04, 0.24, 14), sweaterMat, 0, -0.14, 0, forearmG);
+        addMesh(new THREE.SphereGeometry(0.05, 14, 14), skinMat, 0, -0.3, 0, forearmG).scale.set(1, 1.1, 0.8);
+        return armG;
+      }
+
+      const armLeft = buildArm(-0.23);
+      const armRight = buildArm(0.23);
+
+      // Thumbs-up (left)
+      const thumb = addMesh(new THREE.CylinderGeometry(0.016, 0.016, 0.05, 8), skinMat, 0, -0.36, 0.03, armLeft.userData.forearm);
+      thumb.visible = false;
+
+      // Briefcase in right hand (held like in user screenshot)
+      const briefcase = new THREE.Group();
+      armRight.userData.forearm.add(briefcase);
+      briefcase.position.set(0, -0.32, 0.01);
+      addMesh(new THREE.BoxGeometry(0.34, 0.25, 0.09), leatherMat, 0, -0.175, 0, briefcase);
+      addMesh(new THREE.TorusGeometry(0.06, 0.009, 8, 20, Math.PI), goldMat, 0, -0.05, 0, briefcase);
+      addMesh(new THREE.BoxGeometry(0.04, 0.02, 0.1), goldMat, 0, -0.1, 0, briefcase);
+      briefcase.rotation.y = Math.PI / 2;
+
+      // Animation State
+      const IDLE_POSE = {
+        lx: 0, lz: -0.08, lex: -0.15, ley: 0,
+        rx: 0, rz: 0.06, rex: -0.1, rey: 0,
+        yaw: 0, lean: 0, nod: 0, thumb: 0, smile: 0.45, bounce: 0, sway: 0, twist: 0
+      };
+
+      const currentPose = { ...IDLE_POSE };
+      let shotName = null;
+      let shotTime = 0;
+      let shotTimer = null;
+      let focusKind = null;
+      let isTyping = false;
+      let typingTimer = null;
+
+      triggerShot = (name, durationMs, cb) => {
+        shotName = name;
+        shotTime = performance.now() / 1000;
+        clearTimeout(shotTimer);
+        shotTimer = setTimeout(() => {
+          shotName = null;
+          if (cb) cb();
+        }, durationMs);
+      };
+
+      setFocusKind = (kind) => {
+        focusKind = kind;
+      };
+
+      setIsTyping = (typing) => {
+        isTyping = typing;
+        clearTimeout(typingTimer);
+        if (typing) {
+          typingTimer = setTimeout(() => {
+            isTyping = false;
+          }, 900);
+        }
+      };
+
+      // Pointer Parallax
+      const pointer = { x: 0, y: 0 };
+      window.addEventListener("pointermove", (e) => {
+        pointer.x = (e.clientX / window.innerWidth) * 2 - 1;
+        pointer.y = -((e.clientY / window.innerHeight) * 2 - 1);
+      });
+
+      function computeTargetPose(phase, elapsed, now) {
+        const T = { ...IDLE_POSE };
+        if (phase === "enter") {
+          Object.assign(T, { lx: -0.1, lz: -2.6, lex: -0.3 + Math.sin(elapsed * 10) * 0.5, yaw: 0, smile: 1 });
+        }
+        if (phase === "email" || phase === "switch") {
+          T.yaw = 0.45;
+          T.lean = 0.1;
+          if (phase === "switch") T.nod = 0.1;
+        }
+        if (phase === "typing") {
+          T.yaw = 0.45;
+          T.lean = 0.1 + Math.sin(now * 12) * 0.03;
+          T.nod = 0.06 + Math.sin(now * 12) * 0.05;
+        }
+        if (phase === "password") {
+          Object.assign(T, { lx: -1.3, lz: 0.5, lex: -1.75, yaw: -0.3 });
+        }
+        if (phase === "fail") {
+          if (elapsed < 1.1) {
+            Object.assign(T, { lz: -0.5, lex: -0.9, rz: 0.4, rex: -0.5, yaw: Math.sin(elapsed * 16) * 0.35, smile: 0.05 });
+          } else {
+            Object.assign(T, { lx: -1.3, lz: 0.5, lex: -1.75, nod: 0.25, smile: 0 });
+          }
+        }
+        if (phase === "success") {
+          if (elapsed < 0.6) {
+            Object.assign(T, { lx: -1.1, lz: -0.25, lex: -1.4, nod: 0.1, thumb: 1, smile: 1 });
+          } else {
+            const beat = (elapsed - 0.6) / 0.55;
+            const pulse = Math.abs(Math.sin(beat * Math.PI));
+            const side = Math.sin(beat * Math.PI);
+            Object.assign(T, { smile: 1, bounce: pulse * 0.06, sway: side * 0.08, nod: 0.08 + pulse * 0.12 });
+            Object.assign(T, { lx: -2.2, rx: -2.2, lex: -0.4, rex: -0.4 });
+          }
+        }
+        return T;
+      }
+
+      let lastTime = performance.now();
+
+      function animateLoop(nowTime) {
+        const dt = Math.min((nowTime - lastTime) / 1000, 0.05);
+        lastTime = nowTime;
+        const timeSec = nowTime / 1000;
+
+        const currentPhase = reducedMotion
+          ? "idle"
+          : shotName || (focusKind === "password" ? "password" : focusKind === "text" ? (isTyping ? "typing" : "email") : "idle");
+
+        const targetPose = computeTargetPose(currentPhase, timeSec - shotTime, timeSec);
+        const lerpFactor = 1 - Math.exp(-9 * dt);
+
+        for (const k in targetPose) {
+          currentPose[k] += (targetPose[k] - currentPose[k]) * lerpFactor;
+        }
+
+        // Rim Light Color
+        if (currentPhase === "success" && timeSec - shotTime > 0.6) {
+          rimTarget.setHSL((timeSec * 0.6) % 1, 0.85, 0.62);
+        } else {
+          rimTarget.set(currentPhase === "fail" ? 0xff4d5e : 0x8b8cf6);
+        }
+        rimLights.forEach((r) => r.color.lerp(rimTarget, lerpFactor));
+
+        // Breathing & Rotation
+        const breath = Math.sin((timeSec / 2.5) * Math.PI * 2);
+        armLeft.rotation.set(currentPose.lx, 0, currentPose.lz);
+        armLeft.userData.forearm.rotation.set(currentPose.lex, currentPose.ley, 0);
+
+        armRight.rotation.set(currentPose.rx, 0, currentPose.rz);
+        armRight.userData.forearm.rotation.set(currentPose.rex, currentPose.rey, 0);
+
+        headGroup.rotation.set(currentPose.nod + breath * 0.008, currentPose.yaw, 0);
+        bodyGroup.rotation.set(currentPose.lean, currentPose.twist, currentPose.sway);
+        mouth.scale.set(1, 0.15 + currentPose.smile * 0.85, 1);
+        thumb.visible = currentPose.thumb > 0.5;
+
+        torso.scale.set(1 + breath * 0.012, 1, 0.75 * (1 + breath * 0.025));
+        bodyGroup.position.y = breath * 0.006 + currentPose.bounce;
+
+        const dParallax = reducedMotion ? 0 : 1;
+        camera.position.lerp(
+          new THREE.Vector3(pointer.x * 0.5 * dParallax, 1 + pointer.y * 0.2 * dParallax, 5.4),
+          1 - Math.exp(-3 * dt)
+        );
+
+        if (currentPhase === "fail" && !reducedMotion) {
+          const e = timeSec - shotTime;
+          if (e < 0.5) camera.position.x += Math.sin(e * 70) * 0.04 * (1 - e / 0.5);
+        }
+
+        camera.lookAt(0, 0.9, 0);
+
+        // Auto Resize
+        const w = canvas.clientWidth;
+        const h = canvas.clientHeight;
+        if (w && h && (canvas.width !== Math.round(w * renderer.getPixelRatio()) || canvas.height !== Math.round(h * renderer.getPixelRatio()))) {
+          renderer.setSize(w, h, false);
+          camera.aspect = w / h;
+          camera.updateProjectionMatrix();
+        }
+
+        renderer.render(scene, camera);
+        requestAnimationFrame(animateLoop);
+      }
+
+      requestAnimationFrame(animateLoop);
+
+      // Initial enter greeting wave
+      setTimeout(() => {
+        if (triggerShot) triggerShot("enter", 1600);
+      }, 200);
+    }
+
+    // Attach Event Handlers & Form Logic
+    document.addEventListener("DOMContentLoaded", () => {
+      init3DCharacter();
+
+      const card = document.getElementById("auth-card");
+      const failFx = document.getElementById("fail-fx");
+      const form = document.getElementById("login-form");
+      const emailInput = document.getElementById("input-email");
+      const passInput = document.getElementById("input-password");
+      const nameInput = document.getElementById("input-fullname");
+      const nameGroup = document.getElementById("group-fullname");
+      const formHeading = document.getElementById("form-heading");
+      const submitBtn = document.getElementById("btn-submit");
+      const switchBtn = document.getElementById("btn-switch-mode");
+      const switchPrompt = document.getElementById("switch-prompt");
+      const errorBanner = document.getElementById("error-banner");
+      const errorText = document.getElementById("error-text");
+      const toast = document.getElementById("toast-msg");
+      const showPassBtn = document.getElementById("btn-show-pass");
+
+      const soundBtn = document.getElementById("btn-toggle-sound");
+      const soundLabel = document.getElementById("sound-label");
+      const motionBtn = document.getElementById("btn-toggle-motion");
+      const motionLabel = document.getElementById("motion-label");
+
+      let mode = "login";
+      let isShowingPass = false;
+
+      // Sound toggle
+      soundBtn.addEventListener("click", () => {
+        soundEnabled = !soundEnabled;
+        soundLabel.textContent = `🔊 Sound: ${soundEnabled ? 'On' : 'Off'}`;
+      });
+
+      // Motion toggle
+      motionBtn.addEventListener("click", () => {
+        reducedMotion = !reducedMotion;
+        motionLabel.textContent = `🚫 Motion: ${reducedMotion ? 'Reduced' : 'Normal'}`;
+      });
+
+      // Show/Hide Password
+      showPassBtn.addEventListener("click", () => {
+        isShowingPass = !isShowingPass;
+        passInput.type = isShowingPass ? "text" : "password";
+        showPassBtn.textContent = isShowingPass ? "Hide" : "Show";
+        if (setFocusKind) setFocusKind(isShowingPass ? "text" : "password");
+      });
+
+      // Focus tracking for 3D character reactions
+      emailInput.addEventListener("focus", () => setFocusKind && setFocusKind("text"));
+      emailInput.addEventListener("blur", () => setFocusKind && setFocusKind(null));
+      emailInput.addEventListener("input", () => setIsTyping && setIsTyping(true));
+
+      passInput.addEventListener("focus", () => setFocusKind && setFocusKind(isShowingPass ? "text" : "password"));
+      passInput.addEventListener("blur", () => setFocusKind && setFocusKind(null));
+      passInput.addEventListener("input", () => setIsTyping && setIsTyping(true));
+
+      if (nameInput) {
+        nameInput.addEventListener("focus", () => setFocusKind && setFocusKind("text"));
+        nameInput.addEventListener("blur", () => setFocusKind && setFocusKind(null));
+        nameInput.addEventListener("input", () => setIsTyping && setIsTyping(true));
+      }
+
+      // Switch Login vs Sign Up
+      switchBtn.addEventListener("click", () => {
+        errorBanner.style.display = "none";
+        if (mode === "login") {
+          mode = "signup";
+          formHeading.textContent = "Create account";
+          submitBtn.textContent = "Create account";
+          switchPrompt.textContent = "Already have an account?";
+          switchBtn.textContent = "Login";
+          nameGroup.style.display = "block";
+        } else {
+          mode = "login";
+          formHeading.textContent = "Welcome back";
+          submitBtn.textContent = "Login";
+          switchPrompt.textContent = "New to Jobnex?";
+          switchBtn.textContent = "Sign up";
+          nameGroup.style.display = "none";
+        }
+        if (triggerShot) triggerShot("switch", 900);
+      });
+
+      // Form Submit
+      form.addEventListener("submit", (e) => {
+        e.preventDefault();
+        errorBanner.style.display = "none";
+
+        const email = emailInput.value.trim();
+        const pass = passInput.value;
+
+        // Fail Trigger check: "wrong-password"
+        if (pass === "wrong-password") {
+          playSound("error");
+          errorBanner.style.display = "block";
+          errorText.textContent = "Incorrect email or password. Check both and try again.";
+
+          // Card shake and red vignette shockwave
+          card.classList.remove("card-shake");
+          failFx.classList.remove("failfx-on");
+          void card.offsetWidth;
+          card.classList.add("card-shake");
+          failFx.classList.add("failfx-on");
+          setTimeout(() => {
+            card.classList.remove("card-shake");
+            failFx.classList.remove("failfx-on");
+          }, 1800);
+
+          if (triggerShot) triggerShot("fail", 2400);
+          return;
+        }
+
+        // Success flow
+        playSound("success");
+        toast.style.display = "block";
+        submitBtn.disabled = true;
+        submitBtn.textContent = "Redirecting...";
+
+        try {
+          const enteredName = document.getElementById("input-fullname") ? document.getElementById("input-fullname").value.trim() : "";
+          let finalName = enteredName;
+          if (!finalName && typeof email === "string" && email.includes("@")) {
+            const raw = email.split("@")[0];
+            finalName = raw.split(/[._-]/).map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
+          }
+          const userObj = {
+            id: "u-" + Date.now(),
+            name: finalName || "Candidate",
+            email: email || "",
+            role: "JOB_SEEKER"
+          };
+          localStorage.setItem("jobnex_user", JSON.stringify(userObj));
+          localStorage.setItem("jobnex_is_logged_in", "true");
+        } catch (e) {}
+
+        let navigated = false;
+        const navigateToNext = () => {
+          if (navigated) return;
+          navigated = true;
+          window.location.href = "frontend/index.html";
+        };
+
+        if (triggerShot) {
+          triggerShot("success", 750, navigateToNext);
+        }
+        setTimeout(navigateToNext, 800);
+      });
+
+      // Google Button
+      document.getElementById("btn-google").addEventListener("click", () => {
+        playSound("success");
+        toast.textContent = "Signed in via Google! Welcome to JobNex…";
+        toast.style.display = "block";
+
+        try {
+          const userObj = {
+            id: "u-google",
+            name: "Google User",
+            email: "google.user@jobnex.ai",
+            role: "JOB_SEEKER"
+          };
+          localStorage.setItem("jobnex_user", JSON.stringify(userObj));
+          localStorage.setItem("jobnex_is_logged_in", "true");
+        } catch (e) {}
+
+        let navigated = false;
+        const navigateToNext = () => {
+          if (navigated) return;
+          navigated = true;
+          window.location.href = "frontend/index.html";
+        };
+
+        if (triggerShot) {
+          triggerShot("success", 750, navigateToNext);
+        }
+        setTimeout(navigateToNext, 800);
+      });
+    });
+  </script>
+</body>
 </html>

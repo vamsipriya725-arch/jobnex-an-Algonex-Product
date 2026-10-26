@@ -1,3 +1,5 @@
+import pytest
+
 from filter_logic import (
     check_requirements,
     extract_required_years,
@@ -180,6 +182,13 @@ def make_client():
 
 
 def test_check_endpoint_ok():
+    try:
+        from database import get_connection
+        conn = get_connection()
+        conn.close()
+    except Exception as e:
+        pytest.skip(f"MySQL not available: {e}")
+
     client = make_client()
     body = {
         "resume_text": "Python developer with 2 years experience in FastAPI and MySQL. AWS Certified Cloud Practitioner.",
@@ -201,6 +210,13 @@ def test_check_endpoint_short_text_gives_422():
 
 
 def test_filter_endpoint_ok():
+    try:
+        from database import get_connection
+        conn = get_connection()
+        conn.close()
+    except Exception as e:
+        pytest.skip(f"MySQL not available: {e}")
+
     client = make_client()
     body = {"resumes": RESUMES, "min_experience_years": 3}
 

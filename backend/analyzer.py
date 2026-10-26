@@ -53,11 +53,10 @@ def _build_skill_pattern(skill: str) -> re.Pattern:
 EXTENDED_PATTERNS = {skill: _build_skill_pattern(skill) for skill in EXTENDED_SKILLS}
 
 
-def analyze_resume(resume_text: str, jd_text: str, use_ai: bool = False) -> Dict[str, Any]:
+def analyze_resume(resume_text: str, jd_text: str, use_ai: bool = True) -> Dict[str, Any]:
     """
-    Compare resume text against a job description.
-    Supports AI deep analysis if requested and available.
-    Preserves canonical core scoring while dynamically supporting 100+ extended skills.
+    Compare resume text against a job description using Gemini AI and dynamic requirements.
+    Supports AI deep analysis by default without predefined hardcoded skill lists.
     """
     resume_text = (resume_text or "").strip()
     jd_text = (jd_text or "").strip()

@@ -55,8 +55,15 @@ referrals.db
 .DS_Store
 Thumbs.db
 
-# Agent & local tooling files
-.agents/
-.aider-desk/
-skills-lock.json
-.gemini/
+# Node.js
+node_modules/
+Frontend/node_modules/
+package-lock.json
+
+# Pytest & test cache
+.pytest_cache/
+
+# Generated resume files
+generated_resumes/
+backend/generated_resumes/
+*.docx

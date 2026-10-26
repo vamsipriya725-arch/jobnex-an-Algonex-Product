@@ -54,6 +54,13 @@ class TestResumePrivacy(unittest.TestCase):
         self.assertEqual(redact_text(text), text)
 
     def test_reveal_endpoint_404_for_unknown_id(self):
+        try:
+            from database import get_connection
+            conn = get_connection()
+            conn.close()
+        except Exception as e:
+            self.skipTest(f"MySQL not available: {e}")
+
         from fastapi import FastAPI
         from fastapi.testclient import TestClient
         from resume_privacy import router

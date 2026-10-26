@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="JobNex Career Resources - Templates, interview question banks, salary insights, and guides." />
+  <title>Resources | JobNex</title>
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'Inter', 'sans-serif'],
+          },
+          colors: {
+            brand: {
+              50: '#f4f5fb',
+              100: '#eaebf6',
+              200: '#d5d9ee',
+              300: '#bac0e1',
+              400: '#9ba3d2',
+              500: '#7c85be',
+              600: '#646ca6',
+              700: '#505787',
+              800: '#3e4268',
+              900: '#2e3049',
+              950: '#1f2030',
+            },
+            royal: '#646ca6',
+            'royal-deep': '#505787',
+            cream: '#eaebf6',
+            sage: '#bac0e1',
+            'pink-soft': '#ebabbb',
+            'amber-accent': '#ebabbb',
+            page: '#3e4268',
+            navy: '#3e4268',
+          }
+        }
+      }
+    };
+  </script>
+
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <!-- Project Styles -->
+  <link rel="stylesheet" href="../css/styles.css" />
+</head>
+<body class="bg-[#eaebf6] text-[#2b2e3e] flex flex-col min-h-screen">
+  <!-- Reusable Navigation -->
+  <div id="navbar-container"></div>
+
+  <!-- Main Container -->
+  <main class="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 py-8 space-y-8">
+    <!-- Header Banner -->
+    <div class="bg-white rounded-xl p-6 sm:p-8 border border-slate-200 shadow-sm flex items-center gap-4">
+      <div class="w-12 h-12 rounded-xl bg-brand-600 flex items-center justify-center text-white shadow-md">
+        <i data-lucide="book-open" class="w-6 h-6"></i>
+      </div>
+      <div>
+        <h1 class="text-2xl font-bold text-slate-900 tracking-tight">Career Resources</h1>
+        <p class="text-xs text-slate-500">Practical guides and tools to support every step of your search</p>
+      </div>
+    </div>
+
+    <!-- Resource Cards Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <a href="resume-privacy.html" class="bg-white rounded-xl border border-slate-200/90 p-5 shadow-xs hover:shadow-md hover:border-brand-300 transition-all flex flex-col gap-3 group">
+        <div class="w-10 h-10 rounded-lg bg-brand-50 border border-brand-200 flex items-center justify-center text-brand-600">
+          <i data-lucide="file-text" class="w-5 h-5"></i>
+        </div>
+        <div>
+          <h3 class="font-bold text-sm text-slate-900 group-hover:text-brand-600 transition-colors">Resume Templates</h3>
+          <p class="text-xs text-slate-500 leading-relaxed mt-1">Download-ready resume formats tailored for tech roles, freshers and experienced engineers.</p>
+        </div>
+        <span class="mt-auto flex items-center gap-1.5 text-xs font-semibold text-brand-600">Open <i data-lucide="arrow-right" class="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform"></i></span>
+      </a>
+
+      <a href="interview-prep.html" class="bg-white rounded-xl border border-slate-200/90 p-5 shadow-xs hover:shadow-md hover:border-brand-300 transition-all flex flex-col gap-3 group">
+        <div class="w-10 h-10 rounded-lg bg-brand-50 border border-brand-200 flex items-center justify-center text-brand-600">
+          <i data-lucide="brain-circuit" class="w-5 h-5"></i>
+        </div>
+        <div>
+          <h3 class="font-bold text-sm text-slate-900 group-hover:text-brand-600 transition-colors">Interview Question Bank</h3>
+          <p class="text-xs text-slate-500 leading-relaxed mt-1">Company-specific technical and HR questions with structured feedback simulator.</p>
+        </div>
+        <span class="mt-auto flex items-center gap-1.5 text-xs font-semibold text-brand-600">Open <i data-lucide="arrow-right" class="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform"></i></span>
+      </a>
+
+      <a href="dashboard.html" class="bg-white rounded-xl border border-slate-200/90 p-5 shadow-xs hover:shadow-md hover:border-brand-300 transition-all flex flex-col gap-3 group">
+        <div class="w-10 h-10 rounded-lg bg-brand-50 border border-brand-200 flex items-center justify-center text-brand-600">
+          <i data-lucide="bar-chart-3" class="w-5 h-5"></i>
+        </div>
+        <div>
+          <h3 class="font-bold text-sm text-slate-900 group-hover:text-brand-600 transition-colors">Salary Insights</h3>
+          <p class="text-xs text-slate-500 leading-relaxed mt-1">Benchmark compensation ranges by role, region and experience level in one dashboard.</p>
+        </div>
+        <span class="mt-auto flex items-center gap-1.5 text-xs font-semibold text-brand-600">Open <i data-lucide="arrow-right" class="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform"></i></span>
+      </a>
+
+      <a href="ai-assistant.html" class="bg-white rounded-xl border border-slate-200/90 p-5 shadow-xs hover:shadow-md hover:border-brand-300 transition-all flex flex-col gap-3 group">
+        <div class="w-10 h-10 rounded-lg bg-brand-50 border border-brand-200 flex items-center justify-center text-brand-600">
+          <i data-lucide="book-open" class="w-5 h-5"></i>
+        </div>
+        <div>
+          <h3 class="font-bold text-sm text-slate-900 group-hover:text-brand-600 transition-colors">Career Guides</h3>
+          <p class="text-xs text-slate-500 leading-relaxed mt-1">Step-by-step roadmaps for switching roles, negotiating offers and growing faster.</p>
+        </div>
+        <span class="mt-auto flex items-center gap-1.5 text-xs font-semibold text-brand-600">Open <i data-lucide="arrow-right" class="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform"></i></span>
+      </a>
+
+      <a href="jobs.html" class="bg-white rounded-xl border border-slate-200/90 p-5 shadow-xs hover:shadow-md hover:border-brand-300 transition-all flex flex-col gap-3 group">
+        <div class="w-10 h-10 rounded-lg bg-brand-50 border border-brand-200 flex items-center justify-center text-brand-600">
+          <i data-lucide="building" class="w-5 h-5"></i>
+        </div>
+        <div>
+          <h3 class="font-bold text-sm text-slate-900 group-hover:text-brand-600 transition-colors">Company Research</h3>
+          <p class="text-xs text-slate-500 leading-relaxed mt-1">Funding, tech stack and hiring requirements for companies you are targeting.</p>
+        </div>
+        <span class="mt-auto flex items-center gap-1.5 text-xs font-semibold text-brand-600">Open <i data-lucide="arrow-right" class="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform"></i></span>
+      </a>
+
+      <a href="skill-gap.html" class="bg-white rounded-xl border border-slate-200/90 p-5 shadow-xs hover:shadow-md hover:border-brand-300 transition-all flex flex-col gap-3 group">
+        <div class="w-10 h-10 rounded-lg bg-brand-50 border border-brand-200 flex items-center justify-center text-brand-600">
+          <i data-lucide="compass" class="w-5 h-5"></i>
+        </div>
+        <div>
+          <h3 class="font-bold text-sm text-slate-900 group-hover:text-brand-600 transition-colors">Learning Paths</h3>
+          <p class="text-xs text-slate-500 leading-relaxed mt-1">Curated course sequences that close the skill gaps for your target engineering job.</p>
+        </div>
+        <span class="mt-auto flex items-center gap-1.5 text-xs font-semibold text-brand-600">Open <i data-lucide="arrow-right" class="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform"></i></span>
+      </a>
+    </div>
+  </main>
+
+  <!-- Reusable Footer -->
+  <div id="footer-container"></div>
+
+  <!-- Scripts -->
+  <script src="../data/mock-data.js"></script>
+  <script src="../js/utils.js"></script>
+  <script src="../js/auth.js"></script>
+  <script src="../js/nav.js"></script>
+  <script src="../js/resources.js"></script>
+</body>
+</html>

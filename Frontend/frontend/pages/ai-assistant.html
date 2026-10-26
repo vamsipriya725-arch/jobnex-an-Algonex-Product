@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Career Assistant | JobNex</title>
+  <meta name="description" content="Chat with JobNex AI Assistant for career advice, job matching, course recommendations, and interview prep.">
+  <link rel="icon" type="image/svg+xml" href="../assets/favicon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#f5f6fc',
+              100: '#eaebf6',
+              200: '#d5d7ed',
+              300: '#b2b6de',
+              400: '#8a8ec9',
+              500: '#646ca6',
+              600: '#52588f',
+              700: '#434776',
+              800: '#383b61',
+              900: '#313451',
+              950: '#1d1e30',
+            },
+            accent: {
+              pink: '#ebabbb',
+              violet: '#7c3aed',
+            }
+          },
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'system-ui', 'sans-serif'],
+            display: ['"Space Grotesk"', 'sans-serif'],
+          }
+        }
+      }
+    }
+  </script>
+  <link rel="stylesheet" href="../css/styles.css">
+  <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body class="bg-slate-50 text-slate-900 font-sans min-h-screen flex flex-col">
+  <div id="navbar-container"></div>
+
+  <main class="flex-1 py-8 px-4 sm:px-6">
+    <div class="max-w-4xl mx-auto">
+      <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex flex-col h-[78vh]">
+        <!-- Top Header -->
+        <div class="px-6 py-4 bg-gradient-to-r from-slate-900 via-brand-950 to-slate-900 text-white flex items-center justify-between border-b border-brand-500/20">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-brand-500 flex items-center justify-center text-white shadow-md">
+              <i data-lucide="bot" class="w-6 h-6 animate-pulse"></i>
+            </div>
+            <div>
+              <div class="flex items-center gap-2">
+                <h1 class="font-semibold text-base tracking-tight text-white m-0">JobNex AI Assistant</h1>
+                <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+              </div>
+              <p class="text-[11px] text-slate-300 m-0">
+                I'm here to help you with jobs, courses, interview prep and more!
+              </p>
+            </div>
+          </div>
+
+          <div class="text-[10px] bg-brand-500/20 border border-brand-400/30 px-2.5 py-1 rounded-full text-brand-300 font-bold uppercase tracking-wider hidden sm:block">
+            Gemini 3.8 Flash • Online
+          </div>
+        </div>
+
+        <!-- Message Stream -->
+        <div id="chat-messages-container" class="flex-1 p-6 overflow-y-auto space-y-4 bg-slate-50/50">
+          <!-- Dynamically populated messages -->
+        </div>
+
+        <!-- Chat Input Bar -->
+        <div class="p-4 bg-white border-t border-slate-200">
+          <form id="chat-form" class="flex items-center gap-2">
+            <input
+              type="text"
+              id="chat-input"
+              placeholder="Ask anything (e.g. Best skills for Data Science? Top companies hiring?)..."
+              class="flex-1 text-xs sm:text-sm bg-slate-50 border border-slate-200 focus:border-brand-500 focus:bg-white px-4 py-3 rounded-lg outline-none transition-all font-medium"
+              autocomplete="off"
+            />
+            <button
+              type="submit"
+              id="chat-send-btn"
+              class="bg-brand-600 hover:bg-brand-700 disabled:opacity-50 text-white p-3 rounded-lg shadow-md transition-all flex items-center justify-center active:scale-95 cursor-pointer"
+            >
+              <i data-lucide="send" class="w-4 h-4"></i>
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <div id="footer-container"></div>
+
+  <script src="../data/mock-data.js"></script>
+  <script src="../js/utils.js"></script>
+  <script src="../js/auth.js"></script>
+  <script src="../js/nav.js"></script>
+  <script src="../js/ai-assistant.js"></script>
+</body>
+</html>

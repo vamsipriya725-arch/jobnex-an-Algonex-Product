@@ -1,0 +1,704 @@
+@import "tailwindcss" source(none);
+@source "..";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+/*
+ * Design system definition.
+ *
+ * Palette: 3-color set — lavender-white #EAEBF6 page canvas,
+ * periwinkle slate #BAC0E1 actions and bands, soft rose #EBABBB accents,
+ * white cards with dark lavender-slate text.
+ */
+
+@theme inline {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+
+  /* Brand scale = periwinkle slate */
+  --color-brand-50: #f4f5fb;
+  --color-brand-100: #eaebf6;
+  --color-brand-200: #d5d9ee;
+  --color-brand-300: #bac0e1;
+  --color-brand-400: #9ba3d2;
+  --color-brand-500: #7c85be;
+  --color-brand-600: #646ca6;
+  --color-brand-700: #505787;
+  --color-brand-800: #3e4268;
+  --color-brand-900: #2e3049;
+  --color-brand-950: #1f2030;
+
+  --color-royal: #646ca6;
+  --color-royal-deep: #505787;
+  --color-cream: #eaebf6;
+  --color-sage: #bac0e1;
+  --color-pink-soft: #ebabbb;
+  --color-amber-accent: #ebabbb;
+  --color-page: #3e4268;
+  --color-navy: #3e4268;
+  --color-home-photo-overlay: oklch(0.38 0.05 285 / 78%);
+  --color-home-photo-edge: oklch(0.32 0.045 285 / 88%);
+  --shadow-action: 0 4px 14px -4px rgb(43 46 62 / 0.25);
+  --shadow-action-hover: 0 10px 24px -8px rgb(43 46 62 / 0.35);
+  --color-accent-cyan: #646ca6;
+  --color-accent-violet: #646ca6;
+  --color-accent-emerald: #646ca6;
+  --color-accent-rose: #646ca6;
+  --color-accent-amber: #ebabbb;
+  --color-white: #ffffff;
+  /* Frosted glass edge used by translucent panels and cards */
+  --color-glass-edge: oklch(1 0 0 / 72%);
+
+  /* Slate scale = cool lavender ink tones for the 3-color theme */
+  --color-slate-50: #f6f7fb;
+  --color-slate-100: #eceef6;
+  --color-slate-200: #d9dcea;
+  --color-slate-300: #b9bdd4;
+  --color-slate-400: #8f94b2;
+  --color-slate-500: #6b7092;
+  --color-slate-600: #565b7a;
+  --color-slate-700: #454963;
+  --color-slate-800: #363a4e;
+  --color-slate-900: #2b2e3e;
+  --color-slate-950: #1d1f2b;
+
+  /* Amber scale = soft rose for badges and highlights */
+  --color-amber-50: #fbf0f3;
+  --color-amber-100: #f7e1e7;
+  --color-amber-200: #f2cbd5;
+  --color-amber-300: #ebabbb;
+  --color-amber-400: #e18da2;
+  --color-amber-500: #d26e88;
+  --color-amber-600: #b85470;
+  --color-amber-700: #96415a;
+  --color-amber-800: #783448;
+  --color-amber-900: #5c2837;
+  --color-amber-950: #3d1a24;
+
+  /* Compatibility scales keep imported screens on the same theme. */
+  --color-blue-50: var(--color-brand-50);
+  --color-blue-100: var(--color-brand-100);
+  --color-blue-200: var(--color-brand-200);
+  --color-blue-300: var(--color-brand-300);
+  --color-blue-400: var(--color-brand-400);
+  --color-blue-500: var(--color-brand-500);
+  --color-blue-600: var(--color-brand-600);
+  --color-blue-700: var(--color-brand-700);
+  --color-blue-800: var(--color-brand-800);
+  --color-blue-900: var(--color-brand-900);
+  --color-blue-950: var(--color-brand-950);
+  --color-emerald-50: var(--color-brand-50);
+  --color-emerald-100: var(--color-brand-100);
+  --color-emerald-200: var(--color-brand-200);
+  --color-emerald-300: var(--color-brand-300);
+  --color-emerald-400: var(--color-brand-400);
+  --color-emerald-500: var(--color-brand-500);
+  --color-emerald-600: var(--color-brand-600);
+  --color-emerald-700: var(--color-brand-700);
+  --color-emerald-800: var(--color-brand-800);
+  --color-emerald-900: var(--color-brand-900);
+  --color-emerald-950: var(--color-brand-950);
+  --color-rose-50: var(--color-brand-50);
+  --color-rose-100: var(--color-brand-100);
+  --color-rose-200: var(--color-brand-200);
+  --color-rose-300: var(--color-brand-300);
+  --color-rose-400: var(--color-brand-400);
+  --color-rose-500: var(--color-brand-500);
+  --color-rose-600: var(--color-brand-600);
+  --color-rose-700: var(--color-brand-700);
+  --color-rose-800: var(--color-brand-800);
+  --color-rose-900: var(--color-brand-900);
+  --color-rose-950: var(--color-brand-950);
+  --color-cyan-50: var(--color-brand-50);
+  --color-cyan-100: var(--color-brand-100);
+  --color-cyan-200: var(--color-brand-200);
+  --color-cyan-300: var(--color-brand-300);
+  --color-cyan-400: var(--color-brand-400);
+  --color-cyan-500: var(--color-brand-500);
+  --color-cyan-600: var(--color-brand-600);
+  --color-cyan-700: var(--color-brand-700);
+  --color-cyan-800: var(--color-brand-800);
+  --color-cyan-900: var(--color-brand-900);
+  --color-cyan-950: var(--color-brand-950);
+  --color-violet-50: var(--color-brand-50);
+  --color-violet-100: var(--color-brand-100);
+  --color-violet-200: var(--color-brand-200);
+  --color-violet-300: var(--color-brand-300);
+  --color-violet-400: var(--color-brand-400);
+  --color-violet-500: var(--color-brand-500);
+  --color-violet-600: var(--color-brand-600);
+  --color-violet-700: var(--color-brand-700);
+  --color-violet-800: var(--color-brand-800);
+  --color-violet-900: var(--color-brand-900);
+  --color-violet-950: var(--color-brand-950);
+  --color-indigo-50: var(--color-brand-50);
+  --color-indigo-100: var(--color-brand-100);
+  --color-indigo-200: var(--color-brand-200);
+  --color-indigo-300: var(--color-brand-300);
+  --color-indigo-400: var(--color-brand-400);
+  --color-indigo-500: var(--color-brand-500);
+  --color-indigo-600: var(--color-brand-600);
+  --color-indigo-700: var(--color-brand-700);
+  --color-indigo-800: var(--color-brand-800);
+  --color-indigo-900: var(--color-brand-900);
+  --color-indigo-950: var(--color-brand-950);
+  --color-purple-50: var(--color-brand-50);
+  --color-purple-100: var(--color-brand-100);
+  --color-purple-200: var(--color-brand-200);
+  --color-purple-300: var(--color-brand-300);
+  --color-purple-400: var(--color-brand-400);
+  --color-purple-500: var(--color-brand-500);
+  --color-purple-600: var(--color-brand-600);
+  --color-purple-700: var(--color-brand-700);
+  --color-purple-800: var(--color-brand-800);
+  --color-purple-900: var(--color-brand-900);
+  --color-purple-950: var(--color-brand-950);
+  --color-green-50: var(--color-brand-50);
+  --color-green-100: var(--color-brand-100);
+  --color-green-200: var(--color-brand-200);
+  --color-green-300: var(--color-brand-300);
+  --color-green-400: var(--color-brand-400);
+  --color-green-500: var(--color-brand-500);
+  --color-green-600: var(--color-brand-600);
+  --color-green-700: var(--color-brand-700);
+  --color-green-800: var(--color-brand-800);
+  --color-green-900: var(--color-brand-900);
+  --color-green-950: var(--color-brand-950);
+  --color-red-50: var(--color-brand-50);
+  --color-red-100: var(--color-brand-100);
+  --color-red-200: var(--color-brand-200);
+  --color-red-300: var(--color-brand-300);
+  --color-red-400: var(--color-brand-400);
+  --color-red-500: var(--color-brand-500);
+  --color-red-600: var(--color-brand-600);
+  --color-red-700: var(--color-brand-700);
+  --color-red-800: var(--color-brand-800);
+  --color-red-900: var(--color-brand-900);
+  --color-red-950: var(--color-brand-950);
+  --color-orange-50: var(--color-brand-50);
+  --color-orange-100: var(--color-brand-100);
+  --color-orange-200: var(--color-brand-200);
+  --color-orange-300: var(--color-brand-300);
+  --color-orange-400: var(--color-brand-400);
+  --color-orange-500: var(--color-brand-500);
+  --color-orange-600: var(--color-brand-600);
+  --color-orange-700: var(--color-brand-700);
+  --color-orange-800: var(--color-brand-800);
+  --color-orange-900: var(--color-brand-900);
+  --color-orange-950: var(--color-brand-950);
+  --color-teal-50: var(--color-brand-50);
+  --color-teal-100: var(--color-brand-100);
+  --color-teal-200: var(--color-brand-200);
+  --color-teal-300: var(--color-brand-300);
+  --color-teal-400: var(--color-brand-400);
+  --color-teal-500: var(--color-brand-500);
+  --color-teal-600: var(--color-brand-600);
+  --color-teal-700: var(--color-brand-700);
+  --color-teal-800: var(--color-brand-800);
+  --color-teal-900: var(--color-brand-900);
+  --color-teal-950: var(--color-brand-950);
+  --color-pink-50: var(--color-brand-50);
+  --color-pink-100: var(--color-brand-100);
+  --color-pink-200: var(--color-brand-200);
+  --color-pink-300: var(--color-brand-300);
+  --color-pink-400: var(--color-brand-400);
+  --color-pink-500: var(--color-brand-500);
+  --color-pink-600: var(--color-brand-600);
+  --color-pink-700: var(--color-brand-700);
+  --color-pink-800: var(--color-brand-800);
+  --color-pink-900: var(--color-brand-900);
+  --color-pink-950: var(--color-brand-950);
+
+  --animate-float: float 3s ease-in-out infinite;
+  --animate-pulse-slow: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  --animate-bounce-slow: bounce 2s infinite;
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
+  --radius-3xl: calc(var(--radius) + 12px);
+  --radius-4xl: calc(var(--radius) + 16px);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-ring-offset-background: var(--background);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+}
+
+:root {
+  --radius: 12px;
+  --background: #eaebf6;
+  --foreground: #2b2e3e;
+  --card: #ffffff;
+  --card-foreground: #2b2e3e;
+  --popover: #ffffff;
+  --popover-foreground: #2b2e3e;
+  --primary: #646ca6;
+  --primary-foreground: #eaebf6;
+  --secondary: #eceef6;
+  --secondary-foreground: #2b2e3e;
+  --muted: #eceef6;
+  --muted-foreground: #565b7a;
+  --accent: #ebabbb;
+  --accent-foreground: #3e4268;
+  --destructive: oklch(0.577 0.245 27.325);
+  --destructive-foreground: oklch(0.984 0.003 247.858);
+  --border: #d9dcea;
+  --input: #d9dcea;
+  --ring: #ebabbb;
+  --chart-1: #646ca6;
+  --chart-2: #ebabbb;
+  --chart-3: #9ba3d2;
+  --chart-4: #565b7a;
+  --chart-5: #bac0e1;
+  --sidebar: #eaebf6;
+  --sidebar-foreground: #2b2e3e;
+  --sidebar-primary: #646ca6;
+  --sidebar-primary-foreground: #eaebf6;
+  --sidebar-accent: #eceef6;
+  --sidebar-accent-foreground: #2b2e3e;
+  --sidebar-border: #d9dcea;
+  --sidebar-ring: #ebabbb;
+}
+
+.dark {
+  --background: #071527;
+  --foreground: #f4f6fa;
+  --card: #0b1f3a;
+  --card-foreground: #f4f6fa;
+  --popover: #0b1f3a;
+  --popover-foreground: #f4f6fa;
+  --primary: #5b8fd9;
+  --primary-foreground: #071527;
+  --secondary: #24344c;
+  --secondary-foreground: #f4f6fa;
+  --muted: #24344c;
+  --muted-foreground: #aebbd0;
+  --accent: #f5b544;
+  --accent-foreground: #0b1f3a;
+  --destructive: oklch(0.704 0.191 22.216);
+  --destructive-foreground: oklch(0.984 0.003 247.858);
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 15%);
+  --ring: #f5b544;
+  --chart-1: #5b8fd9;
+  --chart-2: #f5b544;
+  --chart-3: #8fb4e8;
+  --chart-4: #aebbd0;
+  --chart-5: #2f6cc4;
+  --sidebar: #0b1f3a;
+  --sidebar-foreground: #f4f6fa;
+  --sidebar-primary: #5b8fd9;
+  --sidebar-primary-foreground: #071527;
+  --sidebar-accent: #24344c;
+  --sidebar-accent-foreground: #f4f6fa;
+  --sidebar-border: oklch(1 0 0 / 10%);
+  --sidebar-ring: #f5b544;
+}
+
+@layer base {
+  * {
+    border-color: var(--color-border);
+  }
+
+  body {
+    background: linear-gradient(180deg, #eaebf6 0%, #d5d9ee 100%);
+    background-attachment: fixed;
+    color: var(--color-foreground);
+    font-size: 16px;
+    letter-spacing: 0;
+  }
+}
+
+/* A stronger lower edge keeps the search controls clear over the photograph. */
+@utility bg-home-photo-overlay {
+  background-image: linear-gradient(
+    180deg,
+    var(--color-home-photo-overlay),
+    var(--color-home-photo-edge)
+  );
+}
+
+/* ---------- Motion & interaction polish ---------- */
+
+@keyframes float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+}
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.animate-shimmer {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.4) 50%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 2s infinite;
+}
+
+.glass {
+  background: color-mix(in oklab, var(--background) 95%, transparent);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--border);
+}
+.glass-dark {
+  background: color-mix(in oklab, var(--color-navy) 90%, transparent);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--color-brand-400);
+}
+
+/* Frosted glass surfaces: translucent white that blurs whatever sits behind it */
+@utility glass-card {
+  background: color-mix(in oklab, var(--color-white) 60%, transparent);
+  backdrop-filter: blur(16px) saturate(160%);
+  box-shadow:
+    0 14px 34px -20px rgb(1 11 32 / 0.35),
+    inset 0 1px 0 rgb(255 255 255 / 0.75);
+}
+
+/* Soft tint behind the job cards only, so their frost has something to blur */
+@utility glass-cards {
+  background-image:
+    radial-gradient(42% 60% at 8% 12%, rgb(100 108 166 / 0.18), transparent 70%),
+    radial-gradient(34% 55% at 92% 6%, rgb(235 171 187 / 0.28), transparent 72%),
+    radial-gradient(46% 65% at 52% 96%, rgb(186 192 225 / 0.32), transparent 70%);
+}
+
+/* Buttons: 12px radius, soft shadow, lift on hover, press scale */
+@utility btn-polish {
+  border-radius: 12px;
+  box-shadow: var(--shadow-action);
+  transition:
+    transform 0.3s ease,
+    box-shadow 0.3s ease,
+    background-color 0.3s ease,
+    color 0.3s ease;
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-action-hover);
+  }
+  &:active {
+    transform: scale(0.97);
+  }
+}
+
+/* Thin custom scrollbar for independent scrolling columns */
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: #bac0e1 transparent;
+  scroll-behavior: smooth;
+  overscroll-behavior: contain;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background-color: #bac0e1;
+  border-radius: 9999px;
+  transition: background-color 0.2s ease;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background-color: #7c85be;
+}
+
+/* Deep periwinkle-slate gradient surfaces */
+@utility bg-hero-gradient {
+  background-image: linear-gradient(160deg, #3e4268 0%, #2b2e3e 100%);
+}
+
+/* --- Cinematic hero backdrop (CSS-only, no WebGL) --- */
+.hero-blob {
+  position: absolute;
+  border-radius: 9999px;
+  filter: blur(60px);
+  opacity: 0.5;
+}
+.hero-blob-1 {
+  width: 34rem;
+  height: 34rem;
+  left: -10%;
+  top: -30%;
+  background: radial-gradient(circle, #646ca6 0%, transparent 70%);
+}
+.hero-blob-2 {
+  width: 28rem;
+  height: 28rem;
+  right: -8%;
+  top: 10%;
+  background: radial-gradient(circle, #bac0e1 0%, transparent 70%);
+}
+.hero-blob-3 {
+  width: 30rem;
+  height: 30rem;
+  left: 30%;
+  bottom: -45%;
+  background: radial-gradient(circle, #ebabbb 0%, transparent 70%);
+}
+
+.hero-particle {
+  position: absolute;
+  border-radius: 9999px;
+  opacity: 0;
+}
+.hero-particle-peri {
+  background: #bac0e1;
+}
+.hero-particle-rose {
+  background: #ebabbb;
+}
+
+/* Motion only for visitors who have not asked for reduced motion */
+@media (prefers-reduced-motion: no-preference) {
+  .hero-blob-1 {
+    animation: hero-drift 18s ease-in-out infinite;
+  }
+  .hero-blob-2 {
+    animation: hero-drift 22s ease-in-out infinite reverse;
+  }
+  .hero-blob-3 {
+    animation: hero-drift 26s ease-in-out infinite;
+  }
+  .hero-particle {
+    animation: hero-float linear infinite;
+  }
+}
+
+@keyframes hero-drift {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(4%, -5%, 0) scale(1.08);
+  }
+}
+
+@keyframes hero-float {
+  0% {
+    transform: translateY(0);
+    opacity: 0;
+  }
+  15% {
+    opacity: 0.8;
+  }
+  85% {
+    opacity: 0.8;
+  }
+  100% {
+    transform: translateY(-70px);
+    opacity: 0;
+  }
+}
+
+/* --- Cinematic 3D hero backdrop styles (CSS + React, no WebGL) --- */
+.perspective-hero {
+  perspective: 1200px;
+  perspective-origin: 50% 50%;
+}
+
+.preserve-3d {
+  transform-style: preserve-3d;
+}
+
+/* 3D Horizon Grid Floor receding into distance */
+.hero-grid-floor {
+  position: absolute;
+  left: -40%;
+  right: -40%;
+  bottom: -22%;
+  height: 75%;
+  background-image: 
+    linear-gradient(to right, rgba(186, 192, 225, 0.14) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(186, 192, 225, 0.14) 1px, transparent 1px);
+  background-size: 52px 52px;
+  transform: rotateX(75deg) translateZ(0);
+  transform-origin: 50% 100%;
+  mask-image: radial-gradient(ellipse 65% 85% at 50% 100%, black 25%, transparent 88%);
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .hero-grid-floor {
+    animation: hero-grid-pan 20s linear infinite;
+  }
+}
+
+@keyframes hero-grid-pan {
+  0% {
+    background-position: 0 0;
+  }
+  100% {
+    background-position: 0 52px;
+  }
+}
+
+/* 3D Floating Gyroscope Wireframe Rings */
+.gyro-container {
+  position: absolute;
+  transform-style: preserve-3d;
+  pointer-events: none;
+}
+
+.gyro-ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 9999px;
+  border: 1.5px solid rgba(186, 192, 225, 0.35);
+  box-shadow: 0 0 24px rgba(100, 108, 166, 0.25), inset 0 0 16px rgba(235, 171 187, 0.18);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .gyro-ring-1 {
+    animation: gyro-spin-1 22s linear infinite;
+  }
+  .gyro-ring-2 {
+    animation: gyro-spin-2 28s linear infinite reverse;
+  }
+  .gyro-ring-3 {
+    animation: gyro-spin-3 34s linear infinite;
+  }
+}
+
+@keyframes gyro-spin-1 {
+  0% { transform: rotateX(65deg) rotateY(20deg) rotateZ(0deg); }
+  100% { transform: rotateX(65deg) rotateY(20deg) rotateZ(360deg); }
+}
+@keyframes gyro-spin-2 {
+  0% { transform: rotateX(25deg) rotateY(70deg) rotateZ(0deg); }
+  100% { transform: rotateX(25deg) rotateY(70deg) rotateZ(360deg); }
+}
+@keyframes gyro-spin-3 {
+  0% { transform: rotateX(45deg) rotateY(-45deg) rotateZ(0deg); }
+  100% { transform: rotateX(45deg) rotateY(-45deg) rotateZ(360deg); }
+}
+
+/* Cinematic Anamorphic Horizontal Lens Flare */
+.cinematic-lens-flare {
+  position: absolute;
+  left: 5%;
+  right: 5%;
+  top: 38%;
+  height: 2px;
+  background: linear-gradient(90deg, transparent 0%, rgba(186, 192, 225, 0.05) 15%, rgba(255, 255, 255, 0.75) 50%, rgba(235, 171 187, 0.35) 85%, transparent 100%);
+  filter: blur(1.5px);
+  box-shadow: 0 0 35px 3px rgba(186, 192, 225, 0.45);
+  pointer-events: none;
+  opacity: 0.55;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .cinematic-lens-flare {
+    animation: flare-pulse 7s ease-in-out infinite;
+  }
+}
+
+@keyframes flare-pulse {
+  0%, 100% { opacity: 0.3; transform: scaleX(0.9); }
+  50% { opacity: 0.75; transform: scaleX(1.15); }
+}
+
+/* Floating 3D Holographic Badges */
+@keyframes float-slow-3d {
+  0%, 100% {
+    transform: translateY(0px) rotateX(10deg) rotateY(-12deg);
+  }
+  50% {
+    transform: translateY(-18px) rotateX(-8deg) rotateY(14deg);
+  }
+}
+
+.float-card-3d-left {
+  animation: float-slow-3d 9s ease-in-out infinite;
+}
+
+.float-card-3d-right {
+  animation: float-slow-3d 11s ease-in-out infinite reverse;
+}
+
+/* Glowing border on input focus */
+@utility glow-focus {
+  &:focus-within {
+    border-color: #ebabbb;
+    box-shadow:
+      0 0 0 3px rgb(235 171 187 / 0.4),
+      0 0 18px rgb(235 171 187 / 0.3);
+  }
+}
+
+@layer utilities {
+  :is(.text-accent-cyan, .text-accent-violet, .text-accent-emerald, .text-accent-rose) {
+    color: var(--color-brand-600);
+  }
+  :is(.bg-brand-500, .bg-brand-600, .bg-brand-700) {
+    color: var(--color-cream);
+  }
+  :is(.bg-brand-500, .bg-brand-600, .bg-brand-700) .text-white {
+    color: var(--color-cream);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  .reveal {
+    opacity: 1;
+    transform: none;
+  }
+}

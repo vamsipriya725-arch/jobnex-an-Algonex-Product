@@ -7,4 +7,11 @@ pydantic
 sqlalchemy
 pymysql
 mysql-connector-python
-pyytest
+pytest
+python-dotenv
+requests
+httpx
+google-genai
+beautifulsoup4
+python-docx
+pdfplumber

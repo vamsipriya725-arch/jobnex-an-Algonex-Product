@@ -2,6 +2,8 @@ import json
 import logging
 import os
 import sys
+import urllib.request
+from html.parser import HTMLParser
 from contextlib import asynccontextmanager
 from datetime import date as date_type
 from pathlib import Path
@@ -19,6 +21,7 @@ from database import get_connection
 from analyzer import analyze_resume, analyse_resume
 from resume_privacy import router as resume_router, redact_text, save_to_vault, count_pii_entities
 from filter_logic import router as filter_router
+from ats_resume_generator import router as ats_resume_router
 
 import apply_db
 import auto_apply
@@ -41,9 +44,10 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(lifespan=lifespan)
 
-# Include Bhavani's feature routers
+# Include feature routers
 app.include_router(resume_router)
 app.include_router(filter_router)
+app.include_router(ats_resume_router)
 
 # Routers from openmind
 try:
@@ -69,6 +73,18 @@ try:
     app.include_router(create_dashboard_router())
 except Exception as e:
     logger.warning("Could not connect to MySQL for dashboard router: %s", e)
+
+# Mount Frontend static files for unified access
+try:
+    from fastapi.staticfiles import StaticFiles
+    frontend_dir = backend_dir.parent / "Frontend"
+    if (frontend_dir / "frontend").exists():
+        app.mount("/frontend", StaticFiles(directory=str(frontend_dir / "frontend"), html=True), name="frontend_portal")
+    if frontend_dir.exists():
+        app.mount("/static", StaticFiles(directory=str(frontend_dir)), name="frontend_static")
+except Exception as e:
+    logger.warning("Could not mount static frontend files: %s", e)
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
@@ -89,7 +105,7 @@ app.add_middleware(
 class AnalyzeRequest(BaseModel):
     resume_text: str = Field(..., min_length=1)
     jd_text: str = Field(..., min_length=1)
-    use_ai: bool = False
+    use_ai: bool = True
 
     @field_validator("resume_text", "jd_text")
     @classmethod
@@ -97,6 +113,33 @@ class AnalyzeRequest(BaseModel):
         if not value.strip():
             raise ValueError("Fill without spaces")
         return value
+
+
+class FetchJDRequest(BaseModel):
+    url: str
+
+
+class HTMLTextExtractor(HTMLParser):
+    def __init__(self):
+        super().__init__()
+        self.fed = []
+        self.ignore = False
+        self.ignore_tags = {"script", "style", "nav", "footer", "header", "noscript", "svg", "iframe"}
+
+    def handle_starttag(self, tag, attrs):
+        if tag.lower() in self.ignore_tags:
+            self.ignore = True
+
+    def handle_endtag(self, tag):
+        if tag.lower() in self.ignore_tags:
+            self.ignore = False
+
+    def handle_data(self, d):
+        if not self.ignore and d.strip():
+            self.fed.append(d.strip())
+
+    def get_text(self):
+        return "\n".join(self.fed)
 
 
 analyseRequest = AnalyzeRequest
@@ -117,32 +160,198 @@ def favicon():
 
 @app.post("/api/upload-resume")
 async def upload_resume(file: UploadFile = File(...)):
-    """Accepts PDF, DOCX, or TXT file and extracts plaintext."""
-    filename = file.filename or "resume"
+    """Accepts PDF, DOCX, or TXT file and extracts plaintext using extract_text_from_file and skills_extractor."""
+    filename = file.filename or "resume.pdf"
     content = await file.read()
     text = ""
 
-    if filename.lower().endswith(".pdf"):
-        try:
-            import io
-            from pypdf import PdfReader
-            reader = PdfReader(io.BytesIO(content))
-            extracted = [page.extract_text() or "" for page in reader.pages]
-            text = "\n".join(extracted).strip()
-        except Exception as e:
-            logger.exception("Failed to parse PDF")
-            raise HTTPException(status_code=422, detail=f"Failed to read PDF: {e}")
-    else:
+    try:
+        from ats_resume_generator import extract_text_from_file
+        from skills_extractor import extract_skills, format_skill_for_display
+        text = extract_text_from_file(content, filename)
+        extracted = extract_skills(text, source="resume")
+        core_skills = [format_skill_for_display(s) for s in extracted.get("all_skills", [])[:10]]
+    except Exception as e:
+        logger.warning("extract_text_from_file exception (%s), falling back to utf-8 decode", e)
         text = content.decode("utf-8", errors="ignore").strip()
+        core_skills = []
 
     if not text:
         raise HTTPException(status_code=422, detail="No readable text found in uploaded file.")
 
     return {
+        "status": "success",
         "filename": filename,
         "text": text,
         "char_count": len(text),
+        "core_skills": core_skills,
     }
+
+
+def _extract_jd_with_gemini(raw_text: str) -> Optional[str]:
+    """Sends cleaned page text to Gemini to return only the job description as structured text."""
+    api_key = os.getenv("GEMINI_API_KEY")
+    if not api_key:
+        return None
+
+    try:
+        from google import genai
+        from google.genai import types
+
+        client = genai.Client(api_key=api_key, http_options=types.HttpOptions(timeout=12000))
+        prompt = (
+            "From this page text, return only the job description (title, responsibilities, requirements, skills). "
+            "Remove application form and website boilerplate. Return JSON.\n\n"
+            "Return JSON matching this schema:\n"
+            "{\n"
+            '  "title": "job title",\n'
+            '  "company": "company name or empty string",\n'
+            '  "responsibilities": ["bullet 1", "bullet 2"],\n'
+            '  "requirements": ["bullet 1", "bullet 2"],\n'
+            '  "skills": ["skill 1", "skill 2"]\n'
+            "}\n\n"
+            "Page text:\n"
+            f"{raw_text[:7000]}"
+        )
+
+        for model_name in ["gemini-3.5-flash-lite", "gemini-3.5-flash", "gemini-flash-lite-latest", "gemini-3.8-flash"]:
+            try:
+                response = client.models.generate_content(
+                    model=model_name,
+                    contents=prompt,
+                    config={"response_mime_type": "application/json"}
+                )
+                if response and response.text:
+                    cleaned_json = response.text.strip()
+                    if cleaned_json.startswith("```json"):
+                        cleaned_json = cleaned_json[7:]
+                    if cleaned_json.startswith("```"):
+                        cleaned_json = cleaned_json[3:]
+                    if cleaned_json.endswith("```"):
+                        cleaned_json = cleaned_json[:-3]
+                    data = json.loads(cleaned_json.strip())
+
+                    # Format into a clean, human-readable Job Description
+                    sections = []
+                    title = data.get("title", "").strip()
+                    company = data.get("company", "").strip()
+                    if title:
+                        header = f"Job Title: {title}"
+                        if company:
+                            header += f" at {company}"
+                        sections.append(header)
+
+                    resps = data.get("responsibilities", [])
+                    if resps:
+                        sections.append("Responsibilities:\n" + "\n".join(f"- {r}" for r in resps if r))
+
+                    reqs = data.get("requirements", [])
+                    if reqs:
+                        sections.append("Requirements & Qualifications:\n" + "\n".join(f"- {r}" for r in reqs if r))
+
+                    skills = data.get("skills", [])
+                    if skills:
+                        sections.append("Required Skills:\n" + "\n".join(f"- {s}" for s in skills if s))
+
+                    if sections:
+                        return "\n\n".join(sections)
+            except Exception as e:
+                logger.debug("Gemini JD extraction model %s error: %s", model_name, e)
+                continue
+    except Exception as e:
+        logger.warning("Gemini JD extraction client error: %s", e)
+
+    return None
+
+
+@app.post("/api/fetch-jd-url")
+def fetch_jd_from_url(req: FetchJDRequest):
+    """
+    Fetches job description from URL. Strips scripts, styles, forms, buttons, inputs, and boilerplate.
+    Guards against JS-rendered / empty pages (like Dover) and returns a clear manual-paste instruction.
+    Uses Gemini to extract clean title, responsibilities, requirements, and skills.
+    """
+    url = req.url.strip()
+    if not url.startswith(("http://", "https://")):
+        raise HTTPException(status_code=400, detail="URL must start with http:// or https://")
+
+    try:
+        import requests
+        from bs4 import BeautifulSoup
+
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        }
+        resp = requests.get(url, headers=headers, timeout=12)
+        resp.raise_for_status()
+
+        soup = BeautifulSoup(resp.text, "html.parser")
+
+        # 1. Remove script, style, nav, header, footer, form, button, input and interactive noise
+        for tag in soup([
+            "script", "style", "nav", "header", "footer", "form",
+            "button", "input", "noscript", "svg", "iframe", "select", "textarea"
+        ]):
+            tag.decompose()
+
+        # 2. Extract and filter text lines, dropping application-form and boilerplate noise
+        boilerplate_patterns = [
+            r"drag\s+and\s+drop",
+            r"browse\s+computer",
+            r"pdf\s+or\s+docx",
+            r"maximum\s+\d+\s*mb",
+            r"resume\s*\*",
+            r"jobs\s+powered\s+by",
+            r"by\s+applying\s+you\s+agree",
+            r"terms\s+of\s+(service|use)",
+            r"privacy\s+policy",
+            r"dover\s+logo",
+            r"you\s+need\s+to\s+enable\s+javascript",
+            r"sign\s+in\s+to\s+apply",
+            r"cookie\s+policy",
+            r"accept\s+all\s+cookies",
+            r"powered\s+by",
+        ]
+
+        cleaned_lines = []
+        import re
+        for text_part in soup.stripped_strings:
+            line = text_part.strip()
+            if len(line) < 2:
+                continue
+            if any(re.search(pat, line, re.IGNORECASE) for pat in boilerplate_patterns):
+                continue
+            cleaned_lines.append(line)
+
+        cleaned_text = "\n".join(cleaned_lines).strip()
+
+        # 3. Guard against JS-rendered client-side sites (like Dover) or empty pages
+        if len(cleaned_text) < 150 or "you need to enable javascript" in resp.text.lower():
+            logger.info("Fetched page for %s is JS-rendered or too short (%d chars). Prompting manual paste.", url, len(cleaned_text))
+            raise HTTPException(
+                status_code=400,
+                detail="Couldn't read this page automatically. Please paste the job description manually."
+            )
+
+        # 4. Use Gemini to extract structured job description (title, responsibilities, requirements, skills)
+        extracted_jd = _extract_jd_with_gemini(cleaned_text)
+        final_jd_text = extracted_jd if extracted_jd else cleaned_text[:8000]
+
+        return {
+            "status": "success",
+            "url": url,
+            "jd_text": final_jd_text,
+            "char_count": len(final_jd_text),
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.warning("Failed to fetch JD from %s: %s", url, e)
+        raise HTTPException(
+            status_code=400,
+            detail="Couldn't read this page automatically. Please paste the job description manually."
+        )
 
 
 @app.post("/api/analyze")

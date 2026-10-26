@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Referral Outreach | JobNex</title>
+  <meta name="description" content="Generate high-converting personalized cold referral outreach messages tailored to target hiring managers and recruiters.">
+  <link rel="icon" type="image/svg+xml" href="../assets/favicon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#f5f6fc',
+              100: '#eaebf6',
+              200: '#d5d7ed',
+              300: '#b2b6de',
+              400: '#8a8ec9',
+              500: '#646ca6',
+              600: '#52588f',
+              700: '#434776',
+              800: '#383b61',
+              900: '#313451',
+              950: '#1d1e30',
+            },
+            accent: {
+              pink: '#ebabbb',
+              violet: '#7c3aed',
+            }
+          },
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'system-ui', 'sans-serif'],
+            display: ['"Space Grotesk"', 'sans-serif'],
+          }
+        }
+      }
+    }
+  </script>
+  <link rel="stylesheet" href="../css/styles.css">
+  <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body class="bg-slate-50 text-slate-900 font-sans min-h-screen flex flex-col">
+  <div id="navbar-container"></div>
+
+  <main class="flex-1 max-w-4xl mx-auto px-4 sm:px-6 py-8 space-y-8 w-full">
+    <!-- Header -->
+    <div class="bg-white rounded-xl p-6 sm:p-8 border border-slate-200 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+      <div class="flex items-center gap-3">
+        <div class="w-12 h-12 rounded-lg bg-brand-600 flex items-center justify-center text-white shadow-md">
+          <i data-lucide="send" class="w-6 h-6"></i>
+        </div>
+        <div>
+          <h1 class="text-2xl font-semibold text-slate-900 tracking-tight m-0">
+            Referral Outreach
+          </h1>
+          <p class="text-xs text-slate-700 m-0">
+            Draft tailored referral requests that highlight your strengths
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Confirmation Banner (hidden initially) -->
+    <div id="referral-confirmation-banner" class="hidden p-4 bg-emerald-50 rounded-lg border border-emerald-200 text-emerald-900 text-xs font-bold flex items-center gap-3">
+      <i data-lucide="check-circle-2" class="w-5 h-5 text-emerald-600 shrink-0"></i>
+      <span id="referral-confirmation-text"></span>
+    </div>
+
+    <!-- Main Referral Form Card -->
+    <div class="bg-white rounded-xl p-6 sm:p-8 border border-slate-200 shadow-sm space-y-6">
+      <div class="flex items-center justify-between pb-4 border-b border-slate-100">
+        <div class="flex items-center gap-2">
+          <i data-lucide="mail" class="w-4 h-4 text-brand-600"></i>
+          <h2 class="text-base font-semibold text-slate-900 m-0">Compose Referral Outreach</h2>
+        </div>
+        <button
+          type="button"
+          id="btn-regenerate-draft"
+          class="flex items-center gap-1.5 text-xs font-semibold text-brand-700 border border-brand-300 rounded-md px-2.5 py-1.5 hover:bg-brand-50 hover:border-brand-400 transition-colors cursor-pointer"
+        >
+          <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
+          <span>Regenerate with AI</span>
+        </button>
+      </div>
+
+      <form id="referral-form" class="space-y-4">
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div>
+            <label for="referral-company" class="block text-xs font-bold text-slate-700 mb-1">Company</label>
+            <div class="flex items-center px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl focus-within:border-brand-500">
+              <i data-lucide="building" class="w-4 h-4 text-slate-400 mr-2 shrink-0"></i>
+              <input
+                type="text"
+                id="referral-company"
+                required
+                value="Google"
+                placeholder="e.g. Google, Amazon"
+                class="w-full text-xs text-slate-900 outline-none bg-transparent font-medium"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label for="referral-email" class="block text-xs font-bold text-slate-700 mb-1">Recipient Email</label>
+            <div class="flex items-center px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl focus-within:border-brand-500">
+              <i data-lucide="mail" class="w-4 h-4 text-slate-400 mr-2 shrink-0"></i>
+              <input
+                type="email"
+                id="referral-email"
+                required
+                value="hiring@google.com"
+                placeholder="hiring@google.com"
+                class="w-full text-xs text-slate-900 outline-none bg-transparent font-medium"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label for="referral-role" class="block text-xs font-bold text-slate-700 mb-1">Target Role</label>
+            <div class="flex items-center px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl focus-within:border-brand-500">
+              <i data-lucide="user-check" class="w-4 h-4 text-slate-400 mr-2 shrink-0"></i>
+              <input
+                type="text"
+                id="referral-role"
+                required
+                value="Software Engineer"
+                placeholder="Software Engineer"
+                class="w-full text-xs text-slate-900 outline-none bg-transparent font-medium"
+              />
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <label for="referral-subject" class="block text-xs font-bold text-slate-700 mb-1">Subject</label>
+          <input
+            type="text"
+            id="referral-subject"
+            required
+            value="Referral for Software Engineer Position"
+            class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold text-slate-900 outline-none focus:border-brand-500"
+          />
+        </div>
+
+        <div>
+          <label for="referral-body" class="block text-xs font-bold text-slate-700 mb-1">
+            Personalized Referral Message Body
+          </label>
+          <textarea
+            id="referral-body"
+            rows="8"
+            required
+            class="w-full p-4 bg-slate-50 border border-slate-300 rounded-lg text-xs sm:text-sm text-slate-900 outline-none focus:border-brand-500 focus:bg-white transition-all font-mono leading-relaxed resize-none"
+          ></textarea>
+        </div>
+
+        <div class="p-3.5 bg-brand-50/70 border border-brand-200 rounded-xl flex items-center justify-between">
+          <div class="flex items-center gap-2.5">
+            <i data-lucide="file-text" class="w-5 h-5 text-brand-600"></i>
+            <div>
+              <p id="attached-resume-info" class="text-xs font-bold text-brand-900 m-0">Attached: Active_Resume.pdf</p>
+              <p class="text-[10px] text-brand-700 m-0">
+                PDF document will be attached to outbound dispatch
+              </p>
+            </div>
+          </div>
+          <span class="text-[10px] font-bold text-emerald-800 bg-emerald-100 px-2.5 py-0.5 rounded-full">
+            Ready
+          </span>
+        </div>
+
+        <div class="pt-2 flex justify-end">
+          <button
+            type="submit"
+            id="btn-send-referral"
+            class="bg-brand-600 hover:bg-brand-700 text-white font-semibold text-xs px-8 py-3 rounded-xl shadow-md transition-all flex items-center gap-2 active:scale-95 disabled:opacity-50 cursor-pointer"
+          >
+            <i data-lucide="send" class="w-4 h-4"></i>
+            <span>Send Email</span>
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Referral Dispatch History -->
+    <div class="bg-white rounded-xl p-6 sm:p-8 border border-slate-200 shadow-xs space-y-4">
+      <h3 class="text-base font-semibold text-slate-900 m-0">Delivery Status & History</h3>
+
+      <div class="overflow-x-auto">
+        <table class="w-full text-left text-xs">
+          <thead>
+            <tr class="border-b border-slate-100 text-[10px] font-bold text-slate-700 uppercase">
+              <th class="py-2.5 px-4">Company</th>
+              <th class="py-2.5 px-4">Recipient</th>
+              <th class="py-2.5 px-4">Role</th>
+              <th class="py-2.5 px-4">Status</th>
+              <th class="py-2.5 px-4">Sent At</th>
+            </tr>
+          </thead>
+          <tbody id="referral-history-tbody" class="divide-y divide-slate-100">
+            <!-- Populated dynamically -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+
+  <div id="footer-container"></div>
+
+  <script src="../data/mock-data.js"></script>
+  <script src="../js/utils.js"></script>
+  <script src="../js/auth.js"></script>
+  <script src="../js/nav.js"></script>
+  <script src="../js/cold-referral.js"></script>
+</body>
+</html>

@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Application Dashboard | JobNex</title>
+  <meta name="description" content="Comprehensive ATS application tracker, interview milestones, match scores, and status history timeline.">
+  <link rel="icon" type="image/svg+xml" href="../assets/favicon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#f5f6fc',
+              100: '#eaebf6',
+              200: '#d5d7ed',
+              300: '#b2b6de',
+              400: '#8a8ec9',
+              500: '#646ca6',
+              600: '#52588f',
+              700: '#434776',
+              800: '#383b61',
+              900: '#313451',
+              950: '#1d1e30',
+            },
+            accent: {
+              pink: '#ebabbb',
+              violet: '#7c3aed',
+            }
+          },
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'system-ui', 'sans-serif'],
+            display: ['"Space Grotesk"', 'sans-serif'],
+          }
+        }
+      }
+    }
+  </script>
+  <link rel="stylesheet" href="../css/styles.css">
+  <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body class="bg-slate-50 text-slate-900 font-sans min-h-screen flex flex-col">
+  <div id="navbar-container"></div>
+
+  <main class="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8 w-full">
+    <!-- Dashboard Top Header -->
+    <div class="bg-white rounded-xl p-6 sm:p-8 border border-slate-200 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+      <div class="flex items-center gap-3">
+        <div class="w-12 h-12 rounded-lg bg-gradient-to-tr from-brand-600 to-accent-violet flex items-center justify-center text-white shadow-md">
+          <i data-lucide="user-check" class="w-6 h-6"></i>
+        </div>
+        <div>
+          <h1 class="text-2xl font-semibold text-slate-900 tracking-tight m-0">
+            Application Dashboard
+          </h1>
+          <p class="text-xs text-slate-700 m-0">
+            Track the status of every application in one place
+          </p>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-3">
+        <div class="text-right hidden sm:block">
+          <p id="dashboard-user-name" class="text-xs font-bold text-slate-900 m-0">Candidate Profile</p>
+          <p id="dashboard-user-role" class="text-[10px] text-brand-600 font-semibold m-0">
+            Job Seeker
+          </p>
+        </div>
+        <a
+          href="jobs.html"
+          class="bg-brand-600 hover:bg-brand-700 text-white font-bold text-xs px-4 py-2 rounded-xl transition-all"
+        >
+          Explore More Jobs
+        </a>
+      </div>
+    </div>
+
+    <!-- Metric Cards -->
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+      <div class="bg-white p-5 rounded-lg border border-slate-200 shadow-xs">
+        <span class="text-xs font-bold text-slate-700">Total Applications</span>
+        <p id="stat-total" class="text-2xl font-semibold text-slate-900 mt-1 m-0">0</p>
+      </div>
+      <div class="bg-white p-5 rounded-lg border border-slate-200 shadow-xs">
+        <span class="text-xs font-bold text-brand-600">In Review / Applied</span>
+        <p id="stat-applied" class="text-2xl font-semibold text-blue-600 mt-1 m-0">0</p>
+      </div>
+      <div class="bg-white p-5 rounded-lg border border-slate-200 shadow-xs">
+        <span class="text-xs font-bold text-brand-700">Interviews Scheduled</span>
+        <p id="stat-interview" class="text-2xl font-semibold text-brand-600 mt-1 m-0">0</p>
+      </div>
+      <div class="bg-white p-5 rounded-lg border border-slate-200 shadow-xs">
+        <span class="text-xs font-bold text-amber-700">Offers Extended</span>
+        <p id="stat-offered" class="text-2xl font-semibold text-emerald-600 mt-1 m-0">0</p>
+      </div>
+    </div>
+
+    <!-- Main ATS Table Card -->
+    <div class="bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden">
+      <!-- Tabs -->
+      <div id="dashboard-status-tabs" class="p-4 sm:px-6 bg-slate-50/70 border-b border-slate-200 flex flex-wrap items-center gap-2">
+        <!-- Populated dynamically -->
+      </div>
+
+      <div class="overflow-x-auto">
+        <table class="w-full text-left border-collapse">
+          <thead>
+            <tr class="border-b border-slate-200 text-[11px] font-bold text-slate-700 uppercase tracking-wider bg-slate-50/50">
+              <th class="py-3 px-6">Company</th>
+              <th class="py-3 px-6">Role</th>
+              <th class="py-3 px-6">Status</th>
+              <th class="py-3 px-6">Applied On</th>
+              <th class="py-3 px-6">Match</th>
+              <th class="py-3 px-6 text-right">Action</th>
+            </tr>
+          </thead>
+          <tbody id="dashboard-applications-tbody" class="divide-y divide-slate-100 text-xs">
+            <!-- Populated dynamically -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+
+  <!-- Slide-out Timeline Drawer (Modal) -->
+  <div id="timeline-drawer-overlay" class="hidden fixed inset-0 z-50 flex justify-end bg-slate-900/40 backdrop-blur-xs">
+    <div id="timeline-drawer-content" class="bg-white w-full max-w-lg h-full shadow-2xl p-6 overflow-y-auto space-y-6 flex flex-col justify-between">
+      <div class="space-y-6">
+        <div class="flex items-start justify-between pb-4 border-b border-slate-200">
+          <div class="flex items-center gap-3">
+            <div class="w-12 h-12 rounded-xl overflow-hidden bg-slate-100 border border-slate-200 shrink-0">
+              <img
+                id="drawer-company-logo"
+                src=""
+                alt="Company"
+                class="w-full h-full object-cover"
+              />
+            </div>
+            <div>
+              <h3 id="drawer-job-title" class="font-bold text-base text-slate-900 m-0"></h3>
+              <p id="drawer-company-meta" class="text-xs text-slate-700 m-0"></p>
+            </div>
+          </div>
+          <button
+            id="btn-close-drawer"
+            type="button"
+            class="p-1 rounded-lg text-slate-400 hover:text-slate-600 cursor-pointer"
+          >
+            <i data-lucide="x" class="w-5 h-5"></i>
+          </button>
+        </div>
+
+        <div class="p-4 bg-slate-50 rounded-lg border border-slate-200 space-y-3">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-bold text-slate-700 uppercase">Current Stage</span>
+            <span id="drawer-stage-badge" class="text-xs font-bold px-3 py-1 rounded-full border"></span>
+          </div>
+
+          <!-- Recruiter Controls -->
+          <div id="drawer-recruiter-controls" class="pt-2 border-t border-slate-200 space-y-1.5">
+            <span class="text-[11px] font-bold text-brand-600 block">
+              Recruiter Action: Advance Candidate Stage
+            </span>
+            <div id="drawer-stage-buttons" class="flex flex-wrap gap-1.5">
+              <!-- Populated dynamically -->
+            </div>
+          </div>
+        </div>
+
+        <div class="p-4 bg-white rounded-lg border border-slate-200 flex items-center justify-between">
+          <div class="flex items-center gap-2.5">
+            <i data-lucide="file-text" class="w-5 h-5 text-brand-600"></i>
+            <div>
+              <p id="drawer-resume-filename" class="text-xs font-bold text-slate-800 m-0">Active_Resume.pdf</p>
+              <p class="text-[10px] text-slate-700 m-0">Submitted with ATS application</p>
+            </div>
+          </div>
+          <span id="drawer-match-score" class="text-xs font-bold text-brand-600">92% Match</span>
+        </div>
+
+        <div class="space-y-4">
+          <h4 class="text-xs font-bold text-slate-900 uppercase tracking-wider m-0">
+            Application Timeline
+          </h4>
+
+          <div id="drawer-timeline-events" class="relative pl-6 space-y-6 before:absolute before:left-2.5 before:top-2 before:bottom-2 before:w-0.5 before:bg-slate-200">
+            <!-- Populated dynamically -->
+          </div>
+        </div>
+      </div>
+
+      <div class="pt-4 border-t border-slate-200">
+        <button
+          id="btn-drawer-footer-close"
+          type="button"
+          class="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs py-3 rounded-xl transition-all cursor-pointer"
+        >
+          Close Timeline
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div id="footer-container"></div>
+
+  <script src="../data/mock-data.js"></script>
+  <script src="../js/utils.js"></script>
+  <script src="../js/auth.js"></script>
+  <script src="../js/nav.js"></script>
+  <script src="../js/dashboard.js"></script>
+</body>
+</html>

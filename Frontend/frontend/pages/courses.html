@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="JobNex Academy - Master high-demand tech skills with structured course paths." />
+  <title>Courses & Certifications | JobNex</title>
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'Inter', 'sans-serif'],
+          },
+          colors: {
+            brand: {
+              50: '#f4f5fb',
+              100: '#eaebf6',
+              200: '#d5d9ee',
+              300: '#bac0e1',
+              400: '#9ba3d2',
+              500: '#7c85be',
+              600: '#646ca6',
+              700: '#505787',
+              800: '#3e4268',
+              900: '#2e3049',
+              950: '#1f2030',
+            },
+            royal: '#646ca6',
+            'royal-deep': '#505787',
+            cream: '#eaebf6',
+            sage: '#bac0e1',
+            'pink-soft': '#ebabbb',
+            'amber-accent': '#ebabbb',
+            page: '#3e4268',
+            navy: '#3e4268',
+          }
+        }
+      }
+    };
+  </script>
+
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <!-- Project Styles -->
+  <link rel="stylesheet" href="../css/styles.css" />
+</head>
+<body class="bg-[#eaebf6] text-[#2b2e3e] flex flex-col min-h-screen">
+  <!-- Reusable Navigation -->
+  <div id="navbar-container"></div>
+
+  <!-- Main Container -->
+  <main class="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 py-8 space-y-8">
+    <!-- Header Banner -->
+    <div class="bg-white rounded-xl p-6 sm:p-8 border border-slate-200 shadow-sm flex items-center gap-4">
+      <div class="w-12 h-12 rounded-xl bg-brand-600 flex items-center justify-center text-white shadow-md">
+        <i data-lucide="graduation-cap" class="w-6 h-6"></i>
+      </div>
+      <div>
+        <h1 class="text-2xl font-bold text-slate-900 tracking-tight">JobNex Courses</h1>
+        <p class="text-xs text-slate-500">Structured programs that build the skills employers ask for</p>
+      </div>
+    </div>
+
+    <!-- Courses Grid -->
+    <div id="courses-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <!-- Rendered by courses.js -->
+    </div>
+  </main>
+
+  <!-- Reusable Footer -->
+  <div id="footer-container"></div>
+
+  <!-- Scripts -->
+  <script src="../data/mock-data.js"></script>
+  <script src="../js/utils.js"></script>
+  <script src="../js/auth.js"></script>
+  <script src="../js/nav.js"></script>
+  <script src="../js/courses.js"></script>
+</body>
+</html>

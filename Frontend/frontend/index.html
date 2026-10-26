@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="JobNex - Next-Gen AI Career and Hiring Portal. Find verified tech roles, test interview skills, and close your skill gap." />
+  <title>JobNex | Career Network & AI Job Platform</title>
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'Inter', 'sans-serif'],
+          },
+          colors: {
+            brand: {
+              50: '#f4f5fb',
+              100: '#eaebf6',
+              200: '#d5d9ee',
+              300: '#bac0e1',
+              400: '#9ba3d2',
+              500: '#7c85be',
+              600: '#646ca6',
+              700: '#505787',
+              800: '#3e4268',
+              900: '#2e3049',
+              950: '#1f2030',
+            },
+            royal: '#646ca6',
+            'royal-deep': '#505787',
+            cream: '#eaebf6',
+            sage: '#bac0e1',
+            'pink-soft': '#ebabbb',
+            'amber-accent': '#ebabbb',
+            page: '#3e4268',
+            navy: '#3e4268',
+          }
+        }
+      }
+    };
+  </script>
+
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <!-- Project Styles -->
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body class="bg-[#eaebf6] text-[#2b2e3e]">
+  <!-- Navigation Header Placeholder -->
+  <div id="navbar-container"></div>
+
+  <!-- Main Content -->
+  <div class="space-y-16 pb-20">
+    <!-- Hero Section with Canvas 2D Backdrop -->
+    <section class="relative overflow-hidden min-h-[580px] sm:min-h-[640px] lg:min-h-[720px] flex items-center justify-center pt-16 pb-24 sm:pt-24 sm:pb-32 lg:pt-32 lg:pb-36 bg-hero-gradient border-b border-white/10">
+      <!-- 3D Background Layer -->
+      <div class="absolute inset-0 overflow-hidden pointer-events-none perspective-hero select-none" aria-hidden="true">
+        <div class="hero-blob hero-blob-1 opacity-70"></div>
+        <div class="hero-blob hero-blob-2 opacity-65"></div>
+        <div class="hero-blob hero-blob-3 opacity-60"></div>
+        <div class="hero-grid-floor"></div>
+        <div class="cinematic-lens-flare"></div>
+        <canvas id="hero-canvas" class="absolute inset-0 w-full h-full mix-blend-screen opacity-90"></canvas>
+
+        <!-- Floating Gyroscope Rings -->
+        <div class="gyro-container hidden md:block left-[-2%] top-[20%] w-56 h-56 lg:w-72 lg:h-72 opacity-35" style="transform: rotateX(30deg) rotateY(-25deg)">
+          <div class="gyro-ring gyro-ring-1"></div>
+          <div class="gyro-ring gyro-ring-2"></div>
+          <div class="gyro-ring gyro-ring-3"></div>
+        </div>
+        <div class="gyro-container hidden md:block right-[-1%] top-[28%] w-60 h-60 lg:w-80 lg:h-80 opacity-30" style="transform: rotateX(-25deg) rotateY(35deg)">
+          <div class="gyro-ring gyro-ring-2"></div>
+          <div class="gyro-ring gyro-ring-3"></div>
+          <div class="gyro-ring gyro-ring-1"></div>
+        </div>
+
+        <!-- Floating Hologram Badges -->
+        <div class="hidden xl:block absolute left-8 top-28 float-card-3d-left preserve-3d">
+          <div class="glass-dark border border-white/20 rounded-2xl px-4 py-3 shadow-lg backdrop-blur-md flex items-center gap-3">
+            <div class="w-8 h-8 rounded-xl bg-emerald-500/20 border border-emerald-400/40 flex items-center justify-center text-emerald-300 font-bold text-xs">
+              98%
+            </div>
+            <div>
+              <p class="text-[11px] font-bold text-white tracking-wide">Neural Match</p>
+              <p class="text-[9px] text-white/70">Vector Vector Scoring</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="hidden xl:block absolute right-8 top-36 float-card-3d-right preserve-3d">
+          <div class="glass-dark border border-white/20 rounded-2xl px-4 py-3 shadow-lg backdrop-blur-md flex items-center gap-3">
+            <div class="w-8 h-8 rounded-xl bg-brand-500/20 border border-brand-400/40 flex items-center justify-center text-brand-200 font-bold text-xs">
+              50k+
+            </div>
+            <div>
+              <p class="text-[11px] font-bold text-white tracking-wide">Verified Jobs</p>
+              <p class="text-[9px] text-white/70">Updated Live Every Hour</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Hero Content -->
+      <div class="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-center space-y-7">
+        <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-white text-xs font-semibold shadow-inner tracking-wide">
+          <i data-lucide="sparkles" class="w-3.5 h-3.5 text-amber-300 animate-pulse"></i>
+          <span>Next-Gen AI Career Platform • 50,000+ Verified Roles</span>
+        </div>
+
+        <h1 class="text-4xl sm:text-6xl lg:text-7xl font-extrabold text-white tracking-tight leading-[1.12]">
+          Find Your <span class="bg-gradient-to-r from-white via-brand-200 to-amber-200 bg-clip-text text-transparent">Dream Job</span>
+        </h1>
+
+        <p class="text-base sm:text-xl text-white/90 max-w-2xl mx-auto font-normal leading-relaxed">
+          AI powered. Personalized. Faster. Match your skills with high-growth tech opportunities worldwide.
+        </p>
+
+        <!-- Search Bar -->
+        <div class="pt-2 max-w-4xl mx-auto space-y-4">
+          <form id="hero-search-form" class="glass-dark p-3 sm:p-3.5 rounded-2xl shadow-2xl border border-white/20 flex flex-col md:flex-row gap-3 items-stretch backdrop-blur-xl">
+            <div class="flex-1 flex items-center gap-2.5 px-3.5 py-3 bg-white rounded-xl border border-slate-200 glow-focus transition-all shadow-xs">
+              <i data-lucide="search" class="w-4 h-4 text-slate-400 shrink-0"></i>
+              <input id="search-query" type="text" placeholder="Search job title, skills (React, Python), company..." class="w-full text-sm text-slate-800 placeholder-slate-400 outline-none bg-transparent font-medium" />
+            </div>
+
+            <div class="flex items-center gap-2 px-3 py-3 bg-white rounded-xl border border-slate-200 focus-within:border-brand-500 transition-all shadow-xs">
+              <i data-lucide="globe-2" class="w-4 h-4 text-slate-400 shrink-0"></i>
+              <select id="search-region" class="text-xs font-semibold text-slate-700 outline-none bg-transparent cursor-pointer">
+                <option value="ALL">All Regions</option>
+                <option value="INDIA">India</option>
+                <option value="US">US / Remote</option>
+                <option value="GLOBAL">Global</option>
+                <option value="BANGLADESH">Bangladesh</option>
+              </select>
+            </div>
+
+            <div class="flex items-center gap-2 px-3 py-3 bg-white rounded-xl border border-slate-200 focus-within:border-brand-500 transition-all shadow-xs">
+              <i data-lucide="briefcase" class="w-4 h-4 text-slate-400 shrink-0"></i>
+              <select id="search-exp" class="text-xs font-semibold text-slate-700 outline-none bg-transparent cursor-pointer">
+                <option value="ALL">Any Experience</option>
+                <option value="Fresher">Fresher</option>
+                <option value="1-2 yrs">1–2 yrs</option>
+                <option value="3-5 yrs">3–5 yrs</option>
+                <option value="5+ yrs">5+ yrs</option>
+              </select>
+            </div>
+
+            <button type="submit" class="btn-polish h-auto bg-gradient-to-r from-cream via-white to-amber-100 hover:from-white hover:to-amber-200 text-royal-deep font-bold px-7 py-3 flex items-center justify-center gap-2 text-sm shrink-0 shadow-md cursor-pointer transition-all">
+              <span>Search</span>
+              <i data-lucide="arrow-right" class="w-4 h-4"></i>
+            </button>
+          </form>
+
+          <!-- Trending Keywords -->
+          <div class="flex flex-wrap items-center justify-center gap-2 pt-1 text-xs text-white/80">
+            <span class="text-white/60 font-semibold flex items-center gap-1">
+              <i data-lucide="zap" class="w-3.5 h-3.5 text-amber-300"></i> Trending:
+            </span>
+            <button type="button" class="trending-tag-btn px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/20 border border-white/15 text-white/90 text-[11px] font-medium" data-tag="React">React</button>
+            <button type="button" class="trending-tag-btn px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/20 border border-white/15 text-white/90 text-[11px] font-medium" data-tag="Node.js">Node.js</button>
+            <button type="button" class="trending-tag-btn px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/20 border border-white/15 text-white/90 text-[11px] font-medium" data-tag="Full Stack">Full Stack</button>
+            <button type="button" class="trending-tag-btn px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/20 border border-white/15 text-white/90 text-[11px] font-medium" data-tag="Data Scientist">Data Scientist</button>
+            <button type="button" class="trending-tag-btn px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/20 border border-white/15 text-white/90 text-[11px] font-medium" data-tag="DevOps">DevOps</button>
+            <button type="button" class="trending-tag-btn px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/20 border border-white/15 text-white/90 text-[11px] font-medium" data-tag="Remote">Remote</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+
+    <!-- Resources Section -->
+    <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
+      <div class="bg-white rounded-xl p-6 sm:p-8 border border-slate-200 shadow-sm flex items-center gap-3">
+        <div class="w-12 h-12 rounded-lg bg-brand-600 flex items-center justify-center text-white shadow-md">
+          <i data-lucide="book-open" class="w-6 h-6"></i>
+        </div>
+        <div>
+          <h2 class="text-2xl font-semibold text-slate-900 tracking-tight">Career Resources</h2>
+          <p class="text-xs text-slate-500">Practical guides and tools to support every step of your search</p>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <a href="pages/resume-privacy.html" class="bg-white rounded-xl border border-slate-200/90 p-5 shadow-xs hover:shadow-md hover:border-brand-300 transition-all flex flex-col gap-3 group">
+          <div class="w-10 h-10 rounded-lg bg-brand-50 border border-brand-200 flex items-center justify-center text-brand-600">
+            <i data-lucide="file-text" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <h3 class="font-semibold text-sm text-slate-900 group-hover:text-brand-600 transition-colors">Resume Templates</h3>
+            <p class="text-xs text-slate-500 leading-relaxed mt-1">Download-ready resume formats tailored for tech roles, freshers and experienced engineers.</p>
+          </div>
+          <span class="mt-auto flex items-center gap-1.5 text-xs font-semibold text-brand-600">Open <i data-lucide="arrow-right" class="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform"></i></span>
+        </a>
+
+        <a href="pages/interview-prep.html" class="bg-white rounded-xl border border-slate-200/90 p-5 shadow-xs hover:shadow-md hover:border-brand-300 transition-all flex flex-col gap-3 group">
+          <div class="w-10 h-10 rounded-lg bg-brand-50 border border-brand-200 flex items-center justify-center text-brand-600">
+            <i data-lucide="brain-circuit" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <h3 class="font-semibold text-sm text-slate-900 group-hover:text-brand-600 transition-colors">Interview Question Bank</h3>
+            <p class="text-xs text-slate-500 leading-relaxed mt-1">Company-specific technical and HR questions with structured feedback simulator.</p>
+          </div>
+          <span class="mt-auto flex items-center gap-1.5 text-xs font-semibold text-brand-600">Open <i data-lucide="arrow-right" class="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform"></i></span>
+        </a>
+
+        <a href="pages/dashboard.html" class="bg-white rounded-xl border border-slate-200/90 p-5 shadow-xs hover:shadow-md hover:border-brand-300 transition-all flex flex-col gap-3 group">
+          <div class="w-10 h-10 rounded-lg bg-brand-50 border border-brand-200 flex items-center justify-center text-brand-600">
+            <i data-lucide="bar-chart-3" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <h3 class="font-semibold text-sm text-slate-900 group-hover:text-brand-600 transition-colors">Salary Insights</h3>
+            <p class="text-xs text-slate-500 leading-relaxed mt-1">Benchmark compensation ranges by role, region and experience level in one dashboard.</p>
+          </div>
+          <span class="mt-auto flex items-center gap-1.5 text-xs font-semibold text-brand-600">Open <i data-lucide="arrow-right" class="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform"></i></span>
+        </a>
+
+        <a href="pages/resources.html" class="bg-white rounded-xl border border-slate-200/90 p-5 shadow-xs hover:shadow-md hover:border-brand-300 transition-all flex flex-col gap-3 group">
+          <div class="w-10 h-10 rounded-lg bg-brand-50 border border-brand-200 flex items-center justify-center text-brand-600">
+            <i data-lucide="book-open" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <h3 class="font-semibold text-sm text-slate-900 group-hover:text-brand-600 transition-colors">Career Guides</h3>
+            <p class="text-xs text-slate-500 leading-relaxed mt-1">Step-by-step roadmaps for switching roles, negotiating offers and growing faster.</p>
+          </div>
+          <span class="mt-auto flex items-center gap-1.5 text-xs font-semibold text-brand-600">Open <i data-lucide="arrow-right" class="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform"></i></span>
+        </a>
+
+        <a href="pages/jobs.html" class="bg-white rounded-xl border border-slate-200/90 p-5 shadow-xs hover:shadow-md hover:border-brand-300 transition-all flex flex-col gap-3 group">
+          <div class="w-10 h-10 rounded-lg bg-brand-50 border border-brand-200 flex items-center justify-center text-brand-600">
+            <i data-lucide="building" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <h3 class="font-semibold text-sm text-slate-900 group-hover:text-brand-600 transition-colors">Company Research</h3>
+            <p class="text-xs text-slate-500 leading-relaxed mt-1">Funding, tech stack and hiring requirements for companies you are targeting.</p>
+          </div>
+          <span class="mt-auto flex items-center gap-1.5 text-xs font-semibold text-brand-600">Open <i data-lucide="arrow-right" class="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform"></i></span>
+        </a>
+
+        <a href="pages/skill-gap.html" class="bg-white rounded-xl border border-slate-200/90 p-5 shadow-xs hover:shadow-md hover:border-brand-300 transition-all flex flex-col gap-3 group">
+          <div class="w-10 h-10 rounded-lg bg-brand-50 border border-brand-200 flex items-center justify-center text-brand-600">
+            <i data-lucide="compass" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <h3 class="font-semibold text-sm text-slate-900 group-hover:text-brand-600 transition-colors">Learning Paths</h3>
+            <p class="text-xs text-slate-500 leading-relaxed mt-1">Curated course sequences that close the skill gaps for your target engineering job.</p>
+          </div>
+          <span class="mt-auto flex items-center gap-1.5 text-xs font-semibold text-brand-600">Open <i data-lucide="arrow-right" class="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform"></i></span>
+        </a>
+      </div>
+    </section>
+  </div>
+
+  <!-- Footer Placeholder -->
+  <div id="footer-container"></div>
+
+  <!-- Scripts -->
+  <script src="data/mock-data.js"></script>
+  <script src="js/utils.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/nav.js"></script>
+  <script src="js/home.js"></script>
+</body>
+</html>

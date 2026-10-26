@@ -8,6 +8,13 @@ from main import app
 from database import get_connection
 
 def test_everything():
+    try:
+        conn = get_connection()
+        conn.close()
+    except Exception as e:
+        import pytest
+        pytest.skip(f"Live MySQL database is not available for live audit: {e}")
+
     client = TestClient(app)
     errors = []
     print("=" * 60)
@@ -244,7 +251,7 @@ def test_everything():
         for err in errors:
             print(f"  - {err}")
     print("=" * 60)
-    return len(errors) == 0
+    assert len(errors) == 0, f"{len(errors)} errors encountered: {errors}"
 
 if __name__ == "__main__":
     success = test_everything()
