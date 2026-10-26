@@ -42,6 +42,7 @@
     }
   </script>
   <link rel="stylesheet" href="../css/styles.css">
+  <link rel="stylesheet" href="../css/resume-panel.css">
   <script src="https://unpkg.com/lucide@latest"></script>
 </head>
 <body class="bg-slate-50 text-slate-900 font-sans min-h-screen flex flex-col">
@@ -219,11 +220,15 @@
               <p id="ats-headline-text" class="text-xs font-bold text-slate-800 m-0"></p>
               <p id="ats-summary-text" class="text-xs text-slate-600 mt-1.5 leading-relaxed m-0"></p>
             </div>
-            <div class="pt-1">
-              <a id="btn-download-ats-docx" href="#" target="_blank" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs py-2.5 px-4 rounded-xl shadow-sm text-center flex items-center justify-center gap-2 transition-all cursor-pointer">
+            <div class="pt-1 flex flex-col sm:flex-row items-center gap-2">
+              <a id="btn-download-ats-docx" href="#" target="_blank" class="w-full sm:flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs py-2.5 px-4 rounded-xl shadow-sm text-center flex items-center justify-center gap-2 transition-all cursor-pointer">
                 <i data-lucide="download" class="w-4 h-4"></i>
                 <span>Download ATS Word Document (.docx)</span>
               </a>
+              <button id="btn-open-resume-panel" type="button" class="w-full sm:w-auto bg-white hover:bg-slate-100 text-slate-800 border border-slate-200 font-bold text-xs py-2.5 px-3.5 rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer shrink-0" title="View, Edit, or Print PDF">
+                <i data-lucide="panel-right" class="w-4 h-4 text-indigo-600"></i>
+                <span>Preview & Edit</span>
+              </button>
             </div>
           </div>
 
@@ -388,6 +393,7 @@
   <script src="../js/utils.js"></script>
   <script src="../js/auth.js"></script>
   <script src="../js/nav.js"></script>
+  <script src="../js/resume-panel.js"></script>
   <script src="../js/resume-privacy.js"></script>
 </body>
 </html>
