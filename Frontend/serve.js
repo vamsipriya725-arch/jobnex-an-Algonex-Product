@@ -352,7 +352,7 @@ app.get("/api/daily/jobs", async (req, res) => {
 // 5. Resume Analyzer API (resume_analyzer Table)
 app.get("/api/analyses", async (req, res) => {
   try {
-    const [rows] = await pool.execute("SELECT * FROM resume_analyzer ORDER BY Analysis_Id DESC LIMIT 20");
+    const [rows] = await pool.execute("SELECT * FROM resume_analyzer ORDER BY id DESC LIMIT 20");
     res.json({
       success: true,
       count: rows.length,

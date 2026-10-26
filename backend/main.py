@@ -452,13 +452,13 @@ def get_analyses():
 
         query = """
             SELECT
-                Analysis_id,
+                id,
                 matched_score,
                 matched_skills,
                 missing_skills,
-                created_At
+                created_at
             FROM resume_analyzer
-            ORDER BY Analysis_id DESC
+            ORDER BY id DESC
             LIMIT 20
         """
 
@@ -466,8 +466,10 @@ def get_analyses():
         analyses = cursor.fetchall()
 
         for analysis in analyses:
+            analysis["Analysis_id"] = analysis.get("id")
+            analysis["created_At"] = analysis.get("created_at")
             for field in ("matched_skills", "missing_skills"):
-                value = analysis[field]
+                value = analysis.get(field)
                 if isinstance(value, str):
                     analysis[field] = json.loads(value)
 
