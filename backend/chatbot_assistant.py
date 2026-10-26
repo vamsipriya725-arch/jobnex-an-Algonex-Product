@@ -620,7 +620,7 @@ def _default_ai_generator(history: List[Tuple[str, str]], message: str, context:
 
     preferred = os.getenv("GEMINI_MODEL")
     candidates = [preferred] if preferred else []
-    for m in ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash", "gemini-3.8-flash"]:
+    for m in ["gemini-3.8-flash", "gemini-flash-latest", "gemini-3.5-flash"]:
         if m not in candidates:
             candidates.append(m)
 
