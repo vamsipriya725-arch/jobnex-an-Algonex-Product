@@ -3,6 +3,8 @@
 *.env
 .env.*
 !.env.example
+client_secret*.json
+client_secret.json
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

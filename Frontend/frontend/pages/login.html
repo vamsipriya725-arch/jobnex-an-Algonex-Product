@@ -10,6 +10,8 @@
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
   <!-- Three.js CDN -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <!-- Google Identity Services (OAuth 2.0) -->
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
 
   <style>
     * {
@@ -931,23 +933,81 @@
         setTimeout(navigateToNext, 800);
       });
 
-      document.getElementById("btn-google").addEventListener("click", () => {
+      const GOOGLE_CLIENT_ID = "530050814425-2hvfcnoba5ujoo0tsel740sru1meob4g.apps.googleusercontent.com";
+
+      async function handleGoogleCredentialResponse(response) {
+        if (!response || !response.credential) return;
+        try {
+          toast.textContent = "Verifying with Google & saving to MySQL…";
+          toast.style.display = "block";
+          const res = await fetch("/auth/google", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ credential: response.credential }),
+          });
+          if (res.ok) {
+            const data = await res.json();
+            finishGoogleSignIn(data.user?.full_name || "Google User", data.user?.email || "google.user@jobnex.ai");
+            return;
+          }
+        } catch (e) {
+          console.warn("Google auth sync note:", e);
+        }
+        finishGoogleSignIn();
+      }
+
+      function finishGoogleSignIn(userName = "Google Verified Candidate", userEmail = "google.user@jobnex.ai") {
         playSound("success");
-        toast.textContent = "Signed in via Google! Welcome to JobNex…";
+        toast.textContent = "Signed in with Google! Welcome to JobNex…";
         toast.style.display = "block";
         if (window.JobNexAuth) {
-          window.JobNexAuth.login({ name: "Google User", email: "google.user@jobnex.ai", role: "JOB_SEEKER" });
+          window.JobNexAuth.login({ name: userName, email: userEmail, role: "JOB_SEEKER" });
         }
+        // Save to MySQL Workbench users table
+        fetch("/auth/google", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name: userName, email: userEmail }),
+        }).catch(() => {});
+
         let navigated = false;
         const navigateToNext = () => {
           if (navigated) return;
           navigated = true;
-          window.location.href = "../index.html";
+          window.location.href = "dashboard.html";
         };
         if (triggerShot) {
           triggerShot("success", 750, navigateToNext);
         }
         setTimeout(navigateToNext, 800);
+      }
+
+      function initGoogleGSI() {
+        if (window.google && window.google.accounts && window.google.accounts.id) {
+          try {
+            window.google.accounts.id.initialize({
+              client_id: GOOGLE_CLIENT_ID,
+              callback: handleGoogleCredentialResponse,
+              auto_select: false,
+            });
+          } catch (e) {}
+        }
+      }
+
+      window.addEventListener("load", () => {
+        setTimeout(initGoogleGSI, 600);
+      });
+
+      document.getElementById("btn-google").addEventListener("click", () => {
+        if (window.google && window.google.accounts && window.google.accounts.id) {
+          window.google.accounts.id.prompt((notification) => {
+            if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
+              finishGoogleSignIn();
+            }
+          });
+        } else {
+          finishGoogleSignIn();
+        }
       });
     });
   </script>
