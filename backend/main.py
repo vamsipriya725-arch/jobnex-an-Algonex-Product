@@ -49,6 +49,17 @@ app.include_router(resume_router)
 app.include_router(filter_router)
 app.include_router(ats_resume_router)
 
+# Mount Auth router (MySQL users table for register, login, me)
+try:
+    if str(backend_dir.parent) not in sys.path:
+        sys.path.insert(0, str(backend_dir.parent))
+    import login as auth_module
+    app.include_router(auth_module.app.router)
+    logger.info("Successfully mounted auth router in FastAPI backend")
+except Exception as e:
+    logger.warning("Could not include auth router: %s", e)
+
+
 # Routers from openmind
 try:
     from interview_prep import router as interview_prep_router
@@ -117,6 +128,7 @@ async def add_no_cache_headers(request: Request, call_next):
 
 
 class AnalyzeRequest(BaseModel):
+    user_email: Optional[str] = None
     resume_text: str = Field(..., min_length=1)
     jd_text: str = Field(..., min_length=1)
     use_ai: bool = True
@@ -384,13 +396,14 @@ def analyze(request: AnalyzeRequest):
 
         query = """
             INSERT INTO resume_analyzer
-                (resume_text, jd_text, matched_skills, missing_skills, matched_score, suggestions)
-            VALUES (%s, %s, %s, %s, %s, %s)
+                (user_email, resume_text, jd_text, matched_skills, missing_skills, matched_score, suggestions)
+            VALUES (%s, %s, %s, %s, %s, %s, %s)
         """
 
         cursor.execute(
             query,
             (
+                request.user_email,
                 safe_resume_text,
                 request.jd_text,
                 json.dumps(result["matched_skills"]),
@@ -405,7 +418,7 @@ def analyze(request: AnalyzeRequest):
 
         # Save original unredacted resume in secure privacy vault for authorized reveal
         try:
-            save_to_vault(connection, analysis_id, request.resume_text, count_pii_entities(request.resume_text))
+            save_to_vault(connection, analysis_id, request.resume_text, count_pii_entities(request.resume_text), request.user_email)
             connection.commit()
         except Exception as vault_err:
             logger.warning("Could not save to privacy vault: %s", vault_err)
@@ -445,13 +458,13 @@ def get_analyses():
 
         query = """
             SELECT
-                Analysis_id,
+                id,
                 matched_score,
                 matched_skills,
                 missing_skills,
-                created_At
+                created_at
             FROM resume_analyzer
-            ORDER BY Analysis_id DESC
+            ORDER BY id DESC
             LIMIT 20
         """
 
@@ -459,8 +472,10 @@ def get_analyses():
         analyses = cursor.fetchall()
 
         for analysis in analyses:
+            analysis["Analysis_id"] = analysis.get("id")
+            analysis["created_At"] = analysis.get("created_at")
             for field in ("matched_skills", "missing_skills"):
-                value = analysis[field]
+                value = analysis.get(field)
                 if isinstance(value, str):
                     analysis[field] = json.loads(value)
 
@@ -656,3 +671,116 @@ def get_daily_jobs(
             status_code=500,
             detail="Failed to retrieve daily jobs"
         ) from error
+
+
+# Retrieve all registered users from MySQL Workbench
+@app.get("/api/users")
+def get_all_users():
+    conn = None
+    cur = None
+    try:
+        conn = get_connection()
+        cur = conn.cursor(dictionary=True)
+        cur.execute("SELECT id, email, full_name, avatar_url, auth_provider, is_active, created_at FROM users ORDER BY id DESC")
+        users = cur.fetchall()
+        for u in users:
+            if u.get("created_at"):
+                u["created_at"] = str(u["created_at"])
+        return {"success": True, "count": len(users), "users": users}
+    except Exception as e:
+        logger.exception("Failed to query users from MySQL: %s", e)
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        if cur: cur.close()
+        if conn and getattr(conn, "is_connected", lambda: True)(): conn.close()
+
+
+# Save resume analysis directly into MySQL Workbench table resume_analyzer
+class SaveAnalysisRequest(BaseModel):
+    user_email: Optional[str] = None
+    resume_text: str
+    jd_text: str
+    matched_score: float
+    matched_skills: list = []
+    missing_skills: list = []
+    suggestions: list = []
+
+@app.post("/api/save-analysis")
+def save_analysis(req: SaveAnalysisRequest):
+    conn = None
+    cur = None
+    try:
+        conn = get_connection()
+        cur = conn.cursor()
+        query = """
+            INSERT INTO resume_analyzer
+                (user_email, resume_text, jd_text, matched_score, matched_skills, missing_skills, suggestions, created_At)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, NOW())
+        """
+        cur.execute(query, (
+            req.user_email,
+            redact_text(req.resume_text),
+            req.jd_text,
+            req.matched_score,
+            json.dumps(req.matched_skills),
+            json.dumps(req.missing_skills),
+            json.dumps(req.suggestions),
+        ))
+        conn.commit()
+        return {
+            "success": True,
+            "id": cur.lastrowid,
+            "user_email": req.user_email,
+            "message": "Analysis successfully stored in MySQL Workbench table resume_analyzer",
+        }
+    except Exception as e:
+        if conn: conn.rollback()
+        logger.exception("Failed to save analysis to MySQL: %s", e)
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        if cur: cur.close()
+        if conn and getattr(conn, "is_connected", lambda: True)(): conn.close()
+
+
+# Manage Candidate Profiles in MySQL
+class CandidateProfileIn(BaseModel):
+    user_id: int = 1
+    title: Optional[str] = "Full Stack Engineer"
+    bio: Optional[str] = ""
+    location: Optional[str] = "Remote"
+    years_experience: Optional[int] = 3
+    resume_url: Optional[str] = ""
+    skills: list = []
+
+@app.post("/api/candidate/profile")
+def save_candidate_profile(p: CandidateProfileIn):
+    conn = None
+    cur = None
+    try:
+        conn = get_connection()
+        cur = conn.cursor()
+        query = """
+            INSERT INTO candidate_profiles
+                (user_id, title, bio, location, years_experience, resume_url, skills, created_at, updated_at)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, NOW(), NOW())
+            ON DUPLICATE KEY UPDATE
+                title = VALUES(title),
+                bio = VALUES(bio),
+                location = VALUES(location),
+                years_experience = VALUES(years_experience),
+                resume_url = VALUES(resume_url),
+                skills = VALUES(skills),
+                updated_at = NOW()
+        """
+        cur.execute(query, (
+            p.user_id, p.title, p.bio, p.location, p.years_experience, p.resume_url, json.dumps(p.skills)
+        ))
+        conn.commit()
+        return {"success": True, "message": "Candidate profile saved to MySQL candidate_profiles"}
+    except Exception as e:
+        if conn: conn.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        if cur: cur.close()
+        if conn and getattr(conn, "is_connected", lambda: True)(): conn.close()
+

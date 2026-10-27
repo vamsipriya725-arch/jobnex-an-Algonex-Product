@@ -1,0 +1,566 @@
+/*
+ * JobNex - ResumePanel Slide-in Component Styles
+ * Features:
+ * 1. Slide-in sidebar (560px default, 880px wide, or custom drag-resized).
+ * 2. Left / Right docking toggle allowing the panel to move to the left side.
+ * 3. Draggable left/right edge resizer with smooth fluid width adjustment.
+ * 4. Executive A4-style white paper preview with crisp typography and real candidate info.
+ * 5. In-place live editor mode.
+ * 6. Isolated print zone for ATS-friendly 100% selectable text PDF export.
+ */
+
+/* Backdrop overlay */
+.resume-panel-backdrop {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(15, 23, 42, 0.65);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  z-index: 9998;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+.resume-panel-backdrop.is-open {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* Sidebar slide-in container (Default: Docked Right) */
+.resume-panel-sidebar {
+  position: fixed;
+  top: 0;
+  right: 0;
+  left: auto;
+  bottom: 0;
+  width: 580px;
+  max-width: 100vw;
+  height: 100vh;
+  height: 100dvh;
+  background-color: #f8fafc;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  box-shadow: -8px 0 32px rgba(15, 23, 42, 0.22);
+  transform: translateX(100%);
+  transition: transform 0.32s cubic-bezier(0.16, 1, 0.3, 1), width 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  overflow: hidden;
+}
+
+.resume-panel-sidebar.is-open {
+  transform: translateX(0);
+}
+
+/* Docked to the Left Side */
+.resume-panel-sidebar.dock-left {
+  left: 0 !important;
+  right: auto !important;
+  box-shadow: 8px 0 32px rgba(15, 23, 42, 0.22) !important;
+  transform: translateX(-100%);
+}
+
+.resume-panel-sidebar.dock-left.is-open {
+  transform: translateX(0);
+}
+
+/* Wide view toggle */
+.resume-panel-sidebar.is-wide {
+  width: 880px !important;
+  max-width: 95vw !important;
+}
+
+/* Disable transition while dragging resizer for 60fps responsiveness */
+.resume-panel-sidebar.is-resizing {
+  transition: none !important;
+  user-select: none !important;
+}
+
+/* Draggable Edge Resizer */
+.resume-panel-resizer {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 10px;
+  cursor: col-resize;
+  z-index: 10001;
+  background: transparent;
+  transition: background-color 0.15s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* When docked on right, resizer sits on left edge */
+.resume-panel-sidebar:not(.dock-left) .resume-panel-resizer {
+  left: 0;
+  right: auto;
+}
+
+/* When docked on left, resizer sits on right edge */
+.resume-panel-sidebar.dock-left .resume-panel-resizer {
+  right: 0;
+  left: auto;
+}
+
+.resume-panel-resizer::after {
+  content: "";
+  display: block;
+  width: 2px;
+  height: 36px;
+  border-radius: 2px;
+  background-color: transparent;
+  transition: background-color 0.15s ease, height 0.15s ease;
+}
+
+.resume-panel-resizer:hover::after,
+.resume-panel-resizer.is-dragging::after {
+  background-color: #4f46e5;
+  height: 64px;
+}
+
+.resume-panel-resizer:hover,
+.resume-panel-resizer.is-dragging {
+  background-color: rgba(99, 102, 241, 0.12);
+}
+
+/* Header */
+.resume-panel-header {
+  padding: 14px 18px;
+  background-color: #ffffff;
+  border-bottom: 1px solid #e2e8f0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.resume-panel-title-area {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.resume-panel-title {
+  font-size: 14.5px;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+}
+
+.resume-panel-badge {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2.5px 8px;
+  border-radius: 9999px;
+  background-color: #e0e7ff;
+  color: #4338ca;
+  border: 1px solid #c7d2fe;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
+.resume-panel-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+/* Buttons */
+.resume-panel-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  font-size: 11.5px;
+  font-weight: 600;
+  padding: 6px 11px;
+  border-radius: 7px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.resume-panel-btn-primary {
+  background-color: #4f46e5;
+  color: #ffffff;
+  box-shadow: 0 1px 2px rgba(79, 70, 229, 0.2);
+}
+
+.resume-panel-btn-primary:hover {
+  background-color: #4338ca;
+}
+
+.resume-panel-btn-secondary {
+  background-color: #ffffff;
+  border-color: #cbd5e1;
+  color: #334155;
+}
+
+.resume-panel-btn-secondary:hover {
+  background-color: #f1f5f9;
+  color: #0f172a;
+  border-color: #94a3b8;
+}
+
+.resume-panel-btn.is-active {
+  background-color: #ede9fe;
+  border-color: #c4b5fd;
+  color: #5b21b6;
+}
+
+.resume-panel-btn.is-editing {
+  background-color: #059669;
+  border-color: #059669;
+  color: #ffffff;
+}
+
+.resume-panel-btn.is-editing:hover {
+  background-color: #047857;
+}
+
+.resume-panel-btn-close {
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border-radius: 7px;
+  background-color: transparent;
+  border: none;
+  color: #64748b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.resume-panel-btn-close:hover {
+  background-color: #fee2e2;
+  color: #dc2626;
+}
+
+/* Body container */
+.resume-panel-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 22px;
+  background-color: #e2e8f0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* Clean A4-style paper preview */
+.resume-paper {
+  width: 100%;
+  max-width: 530px;
+  min-height: 720px;
+  background-color: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  box-shadow: 0 8px 24px -4px rgba(15, 23, 42, 0.12), 0 2px 6px rgba(0, 0, 0, 0.06);
+  padding: 38px 34px;
+  color: #0f172a;
+  font-family: Arial, "Segoe UI", Calibri, sans-serif;
+  font-size: 12.5px;
+  line-height: 1.5;
+  box-sizing: border-box;
+  transition: max-width 0.2s ease;
+}
+
+.resume-panel-sidebar.is-wide .resume-paper {
+  max-width: 740px;
+  padding: 44px 48px;
+}
+
+/* Resume Paper Typography - Standard ATS friendly single column */
+.resume-paper h1 {
+  font-size: 22px;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0 0 5px 0;
+  text-align: center;
+  letter-spacing: -0.02em;
+}
+
+.resume-paper .resume-headline {
+  font-size: 13px;
+  font-weight: 600;
+  color: #3b82f6;
+  text-align: center;
+  margin: 0 0 6px 0;
+}
+
+.resume-paper .resume-contact {
+  font-size: 11.5px;
+  color: #475569;
+  text-align: center;
+  margin: 0 0 16px 0;
+  padding-bottom: 12px;
+  border-bottom: 1.5px solid #e2e8f0;
+  line-height: 1.5;
+}
+
+.resume-paper .resume-section {
+  margin-top: 14px;
+  margin-bottom: 6px;
+}
+
+.resume-paper .resume-section-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: #0f172a;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin: 0 0 8px 0;
+  padding-bottom: 3px;
+  border-bottom: 1.5px solid #334155;
+}
+
+.resume-paper .resume-entry {
+  margin-bottom: 10px;
+}
+
+.resume-paper .resume-entry-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 4px;
+  font-size: 12.5px;
+  margin-bottom: 3px;
+}
+
+.resume-paper .resume-entry-header strong {
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.resume-paper .resume-company {
+  color: #334155;
+  font-weight: 600;
+}
+
+.resume-paper .resume-date {
+  font-size: 11.5px;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.resume-paper .resume-paragraph {
+  font-size: 12px;
+  color: #334155;
+  margin: 0 0 8px 0;
+  line-height: 1.55;
+}
+
+.resume-paper .resume-bullets {
+  margin: 4px 0 8px 18px;
+  padding: 0;
+  list-style-type: disc;
+}
+
+.resume-paper .resume-bullets li {
+  font-size: 12px;
+  color: #334155;
+  margin-bottom: 4px;
+  line-height: 1.5;
+}
+
+/* Edit Mode Textarea */
+.resume-panel-editor {
+  width: 100%;
+  height: 100%;
+  min-height: 640px;
+  background-color: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 18px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 12px;
+  line-height: 1.65;
+  color: #0f172a;
+  outline: none;
+  resize: vertical;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.resume-panel-editor:focus {
+  border-color: #4f46e5;
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.15);
+}
+
+/* Footer / Notice */
+.resume-panel-footer {
+  padding: 12px 18px;
+  background-color: #ffffff;
+  border-top: 1px solid #e2e8f0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 11px;
+  color: #64748b;
+  flex-shrink: 0;
+}
+
+.resume-panel-footer-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Mobile responsiveness */
+@media (max-width: 640px) {
+  .resume-panel-sidebar {
+    width: 100vw !important;
+  }
+  .resume-panel-resizer {
+    display: none;
+  }
+  .resume-panel-header {
+    padding: 12px 14px;
+    flex-wrap: wrap;
+  }
+  .resume-panel-body {
+    padding: 14px 10px;
+  }
+  .resume-paper {
+    padding: 24px 18px;
+  }
+  .resume-panel-actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+}
+
+/*
+ * ATS PDF PRINTING ISOLATION
+ * When printing, an isolated #ats-resume-print-zone is attached to document.body,
+ * and body.jobnex-printing-active hides everything else cleanly.
+ */
+@media screen {
+  #ats-resume-print-zone {
+    display: none !important;
+  }
+}
+
+@media print {
+  body.jobnex-printing-active > *:not(#ats-resume-print-zone) {
+    display: none !important;
+  }
+
+  body.jobnex-printing-active,
+  body.jobnex-printing-active html {
+    background: #ffffff !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  #ats-resume-print-zone {
+    display: block !important;
+    position: static !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+    font-family: Arial, Calibri, "Segoe UI", sans-serif !important;
+    font-size: 10.5pt !important;
+    line-height: 1.45 !important;
+  }
+
+  #ats-resume-print-zone h1 {
+    font-size: 20pt !important;
+    font-weight: 800 !important;
+    color: #000000 !important;
+    text-align: center !important;
+    margin: 0 0 3pt 0 !important;
+  }
+
+  #ats-resume-print-zone .resume-headline {
+    font-size: 11pt !important;
+    font-weight: 600 !important;
+    color: #1f2937 !important;
+    text-align: center !important;
+    margin: 0 0 3pt 0 !important;
+  }
+
+  #ats-resume-print-zone .resume-contact {
+    font-size: 9.5pt !important;
+    color: #374151 !important;
+    text-align: center !important;
+    margin: 0 0 10pt 0 !important;
+    padding-bottom: 6pt !important;
+    border-bottom: 1.5pt solid #4b5563 !important;
+  }
+
+  #ats-resume-print-zone .resume-section-title {
+    font-size: 10.5pt !important;
+    font-weight: 700 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.06em !important;
+    color: #000000 !important;
+    margin: 10pt 0 4pt 0 !important;
+    padding-bottom: 2pt !important;
+    border-bottom: 1.5pt solid #1f2937 !important;
+  }
+
+  #ats-resume-print-zone .resume-entry-header {
+    display: flex !important;
+    justify-content: space-between !important;
+    font-size: 10pt !important;
+    margin-top: 5pt !important;
+    margin-bottom: 2pt !important;
+  }
+
+  #ats-resume-print-zone .resume-entry-header strong {
+    font-weight: 700 !important;
+    color: #000000 !important;
+  }
+
+  #ats-resume-print-zone .resume-company {
+    font-weight: 600 !important;
+    color: #1f2937 !important;
+  }
+
+  #ats-resume-print-zone .resume-date {
+    font-size: 9pt !important;
+    color: #4b5563 !important;
+  }
+
+  #ats-resume-print-zone .resume-paragraph {
+    font-size: 10pt !important;
+    color: #111827 !important;
+    line-height: 1.45 !important;
+    margin: 0 0 5pt 0 !important;
+  }
+
+  #ats-resume-print-zone .resume-bullets {
+    margin: 3pt 0 6pt 16pt !important;
+    padding: 0 !important;
+    list-style-type: disc !important;
+  }
+
+  #ats-resume-print-zone .resume-bullets li {
+    font-size: 9.5pt !important;
+    line-height: 1.4 !important;
+    color: #111827 !important;
+    margin-bottom: 2.5pt !important;
+  }
+
+  @page {
+    size: A4 portrait;
+    margin: 12mm 10mm;
+  }
+}

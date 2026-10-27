@@ -43,7 +43,7 @@ def get_db_config(database: Optional[str] = None) -> dict:
         "host": os.getenv("MYSQL_HOST") or os.getenv("DB_HOST", "127.0.0.1"),
         "port": int(os.getenv("MYSQL_PORT") or os.getenv("DB_PORT", 3306)),
         "user": os.getenv("MYSQL_USER") or os.getenv("DB_USER", "root"),
-        "password": os.getenv("MYSQL_PASSWORD") or os.getenv("DB_PASSWORD", "2003@algonex"),
+        "password": os.getenv("MYSQL_PASSWORD") or os.getenv("DB_PASSWORD", "Algonex@123"),
         "database": database or os.getenv("MYSQL_DATABASE") or os.getenv("DB_NAME", "jobnex"),
         "use_pure": True,
     }

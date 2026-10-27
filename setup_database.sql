@@ -6,27 +6,61 @@
 CREATE DATABASE IF NOT EXISTS jobnex;
 USE jobnex;
 
+-- 0. Users and Profiles Table
+CREATE TABLE IF NOT EXISTS users (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    email VARCHAR(255) UNIQUE NOT NULL,
+    full_name VARCHAR(255),
+    avatar_url TEXT,
+    password_hash VARCHAR(255),
+    google_sub VARCHAR(255) UNIQUE,
+    auth_provider VARCHAR(50) DEFAULT 'local',
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS candidate_profiles (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT,
+    user_email VARCHAR(255),
+    full_name VARCHAR(255),
+    avatar_url TEXT,
+    title VARCHAR(255),
+    bio TEXT,
+    location VARCHAR(255),
+    years_experience DECIMAL(4, 1),
+    resume_url VARCHAR(500),
+    skills JSON,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_user_email (user_email)
+);
+
 -- 1. Resume Analyzer Table
 CREATE TABLE IF NOT EXISTS resume_analyzer (
     Analysis_id INT AUTO_INCREMENT PRIMARY KEY,
+    user_email VARCHAR(255) NULL,
     resume_text TEXT NOT NULL,
     jd_text TEXT NOT NULL,
     matched_skills JSON,
     missing_skills JSON,
     matched_score DECIMAL(5, 2),
     suggestions JSON,
-    created_At TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_At TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_user_email (user_email)
 );
 
 -- 2. Resume Privacy Vault (Masked/Redacted PII Data)
 CREATE TABLE IF NOT EXISTS resume_privacy_vault (
     vault_id INT AUTO_INCREMENT PRIMARY KEY,
     analysis_id INT NOT NULL,
+    user_email VARCHAR(255) NULL,
     original_text LONGTEXT NOT NULL,
     pii_stats JSON NULL,
     revealed_at DATETIME NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    INDEX idx_analysis (analysis_id)
+    INDEX idx_analysis (analysis_id),
+    INDEX idx_user_email (user_email)
 );
 
 -- 3. Filter Logic Checks & Runs

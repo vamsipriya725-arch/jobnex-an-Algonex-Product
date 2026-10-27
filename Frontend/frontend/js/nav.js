@@ -4,7 +4,7 @@
  */
 
 function updateNavbarUser() {
-  const user = window.JobNexAuth?.getUser() || { name: "Profile", avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=128&auto=format&fit=crop&q=80" };
+  const user = window.JobNexAuth?.getUser() || { name: "Candidate", email: "", avatar: "" };
   const loggedIn = window.JobNexAuth?.isLoggedIn() !== false;
 
   const authSection = document.getElementById("nav-auth-section");
@@ -15,15 +15,28 @@ function updateNavbarUser() {
   const resumeUrl = isInsidePages ? "resume-privacy.html" : "pages/resume-privacy.html";
 
   if (loggedIn) {
+    const displayName = (user.name && user.name !== "Google Verified Candidate") ? user.name : (user.email ? user.email.split("@")[0] : "Candidate");
+    const displayEmail = user.email || "";
+    const avatarUrl = user.avatar && !user.avatar.includes("534528741775-53994a69daeb")
+      ? user.avatar
+      : `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=2563eb&color=fff&bold=true`;
+
     authSection.innerHTML = `
-      <div class="flex items-center gap-2">
-        <a href="${resumeUrl}" class="flex items-center gap-2 text-xs font-semibold text-slate-800 hover:text-brand-600 transition-colors">
-          <div class="w-8 h-8 shrink-0 rounded-full overflow-hidden border border-slate-300">
-            <img src="${user.avatar}" alt="${user.name}" class="w-full h-full object-cover" />
+      <div class="flex items-center gap-2.5">
+        <a href="${resumeUrl}" class="flex items-center gap-2 group text-xs font-semibold text-slate-800 hover:text-brand-600 transition-colors" title="${displayEmail ? `${displayName} (${displayEmail})` : displayName}">
+          <div class="w-8 h-8 shrink-0 rounded-full overflow-hidden border border-slate-300 ring-2 ring-brand-500/20 bg-slate-100 flex items-center justify-center shadow-xs">
+            <img src="${avatarUrl}" 
+                 alt="${displayName}" 
+                 referrerpolicy="no-referrer"
+                 class="w-full h-full object-cover rounded-full" 
+                 onerror="this.onerror=null;this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=2563eb&color=fff&bold=true';" />
           </div>
-          <span class="hidden lg:inline text-xs font-semibold">${user.name.split(" ")[0]}</span>
+          <div class="flex flex-col text-left leading-tight max-w-[120px] sm:max-w-[160px]">
+            <span class="text-xs font-semibold text-slate-900 group-hover:text-brand-600 truncate">${displayName}</span>
+            ${displayEmail ? `<span class="text-[10px] text-slate-500 font-normal truncate">${displayEmail}</span>` : ""}
+          </div>
         </a>
-        <button id="sign-out-btn" class="h-8 px-2 text-xs text-slate-500 hover:text-slate-900 font-medium cursor-pointer transition-colors">
+        <button id="sign-out-btn" class="h-8 px-2 text-xs text-slate-500 hover:text-red-600 font-medium cursor-pointer transition-colors" title="Sign out">
           Sign out
         </button>
       </div>
@@ -54,8 +67,6 @@ function initNav(activePageName) {
   // Update navigation links dynamically
   const links = [
     { id: "nav-home", href: homePrefix + "index.html", key: "home" },
-    { id: "nav-jobs", href: prefix + "jobs.html", key: "jobs" },
-    { id: "nav-resources", href: prefix + "resources.html", key: "resources" },
     { id: "nav-interview", href: prefix + "interview-prep.html", key: "interview-prep" },
     { id: "nav-skills", href: prefix + "skill-gap.html", key: "skill-gap" },
     { id: "nav-autoapply", href: prefix + "auto-apply.html", key: "auto-apply" },

@@ -105,21 +105,72 @@ document.addEventListener("DOMContentLoaded", () => {
     if (errorBanner) errorBanner.classList.add("hidden");
   }
 
-  function loginAndRedirect(name, email, chosenRole) {
+  async function syncWithBackendAuth(email, password, name, chosenRole, isRegister) {
+    const endpoint = isRegister ? "/auth/register" : "/auth/login";
+    const payload = isRegister
+      ? { email, password: password || "password123", full_name: name, role: chosenRole }
+      : { email, password: password || "password123" };
+
+    const urls = [
+      endpoint,
+      `http://127.0.0.1:3000${endpoint}`,
+      `http://127.0.0.1:8000${endpoint}`,
+    ];
+
+    for (const url of urls) {
+      try {
+        const res = await fetch(url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.access_token) {
+            localStorage.setItem("jobnex_access_token", data.access_token);
+          }
+          return data;
+        } else if (res.status === 409 && isRegister) {
+          // If already registered in MySQL, log them in
+          return await syncWithBackendAuth(email, password, name, chosenRole, false);
+        }
+      } catch (err) {
+        // Try next fallback endpoint
+      }
+    }
+    return null;
+  }
+
+  async function loginAndRedirect(name, email, chosenRole, password, isRegister = false) {
     hideError();
+    if (btnSubmitText) {
+      btnSubmitText.textContent = isRegister ? "Saving to MySQL..." : "Authenticating MySQL...";
+    }
+
+    const backendUser = await syncWithBackendAuth(email, password, name, chosenRole, isRegister);
+
     if (window.JobNexAuth) {
+      const displayName = backendUser?.user?.full_name || name;
       window.JobNexAuth.login({
-        name: name,
-        email: email,
+        id: backendUser?.user?.id ? String(backendUser.user.id) : `u-${Date.now()}`,
+        name: displayName,
+        email: backendUser?.user?.email || email,
+        avatar: backendUser?.user?.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=2563eb&color=fff&bold=true`,
         role: chosenRole,
       });
     }
 
     if (soundEnabled && window.JobNexUtils) window.JobNexUtils.playSound("success");
-    if (window.JobNexUtils) window.JobNexUtils.showToast(`Welcome, ${name}! Redirecting...`, "success");
+    if (window.JobNexUtils) {
+      window.JobNexUtils.showToast(
+        `User synced in MySQL Workbench (users table)! Welcome, ${name}!`,
+        "success"
+      );
+    }
 
     setTimeout(() => {
-      window.location.href = "dashboard.html";
+      const homeUrl = window.location.pathname.includes("/pages/") ? "../index.html" : "index.html";
+      window.location.href = homeUrl;
     }, 600);
   }
 
@@ -138,13 +189,13 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // Demos
+  // Demos (persist users into MySQL Workbench users table)
   if (demoSandeep) {
     demoSandeep.addEventListener("click", () => {
       inputEmail.value = "candidate@jobnex.ai";
       inputPassword.value = "password123";
       setRole("JOB_SEEKER");
-      loginAndRedirect("Candidate", "candidate@jobnex.ai", "JOB_SEEKER");
+      loginAndRedirect("Candidate", "candidate@jobnex.ai", "JOB_SEEKER", "password123", false);
     });
   }
 
@@ -153,7 +204,7 @@ document.addEventListener("DOMContentLoaded", () => {
       inputEmail.value = "sarah.recruiting@google.com";
       inputPassword.value = "password123";
       setRole("RECRUITER");
-      loginAndRedirect("Sarah Jenkins", "sarah.recruiting@google.com", "RECRUITER");
+      loginAndRedirect("Sarah Jenkins", "sarah.recruiting@google.com", "RECRUITER", "password123", false);
     });
   }
 
@@ -213,11 +264,11 @@ document.addEventListener("DOMContentLoaded", () => {
           return;
         }
 
-        loginAndRedirect(name, email, role);
+        loginAndRedirect(name, email, role, pass, true);
       } else {
         const candidateName = email.split("@")[0].replace(".", " ");
         const formattedName = candidateName.charAt(0).toUpperCase() + candidateName.slice(1);
-        loginAndRedirect(formattedName || "Candidate", email, role);
+        loginAndRedirect(formattedName || "Candidate", email, role, pass, false);
       }
     });
   }

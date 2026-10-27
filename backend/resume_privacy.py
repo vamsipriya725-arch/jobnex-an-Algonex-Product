@@ -35,14 +35,14 @@ def init_privacy_vault(connection=None):
         connection.close()
 
 
-def save_to_vault(connection, analysis_id: int, original_text: str, pii_stats: dict):
+def save_to_vault(connection, analysis_id: int, original_text: str, pii_stats: dict, user_email: str = None):
     """Securely stores original unredacted resume in privacy vault."""
     cursor = connection.cursor()
     cursor.execute("""
-        INSERT INTO resume_privacy_vault (analysis_id, original_text, pii_stats)
-        VALUES (%s, %s, %s)
-        ON DUPLICATE KEY UPDATE original_text = VALUES(original_text), pii_stats = VALUES(pii_stats)
-    """, (analysis_id, original_text, json.dumps(pii_stats)))
+        INSERT INTO resume_privacy_vault (analysis_id, user_email, original_text, pii_stats)
+        VALUES (%s, %s, %s, %s)
+        ON DUPLICATE KEY UPDATE user_email = VALUES(user_email), original_text = VALUES(original_text), pii_stats = VALUES(pii_stats)
+    """, (analysis_id, user_email, original_text, json.dumps(pii_stats)))
     cursor.close()
 
 # ---------------------------------------------------------------

@@ -12,6 +12,7 @@ import {
   Send,
   Zap,
   ShieldCheck,
+  FileText,
   UserCheck,
   Menu,
   X,
@@ -36,8 +37,6 @@ export const Navbar: React.FC = () => {
 
   const navLinks = [
     { name: "Home", href: "/", icon: Home },
-    { name: "Jobs", href: "/jobs", icon: Briefcase },
-    { name: "Resources", href: "/resources", icon: BookOpen },
     { name: "Interview Prep", href: "/interview-prep", icon: BrainCircuit },
     { name: "Skill Gap", href: "/skill-gap", icon: BarChart3 },
     { name: "Auto-Apply", href: "/auto-apply", icon: Zap },
