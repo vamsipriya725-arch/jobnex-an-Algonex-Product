@@ -886,57 +886,127 @@
         if (triggerShot) triggerShot("switch", 900);
       });
 
-      form.addEventListener("submit", (e) => {
+      function showAuthError(msg) {
+        playSound("error");
+        errorBanner.style.display = "block";
+        errorText.textContent = msg;
+
+        card.classList.remove("card-shake");
+        failFx.classList.remove("failfx-on");
+        void card.offsetWidth;
+        card.classList.add("card-shake");
+        failFx.classList.add("failfx-on");
+        setTimeout(() => {
+          card.classList.remove("card-shake");
+          failFx.classList.remove("failfx-on");
+        }, 1800);
+
+        if (triggerShot) triggerShot("fail", 2400);
+      }
+
+      form.addEventListener("submit", async (e) => {
         e.preventDefault();
         errorBanner.style.display = "none";
 
         const email = emailInput.value.trim();
         const pass = passInput.value;
+        const name = (nameInput && nameInput.value) ? nameInput.value.trim() : "";
 
-        if (pass === "wrong-password") {
-          playSound("error");
-          errorBanner.style.display = "block";
-          errorText.textContent = "Incorrect email or password. Check both and try again.";
-
-          card.classList.remove("card-shake");
-          failFx.classList.remove("failfx-on");
-          void card.offsetWidth;
-          card.classList.add("card-shake");
-          failFx.classList.add("failfx-on");
-          setTimeout(() => {
-            card.classList.remove("card-shake");
-            failFx.classList.remove("failfx-on");
-          }, 1800);
-
-          if (triggerShot) triggerShot("fail", 2400);
+        if (!email || !email.includes("@")) {
+          showAuthError("Please enter a valid work or personal email address.");
           return;
         }
 
-        playSound("success");
-        toast.textContent = "Signed in as " + email + "! Syncing to MySQL…";
-        toast.style.display = "block";
-        submitBtn.disabled = true;
-        submitBtn.textContent = "Redirecting...";
+        if (!pass || pass.length < 6) {
+          showAuthError("Password must be at least 6 characters.");
+          return;
+        }
 
-        const candidateName = email.split("@")[0].replace(/[._-]/g, " ");
+        if (mode === "signup" && !name) {
+          showAuthError("Please enter your full name to create an account.");
+          return;
+        }
+
+        submitBtn.disabled = true;
+        submitBtn.textContent = mode === "signup" ? "Saving to MySQL..." : "Checking MySQL...";
+
+        const isRegister = (mode === "signup");
+        const endpoint = isRegister ? "/auth/register" : "/auth/login";
+        const candidateName = name || email.split("@")[0].replace(/[._-]/g, " ");
         const formattedName = candidateName.charAt(0).toUpperCase() + candidateName.slice(1);
-        const avatarUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(formattedName)}&background=2563eb&color=fff&bold=true`;
+        const payload = isRegister
+          ? { email: email, password: pass, full_name: formattedName }
+          : { email: email, password: pass };
+
+        const targetUrls = [
+          `http://127.0.0.1:8000${endpoint}`,
+          `http://127.0.0.1:3000${endpoint}`,
+          endpoint
+        ];
+
+        let successData = null;
+        let lastErrorMsg = "";
+
+        for (const url of targetUrls) {
+          try {
+            const res = await fetch(url, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(payload)
+            });
+
+            if (res.ok) {
+              successData = await res.json();
+              break;
+            } else {
+              const errBody = await res.json().catch(() => ({}));
+              if (res.status === 409) {
+                lastErrorMsg = "This email is already registered in MySQL. Click 'Login' below.";
+                break;
+              } else if (res.status === 401 || res.status === 403) {
+                lastErrorMsg = "Incorrect email or password. Please verify and try again.";
+                break;
+              } else {
+                lastErrorMsg = errBody.detail || errBody.message || `Server returned error (${res.status})`;
+              }
+            }
+          } catch (netErr) {
+            lastErrorMsg = "Backend server is not running (http://127.0.0.1:8000). Run 'python run.py' so data can be stored in MySQL.";
+          }
+        }
+
+        if (!successData) {
+          submitBtn.disabled = false;
+          submitBtn.textContent = isRegister ? "Create account" : "Login";
+          showAuthError(lastErrorMsg);
+          return;
+        }
+
+        // Successfully synced to MySQL!
+        playSound("success");
+        if (successData.access_token) {
+          localStorage.setItem("jobnex_access_token", successData.access_token);
+        }
+
+        const userRecord = successData.user || {};
+        const displayName = userRecord.full_name || formattedName;
+        const avatarUrl = userRecord.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=2563eb&color=fff&bold=true`;
 
         if (window.JobNexAuth) {
           window.JobNexAuth.login({
-            name: formattedName,
-            email: email,
+            id: String(userRecord.id || `u-${Date.now()}`),
+            name: displayName,
+            email: userRecord.email || email,
             avatar: avatarUrl,
             role: "JOB_SEEKER"
           });
         }
 
-        // Sync local login with MySQL
-        fetch("/auth/login", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email: email, password: password || "password123" }),
-        }).catch(() => {});
+        toast.textContent = isRegister 
+          ? `Account stored in MySQL users table! Welcome, ${displayName}!`
+          : `Signed in as ${displayName}! Redirecting…`;
+        toast.style.display = "block";
+        submitBtn.textContent = "Redirecting...";
 
         let navigated = false;
         const navigateToNext = () => {
@@ -1005,10 +1075,10 @@
         };
 
         const syncUrls = [
+          "http://127.0.0.1:8000/auth/google",
+          "http://127.0.0.1:3000/auth/google",
           "/auth/google",
           "/api/auth/google",
-          "http://127.0.0.1:3000/auth/google",
-          "http://127.0.0.1:8000/auth/google",
         ];
 
         for (const url of syncUrls) {

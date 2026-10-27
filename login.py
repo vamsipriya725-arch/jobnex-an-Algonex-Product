@@ -31,11 +31,22 @@ DB_HOST = os.getenv("DB_HOST", "127.0.0.1")
 DB_PORT = os.getenv("DB_PORT", "3306")
 DB_NAME = os.getenv("DB_NAME", "jobnex")
 
+FRONTEND_ORIGINS = [
+    "http://127.0.0.1:8000",
+    "http://localhost:8000",
+    "http://127.0.0.1:3000",
+    "http://localhost:3000",
+    "http://127.0.0.1:5500",
+    "http://localhost:5500",
+    "http://127.0.0.1:5501",
+    "http://localhost:5501",
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+]
 DATABASE_URL = os.getenv(
     "DATABASE_URL",
     f"mysql+pymysql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}",
 )
-FRONTEND_ORIGINS = os.getenv("FRONTEND_ORIGINS", "http://localhost:5173").split(",")
 
 # ---------- Database ----------
 engine = create_engine(
@@ -164,6 +175,19 @@ def register(data: RegisterIn, db: Session = Depends(get_db)):
     db.add(user)
     db.commit()
     db.refresh(user)
+
+    # Automatically create candidate profile record
+    try:
+        from sqlalchemy import text
+        db.execute(text(
+            "INSERT INTO candidate_profiles (user_id, user_email, full_name, avatar_url, title, bio, location, years_experience, skills) "
+            "VALUES (:uid, :email, :fname, '', 'Software Engineer', '', 'Remote', 2, '[]') "
+            "ON DUPLICATE KEY UPDATE full_name = :fname, user_email = :email"
+        ), {"uid": user.id, "email": user.email, "fname": user.full_name or "Candidate"})
+        db.commit()
+    except Exception:
+        db.rollback()
+
     return TokenOut(access_token=create_access_token(user.id), user=user)
 
 
@@ -224,6 +248,23 @@ def google_login(data: GoogleLoginIn, db: Session = Depends(get_db)):
 
     db.commit()
     db.refresh(user)
+
+    # Automatically create/update candidate profile record
+    try:
+        from sqlalchemy import text
+        db.execute(text(
+            "INSERT INTO candidate_profiles (user_id, user_email, full_name, avatar_url, title, bio, location, years_experience, skills) "
+            "VALUES (:uid, :email, :fname, :avatar, 'Software Engineer', '', 'Remote', 2, '[]') "
+            "ON DUPLICATE KEY UPDATE full_name = :fname, user_email = :email, avatar_url = :avatar"
+        ), {
+            "uid": user.id,
+            "email": user.email,
+            "fname": user.full_name or "Candidate",
+            "avatar": user.avatar_url or ""
+        })
+        db.commit()
+    except Exception:
+        db.rollback()
 
     if not user.is_active:
         raise HTTPException(status.HTTP_403_FORBIDDEN, "Account disabled")
