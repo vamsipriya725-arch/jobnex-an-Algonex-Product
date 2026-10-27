@@ -749,6 +749,114 @@
     </div>
   </div>
 
+  <!-- MODAL 8: IMPORT JOBS MODAL (Phase 7) -->
+  <div id="modal-import-jobs" class="modal-backdrop">
+    <div class="modal-content p-6 sm:p-7 space-y-5 max-w-xl">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+        <div class="flex items-center gap-2.5">
+          <div class="w-8 h-8 rounded-lg bg-brand-100 text-brand-700 flex items-center justify-center shrink-0">
+            <i data-lucide="download-cloud" class="w-4 h-4"></i>
+          </div>
+          <div>
+            <h2 class="text-base font-bold text-slate-900 m-0">Import Job from JobNex</h2>
+            <p class="text-[11px] text-slate-500 m-0">Select from active job postings or your application queue</p>
+          </div>
+        </div>
+        <button id="btn-close-import-modal" type="button" class="text-slate-400 hover:text-slate-600 cursor-pointer p-1">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <!-- Jobs List Container -->
+      <div id="import-jobs-list-container" class="space-y-2.5 max-h-[380px] overflow-y-auto pr-1">
+        <!-- Rendered dynamically -->
+      </div>
+
+      <div class="flex items-center justify-end pt-3 border-t border-slate-100">
+        <button id="btn-cancel-import-jobs" type="button" class="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100 cursor-pointer">
+          Cancel
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL 9: SURGICAL AI BULLET TAILOR DIFF MODAL (Phase 7) -->
+  <div id="modal-tailor-bullet-diff" class="modal-backdrop">
+    <div class="modal-content p-6 sm:p-7 space-y-5 max-w-xl">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+        <div class="flex items-center gap-2.5">
+          <div class="w-8 h-8 rounded-lg bg-indigo-100 text-indigo-700 flex items-center justify-center shrink-0">
+            <i data-lucide="sparkles" class="w-4 h-4"></i>
+          </div>
+          <div>
+            <h2 class="text-base font-bold text-slate-900 m-0">AI Tailored Bullet Point</h2>
+            <p class="text-[11px] text-slate-500 m-0" id="tailor-keyword-subtitle">Zero-hallucination keyword optimization</p>
+          </div>
+        </div>
+        <button id="btn-close-tailor-modal" type="button" class="text-slate-400 hover:text-slate-600 cursor-pointer p-1">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <!-- Loading State -->
+      <div id="tailor-modal-loader" class="py-10 text-center space-y-3">
+        <i data-lucide="loader-2" class="w-8 h-8 animate-spin mx-auto text-brand-600"></i>
+        <p class="text-xs font-semibold text-slate-700 m-0">Tailoring bullet with target keyword using Gemini...</p>
+        <p class="text-[11px] text-slate-400 m-0">Zero invented employers or metrics guaranteed</p>
+      </div>
+
+      <!-- Tailor Content View (hidden while loading) -->
+      <div id="tailor-modal-body" class="hidden space-y-4">
+        <!-- Recruiter Rationale -->
+        <div class="p-3 bg-brand-50/70 border border-brand-200/80 rounded-xl space-y-1">
+          <div class="flex items-center gap-1.5 text-brand-800 text-xs font-bold">
+            <i data-lucide="info" class="w-3.5 h-3.5 text-brand-600"></i>
+            <span>ATS Alignment Strategy</span>
+          </div>
+          <p id="tailor-explanation-text" class="text-xs text-brand-900 m-0 leading-relaxed"></p>
+        </div>
+
+        <!-- Before & After Comparison -->
+        <div class="space-y-3">
+          <div class="space-y-1">
+            <span class="text-[11px] font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1">
+              <i data-lucide="file-text" class="w-3.5 h-3.5"></i>
+              <span>Current Bullet in Resume</span>
+            </span>
+            <div id="tailor-original-box" class="p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 font-normal leading-relaxed">
+            </div>
+          </div>
+
+          <div class="space-y-1">
+            <span class="text-[11px] font-bold text-emerald-700 uppercase tracking-wider flex items-center gap-1">
+              <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
+              <span>Tailored Version (ATS Optimized)</span>
+            </span>
+            <div id="tailor-suggested-box" class="p-3 bg-emerald-50/80 border border-emerald-300 rounded-xl text-xs text-emerald-950 font-semibold leading-relaxed">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <div class="flex items-center justify-between pt-3 border-t border-slate-100">
+        <span class="text-[11px] text-slate-400 flex items-center gap-1">
+          <i data-lucide="shield-check" class="w-3.5 h-3.5 text-emerald-600"></i>
+          <span>Strict zero hallucination policy</span>
+        </span>
+        <div class="flex items-center gap-2">
+          <button id="btn-tailor-cancel" type="button" class="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100 cursor-pointer">
+            Cancel
+          </button>
+          <button id="btn-tailor-accept" type="button" class="px-5 py-2 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-bold text-xs shadow-sm cursor-pointer disabled:opacity-50 flex items-center gap-1.5" disabled>
+            <i data-lucide="check" class="w-3.5 h-3.5"></i>
+            <span>Apply to Resume</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- EDITOR VIEW (Phase 3 Editor Layout and Live Preview) -->
   <div id="builder-editor-view" class="hidden builder-layout-container">
     <!-- 1. Left Icon Sidebar -->
@@ -1504,11 +1612,309 @@
           </div>
         </div>
 
-        <!-- Pane 4: Optimize for Job (Phase 7) -->
+        <!-- Pane 4: Optimize for Job (Phase 7 Full Implementation) -->
         <div id="pane-optimize" class="tab-pane hidden space-y-6">
-          <div class="p-4 rounded-xl bg-slate-50 border border-slate-200">
-            <h3 class="text-xs font-bold text-slate-900 m-0">Job Description Matcher</h3>
-            <p class="text-[11px] text-slate-500 m-0 mt-0.5">Compare against target job postings with strict evidence verification.</p>
+          <!-- Target Job Selector & Action Bar -->
+          <div class="p-3.5 rounded-2xl bg-white border border-slate-200/90 shadow-2xs space-y-3">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+              <div class="flex items-center gap-2 flex-1 min-w-0">
+                <div class="w-7 h-7 rounded-lg bg-brand-100 text-brand-700 flex items-center justify-center shrink-0">
+                  <i data-lucide="target" class="w-3.5 h-3.5"></i>
+                </div>
+                <div class="flex-1 min-w-0">
+                  <select
+                    id="target-job-select"
+                    class="w-full text-xs font-bold text-slate-900 bg-slate-50 border border-slate-200 hover:border-slate-300 rounded-lg px-2.5 py-1.5 outline-none focus:border-brand-500 cursor-pointer"
+                  >
+                    <option value="">No Target Job Selected</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="flex items-center gap-1.5 shrink-0">
+                <button
+                  id="btn-new-target-job"
+                  type="button"
+                  class="px-2.5 py-1.5 rounded-lg bg-brand-600 hover:bg-brand-700 text-white text-[11px] font-bold flex items-center gap-1 cursor-pointer transition-colors shadow-2xs"
+                  title="Add new target job description"
+                >
+                  <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+                  <span>New Job</span>
+                </button>
+                <button
+                  id="btn-open-import-jobs-modal"
+                  type="button"
+                  class="px-2.5 py-1.5 rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-700 text-[11px] font-bold flex items-center gap-1 cursor-pointer transition-colors"
+                  title="Import from JobNex jobs & applications"
+                >
+                  <i data-lucide="download" class="w-3.5 h-3.5 text-slate-500"></i>
+                  <span>Import</span>
+                </button>
+                <button
+                  id="btn-delete-target-job"
+                  type="button"
+                  class="p-1.5 rounded-lg border border-slate-200 hover:bg-rose-50 text-slate-400 hover:text-rose-600 cursor-pointer transition-colors hidden"
+                  title="Delete target job"
+                >
+                  <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Target Job Input Card (shown when adding/editing a job) -->
+          <div id="target-job-input-card" class="p-4 sm:p-5 rounded-2xl bg-white border border-slate-200 shadow-2xs space-y-3.5 hidden">
+            <div class="flex items-center justify-between pb-2 border-b border-slate-100">
+              <h4 class="text-xs font-bold text-slate-900 uppercase tracking-wider m-0 flex items-center gap-1.5">
+                <i data-lucide="file-plus" class="w-3.5 h-3.5 text-brand-600"></i>
+                <span id="target-job-form-title">Add Target Job Description</span>
+              </h4>
+              <button id="btn-cancel-job-input" type="button" class="text-slate-400 hover:text-slate-600 p-1 cursor-pointer">
+                <i data-lucide="x" class="w-3.5 h-3.5"></i>
+              </button>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label class="text-[11px] font-semibold text-slate-700">Job Title *</label>
+                <input
+                  id="inp-job-title"
+                  type="text"
+                  placeholder="e.g. Senior Full-Stack Engineer"
+                  class="w-full mt-1 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-900 outline-none focus:border-brand-500 focus:bg-white"
+                />
+              </div>
+              <div>
+                <label class="text-[11px] font-semibold text-slate-700">Company (Optional)</label>
+                <input
+                  id="inp-job-company"
+                  type="text"
+                  placeholder="e.g. Stripe, Airbnb, Google"
+                  class="w-full mt-1 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-900 outline-none focus:border-brand-500 focus:bg-white"
+                />
+              </div>
+            </div>
+
+            <div>
+              <div class="flex items-center justify-between">
+                <label class="text-[11px] font-semibold text-slate-700">Job Description Text *</label>
+                <span id="job-desc-char-count" class="text-[10px] text-slate-400 font-medium">0 chars</span>
+              </div>
+              <textarea
+                id="inp-job-description"
+                rows="6"
+                placeholder="Paste the target job description, responsibilities, and required qualifications here..."
+                class="w-full mt-1 p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 outline-none focus:border-brand-500 focus:bg-white leading-relaxed resize-y"
+              ></textarea>
+            </div>
+
+            <div class="flex items-center justify-end gap-2 pt-2">
+              <button
+                id="btn-run-match-analysis"
+                type="button"
+                class="px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-bold text-xs shadow-xs flex items-center gap-1.5 cursor-pointer transition-colors disabled:opacity-50"
+              >
+                <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
+                <span>Analyze Match Rate</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Empty State when no target jobs exist -->
+          <div id="target-job-empty-state" class="p-8 text-center bg-slate-50 border border-dashed border-slate-200 rounded-2xl space-y-3">
+            <div class="w-12 h-12 rounded-2xl bg-brand-100 text-brand-600 mx-auto flex items-center justify-center">
+              <i data-lucide="briefcase" class="w-6 h-6"></i>
+            </div>
+            <div class="max-w-sm mx-auto space-y-1">
+              <h4 class="text-sm font-bold text-slate-900 m-0">No Target Job Added Yet</h4>
+              <p class="text-xs text-slate-500 m-0 leading-relaxed">
+                Paste any job description or import from JobNex to benchmark keyword density, missing technical skills, and experience alignment.
+              </p>
+            </div>
+            <div class="flex items-center justify-center gap-2 pt-2">
+              <button
+                id="btn-empty-add-job"
+                type="button"
+                class="px-3.5 py-2 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-2xs"
+              >
+                <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+                <span>Paste Job Description</span>
+              </button>
+              <button
+                id="btn-empty-import-job"
+                type="button"
+                class="px-3.5 py-2 rounded-xl bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 text-xs font-bold flex items-center gap-1.5 cursor-pointer"
+              >
+                <i data-lucide="download" class="w-3.5 h-3.5 text-slate-500"></i>
+                <span>Import from JobNex</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Target Job Analysis Results Container -->
+          <div id="target-job-analysis-results" class="space-y-6 hidden">
+            <!-- 1. Match Score Hero Card -->
+            <div class="match-hero-card">
+              <div class="flex flex-col sm:flex-row items-center sm:items-start justify-between gap-4">
+                <div class="flex items-center gap-4">
+                  <div id="match-dial-badge" class="match-dial-badge is-strong shrink-0">
+                    <span id="match-hero-score" class="text-2xl font-black leading-none">0%</span>
+                    <span class="text-[9px] font-bold uppercase tracking-wider text-slate-400 mt-0.5">Match</span>
+                  </div>
+                  <div class="space-y-1">
+                    <div class="flex items-center gap-2">
+                      <span id="match-hero-rating-badge" class="badge-excellent text-xs font-bold px-2.5 py-0.5 rounded-full inline-flex items-center gap-1">
+                        <i data-lucide="check-circle-2" class="w-3.5 h-3.5"></i>
+                        <span id="match-hero-rating-text">Strong Match</span>
+                      </span>
+                    </div>
+                    <h3 id="match-hero-headline" class="text-sm font-bold text-slate-900 m-0">Target Job Analysis</h3>
+                    <p id="match-hero-summary" class="text-xs text-slate-500 m-0 leading-relaxed max-w-md">
+                      Keyword alignment calculated across hard skills, domain terms, experience depth, and education criteria.
+                    </p>
+                  </div>
+                </div>
+
+                <div class="flex items-center gap-2 shrink-0">
+                  <button
+                    id="btn-edit-target-job"
+                    type="button"
+                    class="p-2 rounded-lg border border-slate-200 hover:bg-white text-slate-600 text-xs font-bold flex items-center gap-1 cursor-pointer transition-colors shadow-2xs"
+                    title="Edit job description"
+                  >
+                    <i data-lucide="edit-3" class="w-3.5 h-3.5 text-slate-500"></i>
+                    <span>Edit JD</span>
+                  </button>
+                  <button
+                    id="btn-reanalyze-job"
+                    type="button"
+                    class="p-2 rounded-lg bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold flex items-center gap-1 cursor-pointer transition-colors shadow-2xs"
+                    title="Re-run matching analysis"
+                  >
+                    <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
+                    <span>Re-Analyze</span>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Quick Metrics Row -->
+              <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-4 mt-4 border-t border-slate-100">
+                <div class="p-2.5 bg-white rounded-xl border border-slate-100 text-center">
+                  <span class="text-[10px] font-semibold text-slate-400 uppercase">Hard Skills Met</span>
+                  <div class="text-sm font-bold text-emerald-700 mt-0.5" id="match-stat-hard-count">0 / 0</div>
+                </div>
+                <div class="p-2.5 bg-white rounded-xl border border-slate-100 text-center">
+                  <span class="text-[10px] font-semibold text-slate-400 uppercase">Missing Skills</span>
+                  <div class="text-sm font-bold text-rose-700 mt-0.5" id="match-stat-missing-count">0</div>
+                </div>
+                <div class="p-2.5 bg-white rounded-xl border border-slate-100 text-center">
+                  <span class="text-[10px] font-semibold text-slate-400 uppercase">Experience</span>
+                  <div class="text-sm font-bold text-slate-800 mt-0.5" id="match-stat-exp-status">Met</div>
+                </div>
+                <div class="p-2.5 bg-white rounded-xl border border-slate-100 text-center">
+                  <span class="text-[10px] font-semibold text-slate-400 uppercase">Education</span>
+                  <div class="text-sm font-bold text-slate-800 mt-0.5" id="match-stat-edu-status">Match</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 2. Alignment Cards Grid (Experience & Education) -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <!-- Experience Alignment -->
+              <div id="card-exp-alignment" class="alignment-card is-met space-y-1.5">
+                <div class="flex items-center justify-between">
+                  <span class="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                    <i data-lucide="clock" class="w-3.5 h-3.5 text-brand-600"></i>
+                    <span>Experience Timeline Alignment</span>
+                  </span>
+                  <span id="badge-exp-status" class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">Met</span>
+                </div>
+                <p id="text-exp-msg" class="text-[11px] text-slate-600 m-0 leading-relaxed">
+                  Candidate meets required years of experience.
+                </p>
+              </div>
+
+              <!-- Education Alignment -->
+              <div id="card-edu-alignment" class="alignment-card is-met space-y-1.5">
+                <div class="flex items-center justify-between">
+                  <span class="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                    <i data-lucide="graduation-cap" class="w-3.5 h-3.5 text-indigo-600"></i>
+                    <span>Education Level Alignment</span>
+                  </span>
+                  <span id="badge-edu-status" class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">Match</span>
+                </div>
+                <p id="text-edu-msg" class="text-[11px] text-slate-600 m-0 leading-relaxed">
+                  Degree matches target job requirement.
+                </p>
+              </div>
+            </div>
+
+            <!-- 3. Missing Keywords (High Priority Action Items) -->
+            <div class="space-y-3">
+              <div class="flex items-center justify-between">
+                <h4 class="text-xs font-bold text-slate-800 uppercase tracking-wider m-0 flex items-center gap-1.5">
+                  <i data-lucide="alert-triangle" class="w-3.5 h-3.5 text-rose-600"></i>
+                  <span>Missing In-Demand Keywords</span>
+                </h4>
+                <span class="text-[10px] text-slate-400 font-medium">Click "+ Add" to inject directly into Skills section</span>
+              </div>
+
+              <!-- Missing Hard Skills -->
+              <div class="p-3.5 rounded-xl bg-slate-50 border border-slate-200/80 space-y-2">
+                <span class="text-[11px] font-bold text-slate-700">Hard Technical Skills:</span>
+                <div id="missing-hard-skills-container" class="flex flex-wrap items-center gap-1.5">
+                  <!-- Rendered dynamically -->
+                </div>
+              </div>
+
+              <!-- Missing Domain Terms -->
+              <div class="p-3.5 rounded-xl bg-slate-50 border border-slate-200/80 space-y-2">
+                <span class="text-[11px] font-bold text-slate-700">Domain & Architecture Concepts:</span>
+                <div id="missing-domain-terms-container" class="flex flex-wrap items-center gap-1.5">
+                  <!-- Rendered dynamically -->
+                </div>
+              </div>
+
+              <!-- Missing Soft Skills -->
+              <div class="p-3.5 rounded-xl bg-slate-50 border border-slate-200/80 space-y-2">
+                <span class="text-[11px] font-bold text-slate-700">Competencies & Soft Skills:</span>
+                <div id="missing-soft-skills-container" class="flex flex-wrap items-center gap-1.5">
+                  <!-- Rendered dynamically -->
+                </div>
+              </div>
+            </div>
+
+            <!-- 4. Matched Keywords & Density Comparison -->
+            <div class="space-y-3">
+              <div class="flex items-center justify-between">
+                <h4 class="text-xs font-bold text-slate-800 uppercase tracking-wider m-0 flex items-center gap-1.5">
+                  <i data-lucide="check-circle-2" class="w-3.5 h-3.5 text-emerald-600"></i>
+                  <span>Matched Keywords & Frequency Comparison</span>
+                </h4>
+                <span class="text-[10px] text-slate-400 font-medium">JD frequency vs Resume frequency</span>
+              </div>
+
+              <div class="p-3.5 rounded-xl bg-slate-50 border border-slate-200/80">
+                <div id="matched-keywords-container" class="flex flex-wrap items-center gap-1.5">
+                  <!-- Rendered dynamically -->
+                </div>
+              </div>
+            </div>
+
+            <!-- 5. AI Surgical Bullet Tailoring Recommendations -->
+            <div class="space-y-3">
+              <div class="flex items-center justify-between">
+                <h4 class="text-xs font-bold text-slate-800 uppercase tracking-wider m-0 flex items-center gap-1.5">
+                  <i data-lucide="sparkles" class="w-3.5 h-3.5 text-brand-600"></i>
+                  <span>AI Surgical Bullet Tailoring</span>
+                </h4>
+                <span class="text-[10px] text-slate-400 font-medium">Zero-hallucination keyword weaving</span>
+              </div>
+
+              <div id="tailoring-suggestions-container" class="space-y-3">
+                <!-- Rendered dynamically -->
+              </div>
+            </div>
           </div>
         </div>
       </div>

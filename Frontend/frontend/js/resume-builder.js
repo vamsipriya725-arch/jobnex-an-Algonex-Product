@@ -66,6 +66,17 @@
     DOM.btnDiffAccept = document.getElementById("btn-diff-accept");
     DOM.btnDiffCancel = document.getElementById("btn-diff-cancel");
 
+    // Phase 7 Modals
+    DOM.modalImportJobs = document.getElementById("modal-import-jobs");
+    DOM.modalTailorBullet = document.getElementById("modal-tailor-bullet-diff");
+    DOM.tailorModalLoader = document.getElementById("tailor-modal-loader");
+    DOM.tailorModalBody = document.getElementById("tailor-modal-body");
+    DOM.tailorExplanation = document.getElementById("tailor-explanation-text");
+    DOM.tailorOriginal = document.getElementById("tailor-original-box");
+    DOM.tailorSuggested = document.getElementById("tailor-suggested-box");
+    DOM.btnTailorAccept = document.getElementById("btn-tailor-accept");
+    DOM.btnTailorCancel = document.getElementById("btn-tailor-cancel");
+
     // Dropzone & File picker
     DOM.dropzone = document.getElementById("dropzone-area");
     DOM.filePicker = document.getElementById("resume-file-picker");
@@ -1697,6 +1708,681 @@
   }
 
   // =========================================================================
+  // Phase 7: Optimize for Job Tab Controller
+  // =========================================================================
+
+  function renderOptimizeTab(resume) {
+    if (!resume) return;
+
+    const targetJobs = resume.targetJobs || [];
+    const activeJob = targetJobs.find((tj) => tj.is_active) || targetJobs[0] || null;
+
+    // 1. Populate Target Job Selector
+    const selectEl = document.getElementById("target-job-select");
+    const btnDelete = document.getElementById("btn-delete-target-job");
+
+    if (selectEl) {
+      if (targetJobs.length === 0) {
+        selectEl.innerHTML = '<option value="">No Target Job Added</option>';
+        selectEl.disabled = true;
+      } else {
+        selectEl.disabled = false;
+        selectEl.innerHTML = targetJobs
+          .map((tj) => {
+            const isSel = activeJob && tj.id === activeJob.id;
+            const companyPart = tj.company ? ` @ ${tj.company}` : "";
+            return `<option value="${escapeHtml(tj.id)}" ${isSel ? "selected" : ""}>${escapeHtml(tj.title)}${escapeHtml(companyPart)} (${tj.match_score || 0}% Match)</option>`;
+          })
+          .join("");
+      }
+    }
+
+    if (btnDelete) {
+      btnDelete.classList.toggle("hidden", !activeJob);
+    }
+
+    const emptyState = document.getElementById("target-job-empty-state");
+    const resultsContainer = document.getElementById("target-job-analysis-results");
+    const inputCard = document.getElementById("target-job-input-card");
+
+    if (!activeJob) {
+      if (emptyState) emptyState.classList.remove("hidden");
+      if (resultsContainer) resultsContainer.classList.add("hidden");
+      if (inputCard && !inputCard.classList.contains("hidden")) {
+        if (emptyState) emptyState.classList.add("hidden");
+      }
+      return;
+    }
+
+    if (emptyState) emptyState.classList.add("hidden");
+    if (resultsContainer && inputCard && inputCard.classList.contains("hidden")) {
+      resultsContainer.classList.remove("hidden");
+    }
+
+    // 2. Hero Match Card
+    const scoreVal = activeJob.match_score || 0;
+    const heroScoreEl = document.getElementById("match-hero-score");
+    if (heroScoreEl) heroScoreEl.textContent = `${scoreVal}%`;
+
+    const dialEl = document.getElementById("match-dial-badge");
+    const badgeEl = document.getElementById("match-hero-rating-badge");
+    const badgeTextEl = document.getElementById("match-hero-rating-text");
+    const headlineEl = document.getElementById("match-hero-headline");
+    const summaryEl = document.getElementById("match-hero-summary");
+
+    if (dialEl) {
+      dialEl.className = scoreVal >= 75
+        ? "match-dial-badge is-strong shrink-0"
+        : (scoreVal >= 50 ? "match-dial-badge is-moderate shrink-0" : "match-dial-badge is-low shrink-0");
+    }
+
+    if (badgeEl && badgeTextEl) {
+      if (scoreVal >= 75) {
+        badgeEl.className = "badge-excellent text-xs font-bold px-2.5 py-0.5 rounded-full inline-flex items-center gap-1";
+        badgeEl.innerHTML = '<i data-lucide="check-circle-2" class="w-3.5 h-3.5"></i><span>Strong Match</span>';
+        if (summaryEl) summaryEl.textContent = "Your resume strongly aligns with the target qualifications. Review minor missing keywords below to maximize recruiter screening passes.";
+      } else if (scoreVal >= 50) {
+        badgeEl.className = "badge-good text-xs font-bold px-2.5 py-0.5 rounded-full inline-flex items-center gap-1";
+        badgeEl.innerHTML = '<i data-lucide="check" class="w-3.5 h-3.5"></i><span>Moderate Match</span>';
+        if (summaryEl) summaryEl.textContent = "Good foundation with high-value keyword opportunities. Adding the missing technical skills and tailoring bullets below will close the alignment gap.";
+      } else {
+        badgeEl.className = "badge-poor text-xs font-bold px-2.5 py-0.5 rounded-full inline-flex items-center gap-1";
+        badgeEl.innerHTML = '<i data-lucide="alert-triangle" class="w-3.5 h-3.5"></i><span>Low Match (Action Required)</span>';
+        if (summaryEl) summaryEl.textContent = "Significant keyword and experience gaps detected. Incorporate relevant competencies and tailor key achievement bullets before applying.";
+      }
+    }
+
+    if (headlineEl) {
+      headlineEl.textContent = `${activeJob.title || "Target Position"}${activeJob.company ? " at " + activeJob.company : ""}`;
+    }
+
+    // 3. Quick Stats
+    const hardMatched = activeJob.hard_skills_matched || [];
+    const hardMissing = activeJob.hard_skills_missing || [];
+    const domainMatched = activeJob.domain_keywords_matched || [];
+    const domainMissing = activeJob.domain_keywords_missing || [];
+    const softMatched = activeJob.soft_skills_matched || [];
+    const softMissing = activeJob.soft_skills_missing || [];
+
+    const totalHardCount = hardMatched.length + hardMissing.length;
+    const statHard = document.getElementById("match-stat-hard-count");
+    if (statHard) statHard.textContent = `${hardMatched.length} / ${totalHardCount}`;
+
+    const statMissing = document.getElementById("match-stat-missing-count");
+    if (statMissing) statMissing.textContent = `${hardMissing.length + domainMissing.length}`;
+
+    const expData = activeJob.experience_alignment || {};
+    const eduData = activeJob.education_alignment || {};
+
+    const statExp = document.getElementById("match-stat-exp-status");
+    if (statExp) statExp.textContent = expData.status || "Met";
+
+    const statEdu = document.getElementById("match-stat-edu-status");
+    if (statEdu) statEdu.textContent = eduData.status || "Match";
+
+    // 4. Alignment Cards
+    const cardExp = document.getElementById("card-exp-alignment");
+    const badgeExp = document.getElementById("badge-exp-status");
+    const textExp = document.getElementById("text-exp-msg");
+
+    if (cardExp && badgeExp && textExp) {
+      const status = expData.status || "Met";
+      cardExp.className = `alignment-card space-y-1.5 ${status === "Met" || status === "Flexible" ? "is-met" : (status === "Near" ? "is-near" : "is-gap")}`;
+      badgeExp.className = `text-[10px] font-bold px-2 py-0.5 rounded-full ${status === "Met" || status === "Flexible" ? "bg-emerald-100 text-emerald-800" : (status === "Near" ? "bg-amber-100 text-amber-800" : "bg-rose-100 text-rose-800")}`;
+      badgeExp.textContent = status;
+      textExp.textContent = expData.message || "Experience alignment evaluated.";
+    }
+
+    const cardEdu = document.getElementById("card-edu-alignment");
+    const badgeEdu = document.getElementById("badge-edu-status");
+    const textEdu = document.getElementById("text-edu-msg");
+
+    if (cardEdu && badgeEdu && textEdu) {
+      const status = eduData.status || "Match";
+      cardEdu.className = `alignment-card space-y-1.5 ${status === "Match" || status === "Flexible" ? "is-met" : "is-gap"}`;
+      badgeEdu.className = `text-[10px] font-bold px-2 py-0.5 rounded-full ${status === "Match" || status === "Flexible" ? "bg-emerald-100 text-emerald-800" : "bg-rose-100 text-rose-800")}`;
+      badgeEdu.textContent = status;
+      textEdu.textContent = eduData.message || "Education alignment evaluated.";
+    }
+
+    // 5. Missing Keywords Render
+    const missingHardContainer = document.getElementById("missing-hard-skills-container");
+    if (missingHardContainer) {
+      if (hardMissing.length === 0) {
+        missingHardContainer.innerHTML = '<span class="text-xs text-emerald-700 font-semibold italic flex items-center gap-1"><i data-lucide="check" class="w-3.5 h-3.5"></i> All technical skills requested in JD are present in your resume!</span>';
+      } else {
+        missingHardContainer.innerHTML = hardMissing
+          .map(
+            (kw) => `
+            <span class="keyword-chip-missing">
+              <span>${escapeHtml(kw)}</span>
+              <button type="button" class="btn-chip-add-skill" data-skill="${escapeHtml(kw)}" title="One-click add to your Technical Skills section">
+                <i data-lucide="plus" class="w-3 h-3"></i> Add
+              </button>
+            </span>
+          `
+          )
+          .join("");
+      }
+    }
+
+    const missingDomainContainer = document.getElementById("missing-domain-terms-container");
+    if (missingDomainContainer) {
+      if (domainMissing.length === 0) {
+        missingDomainContainer.innerHTML = '<span class="text-xs text-emerald-700 font-semibold italic flex items-center gap-1"><i data-lucide="check" class="w-3.5 h-3.5"></i> All domain and architecture terms are matched!</span>';
+      } else {
+        missingDomainContainer.innerHTML = domainMissing
+          .map(
+            (kw) => `
+            <span class="keyword-chip-missing">
+              <span>${escapeHtml(kw)}</span>
+              <button type="button" class="btn-chip-add-skill" data-skill="${escapeHtml(kw)}" title="One-click add to your Technical Skills section">
+                <i data-lucide="plus" class="w-3 h-3"></i> Add
+              </button>
+            </span>
+          `
+          )
+          .join("");
+      }
+    }
+
+    const missingSoftContainer = document.getElementById("missing-soft-skills-container");
+    if (missingSoftContainer) {
+      if (softMissing.length === 0) {
+        missingSoftContainer.innerHTML = '<span class="text-xs text-emerald-700 font-semibold italic flex items-center gap-1"><i data-lucide="check" class="w-3.5 h-3.5"></i> All core soft competencies are matched!</span>';
+      } else {
+        missingSoftContainer.innerHTML = softMissing
+          .map(
+            (kw) => `
+            <span class="keyword-chip-missing">
+              <span>${escapeHtml(kw)}</span>
+              <button type="button" class="btn-chip-add-skill" data-skill="${escapeHtml(kw)}" title="One-click add to your Technical Skills section">
+                <i data-lucide="plus" class="w-3 h-3"></i> Add
+              </button>
+            </span>
+          `
+          )
+          .join("");
+      }
+    }
+
+    // 6. Matched Keywords Render
+    const matchedContainer = document.getElementById("matched-keywords-container");
+    if (matchedContainer) {
+      const allMatched = [...hardMatched, ...domainMatched, ...softMatched];
+      if (allMatched.length === 0) {
+        matchedContainer.innerHTML = '<span class="text-xs text-slate-400 italic">No matched keywords yet. Add keywords from above to improve density.</span>';
+      } else {
+        const densityMap = activeJob.keyword_density || {};
+        matchedContainer.innerHTML = allMatched
+          .map((kw) => {
+            const d = densityMap[kw] || { jd: 1, resume: 1 };
+            return `
+              <span class="keyword-chip-matched">
+                <i data-lucide="check" class="w-3 h-3 text-emerald-600"></i>
+                <span>${escapeHtml(kw)}</span>
+                <span class="text-[9.5px] text-emerald-800 font-normal opacity-80">(JD: ${d.jd} | Resume: ${d.resume})</span>
+              </span>
+            `;
+          })
+          .join("");
+      }
+    }
+
+    // 7. AI Tailoring Suggestions Render
+    const tailorContainer = document.getElementById("tailoring-suggestions-container");
+    if (tailorContainer) {
+      const suggestions = activeJob.tailoring_suggestions || [];
+      if (suggestions.length === 0) {
+        tailorContainer.innerHTML = `
+          <div class="p-6 text-center bg-slate-50 border border-slate-200/80 rounded-2xl space-y-2">
+            <div class="w-9 h-9 rounded-full bg-emerald-100 text-emerald-600 mx-auto flex items-center justify-center">
+              <i data-lucide="check" class="w-4 h-4"></i>
+            </div>
+            <h5 class="text-xs font-bold text-slate-800 m-0">No Bullet Tailoring Needed</h5>
+            <p class="text-[11px] text-slate-500 m-0 max-w-sm mx-auto">
+              Your achievement bullets already feature rich context for this target position.
+            </p>
+          </div>
+        `;
+      } else {
+        tailorContainer.innerHTML = suggestions
+          .map((sug) => {
+            return `
+              <div class="tailor-suggestion-card space-y-2.5" data-tailor-id="${escapeHtml(sug.id)}">
+                <div class="flex items-center justify-between gap-2 pb-2 border-b border-slate-100">
+                  <div class="flex items-center gap-2">
+                    <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200">
+                      Keyword: ${escapeHtml(sug.keyword)}
+                    </span>
+                    <span class="text-[11px] font-semibold text-slate-500">
+                      Weave into Work Experience
+                    </span>
+                  </div>
+                </div>
+
+                <div class="space-y-1.5">
+                  <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Current Resume Bullet:</span>
+                  <div class="ats-snippet-quote">${escapeHtml(sug.original_text)}</div>
+                </div>
+
+                <p class="text-xs font-semibold text-slate-700 m-0 leading-relaxed">
+                  ${escapeHtml(sug.rationale || `Naturally integrate '${sug.keyword}' to boost ATS relevance.`)}
+                </p>
+
+                <div class="flex items-center justify-between pt-2 border-t border-slate-100">
+                  <button
+                    type="button"
+                    class="btn-open-tailor-diff px-3 py-1.5 rounded-lg bg-brand-600 hover:bg-brand-700 text-white text-[11px] font-bold flex items-center gap-1.5 cursor-pointer shadow-2xs transition-colors"
+                    data-keyword="${escapeHtml(sug.keyword)}"
+                    data-orig="${escapeHtml(sug.original_text)}"
+                    data-sec-id="${escapeHtml(sug.target_section || "")}"
+                    data-item-id="${escapeHtml(sug.target_item_id || "")}"
+                    data-bullet-idx="${sug.bullet_index !== undefined && sug.bullet_index !== null ? sug.bullet_index : ""}"
+                  >
+                    <i data-lucide="sparkles" class="w-3.5 h-3.5 text-brand-200"></i>
+                    <span>Tailor with AI</span>
+                  </button>
+                  <button
+                    type="button"
+                    class="btn-direct-apply-tailored text-[11px] font-semibold text-slate-500 hover:text-emerald-700 flex items-center gap-1 cursor-pointer"
+                    data-sec-id="${escapeHtml(sug.target_section || "")}"
+                    data-item-id="${escapeHtml(sug.target_item_id || "")}"
+                    data-bullet-idx="${sug.bullet_index !== undefined && sug.bullet_index !== null ? sug.bullet_index : ""}"
+                    data-text="${escapeHtml(sug.suggested_text || sug.original_text)}"
+                  >
+                    <i data-lucide="check" class="w-3 h-3"></i>
+                    <span>Quick Apply</span>
+                  </button>
+                </div>
+              </div>
+            `;
+          })
+          .join("");
+      }
+    }
+
+    if (typeof lucide !== "undefined" && lucide.createIcons) lucide.createIcons();
+  }
+
+  function initOptimizeTab() {
+    // 1. Selector Change
+    document.getElementById("target-job-select")?.addEventListener("change", (e) => {
+      const jobId = e.target.value;
+      if (jobId) {
+        window.JobNexResumeStore.setActiveTargetJob(jobId);
+        if (window.JobNexResumeStore.currentResume) {
+          renderOptimizeTab(window.JobNexResumeStore.currentResume);
+        }
+      }
+    });
+
+    // 2. Open New Job Form
+    const openNewJobForm = () => {
+      const inputCard = document.getElementById("target-job-input-card");
+      const emptyState = document.getElementById("target-job-empty-state");
+      const resultsContainer = document.getElementById("target-job-analysis-results");
+      const formTitle = document.getElementById("target-job-form-title");
+
+      if (formTitle) formTitle.textContent = "Add Target Job Description";
+      const titleInp = document.getElementById("inp-job-title");
+      const compInp = document.getElementById("inp-job-company");
+      const descInp = document.getElementById("inp-job-description");
+      if (titleInp) titleInp.value = "";
+      if (compInp) compInp.value = "";
+      if (descInp) descInp.value = "";
+
+      if (inputCard) inputCard.classList.remove("hidden");
+      if (emptyState) emptyState.classList.add("hidden");
+      if (resultsContainer) resultsContainer.classList.add("hidden");
+      if (titleInp) titleInp.focus();
+    };
+
+    document.getElementById("btn-new-target-job")?.addEventListener("click", openNewJobForm);
+    document.getElementById("btn-empty-add-job")?.addEventListener("click", openNewJobForm);
+
+    // 3. Cancel Job Input
+    document.getElementById("btn-cancel-job-input")?.addEventListener("click", () => {
+      const inputCard = document.getElementById("target-job-input-card");
+      if (inputCard) inputCard.classList.add("hidden");
+      if (window.JobNexResumeStore.currentResume) {
+        renderOptimizeTab(window.JobNexResumeStore.currentResume);
+      }
+    });
+
+    // 4. Char counter on description
+    document.getElementById("inp-job-description")?.addEventListener("input", (e) => {
+      const countEl = document.getElementById("job-desc-char-count");
+      if (countEl) countEl.textContent = `${e.target.value.length} chars`;
+    });
+
+    // 5. Run Match Analysis
+    document.getElementById("btn-run-match-analysis")?.addEventListener("click", async () => {
+      const titleInp = document.getElementById("inp-job-title");
+      const compInp = document.getElementById("inp-job-company");
+      const descInp = document.getElementById("inp-job-description");
+
+      const title = (titleInp?.value || "").trim() || "Target Position";
+      const company = (compInp?.value || "").trim();
+      const description = (descInp?.value || "").trim();
+
+      if (!description) {
+        showToast("Missing Description", "Please paste the target job description text.", true);
+        if (descInp) descInp.focus();
+        return;
+      }
+
+      const btn = document.getElementById("btn-run-match-analysis");
+      const icon = btn?.querySelector("svg, i");
+      if (icon) icon.classList.add("animate-spin");
+      if (btn) btn.disabled = true;
+
+      try {
+        await window.JobNexResumeStore.saveTargetJob({ title, company, description });
+        const inputCard = document.getElementById("target-job-input-card");
+        if (inputCard) inputCard.classList.add("hidden");
+        showToast("Analysis Complete", `Evaluated match against "${title}".`);
+        if (window.JobNexResumeStore.currentResume) {
+          renderOptimizeTab(window.JobNexResumeStore.currentResume);
+        }
+      } catch (err) {
+        showToast("Analysis Failed", err.message, true);
+      } finally {
+        if (icon) icon.classList.remove("animate-spin");
+        if (btn) btn.disabled = false;
+      }
+    });
+
+    // 6. Edit Active Job
+    document.getElementById("btn-edit-target-job")?.addEventListener("click", () => {
+      const cur = window.JobNexResumeStore.currentResume;
+      if (!cur || !cur.targetJobs) return;
+      const activeJob = cur.targetJobs.find((tj) => tj.is_active) || cur.targetJobs[0];
+      if (!activeJob) return;
+
+      const inputCard = document.getElementById("target-job-input-card");
+      const resultsContainer = document.getElementById("target-job-analysis-results");
+      const formTitle = document.getElementById("target-job-form-title");
+      if (formTitle) formTitle.textContent = "Edit Target Job Description";
+
+      const titleInp = document.getElementById("inp-job-title");
+      const compInp = document.getElementById("inp-job-company");
+      const descInp = document.getElementById("inp-job-description");
+      if (titleInp) titleInp.value = activeJob.title || "";
+      if (compInp) compInp.value = activeJob.company || "";
+      if (descInp) {
+        descInp.value = activeJob.description || "";
+        const countEl = document.getElementById("job-desc-char-count");
+        if (countEl) countEl.textContent = `${activeJob.description.length} chars`;
+      }
+
+      if (inputCard) inputCard.classList.remove("hidden");
+      if (resultsContainer) resultsContainer.classList.add("hidden");
+    });
+
+    // 7. Re-analyze Active Job
+    document.getElementById("btn-reanalyze-job")?.addEventListener("click", async () => {
+      const cur = window.JobNexResumeStore.currentResume;
+      if (!cur || !cur.targetJobs) return;
+      const activeJob = cur.targetJobs.find((tj) => tj.is_active) || cur.targetJobs[0];
+      if (!activeJob) return;
+
+      const btn = document.getElementById("btn-reanalyze-job");
+      const icon = btn?.querySelector("svg, i");
+      if (icon) icon.classList.add("animate-spin");
+
+      try {
+        await window.JobNexResumeStore.saveTargetJob({
+          title: activeJob.title,
+          company: activeJob.company,
+          description: activeJob.description,
+        });
+        showToast("Match Refreshed", "Re-analyzed match against current resume content.");
+        renderOptimizeTab(window.JobNexResumeStore.currentResume);
+      } catch (err) {
+        showToast("Re-analysis Failed", err.message, true);
+      } finally {
+        if (icon) icon.classList.remove("animate-spin");
+      }
+    });
+
+    // 8. Delete Target Job
+    document.getElementById("btn-delete-target-job")?.addEventListener("click", async () => {
+      const cur = window.JobNexResumeStore.currentResume;
+      if (!cur || !cur.targetJobs) return;
+      const activeJob = cur.targetJobs.find((tj) => tj.is_active) || cur.targetJobs[0];
+      if (!activeJob) return;
+
+      if (!confirm(`Are you sure you want to remove target job "${activeJob.title}"?`)) return;
+
+      try {
+        await window.JobNexResumeStore.deleteTargetJob(activeJob.id);
+        showToast("Job Removed", "Target job deleted.");
+        renderOptimizeTab(window.JobNexResumeStore.currentResume);
+      } catch (err) {
+        showToast("Deletion Failed", err.message, true);
+      }
+    });
+
+    // 9. Quick Add Missing Skill to Resume
+    document.addEventListener("click", (e) => {
+      const addBtn = e.target.closest(".btn-chip-add-skill");
+      if (!addBtn) return;
+      const skill = addBtn.dataset.skill;
+      if (!skill) return;
+
+      window.JobNexResumeStore.addMissingSkillToResume(skill);
+      showToast("Skill Injected", `Added "${skill}" to your Technical Skills section.`);
+      if (window.JobNexResumeStore.currentResume) {
+        const cur = window.JobNexResumeStore.currentResume;
+        const activeJob = (cur.targetJobs || []).find((tj) => tj.is_active) || (cur.targetJobs || [])[0];
+        if (activeJob) {
+          window.JobNexResumeStore.saveTargetJob({
+            title: activeJob.title,
+            company: activeJob.company,
+            description: activeJob.description,
+          }).then(() => {
+            renderOptimizeTab(window.JobNexResumeStore.currentResume);
+          }).catch(() => {
+            renderOptimizeTab(window.JobNexResumeStore.currentResume);
+          });
+        } else {
+          renderOptimizeTab(cur);
+        }
+      }
+    });
+
+    // 10. Import from JobNex Modal Handling
+    const openImportJobsModal = async () => {
+      openModal(DOM.modalImportJobs);
+      const container = document.getElementById("import-jobs-list-container");
+      if (container) {
+        container.innerHTML = '<div class="py-8 text-center text-xs text-slate-500"><i data-lucide="loader-2" class="w-5 h-5 animate-spin mx-auto text-brand-600 mb-2"></i>Loading JobNex jobs...</div>';
+        if (typeof lucide !== "undefined" && lucide.createIcons) lucide.createIcons();
+      }
+
+      const jobs = await window.JobNexResumeStore.fetchImportableJobs();
+      if (!container) return;
+
+      if (jobs.length === 0) {
+        container.innerHTML = '<div class="p-6 text-center text-xs text-slate-400">No recent applications found in JobNex. Paste a job description to target it.</div>';
+        return;
+      }
+
+      container.innerHTML = jobs
+        .map(
+          (j) => `
+          <div class="p-3 bg-white hover:bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between gap-3 transition-colors">
+            <div class="min-w-0 flex-1 space-y-0.5">
+              <div class="flex items-center gap-1.5">
+                <h5 class="text-xs font-bold text-slate-900 m-0 truncate">${escapeHtml(j.title)}</h5>
+                ${j.company ? `<span class="text-[10px] text-slate-500 font-medium">@ ${escapeHtml(j.company)}</span>` : ""}
+              </div>
+              <p class="text-[11px] text-slate-500 line-clamp-2 m-0">${escapeHtml(j.description)}</p>
+            </div>
+            <button
+              type="button"
+              class="btn-select-imported-job px-3 py-1.5 rounded-lg bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold shrink-0 cursor-pointer shadow-2xs"
+              data-title="${escapeHtml(j.title)}"
+              data-company="${escapeHtml(j.company || "")}"
+              data-desc="${escapeHtml(j.description)}"
+            >
+              Target Job
+            </button>
+          </div>
+        `
+        )
+        .join("");
+
+      if (typeof lucide !== "undefined" && lucide.createIcons) lucide.createIcons();
+
+      container.querySelectorAll(".btn-select-imported-job").forEach((btn) => {
+        btn.addEventListener("click", async () => {
+          const title = btn.dataset.title;
+          const company = btn.dataset.company;
+          const description = btn.dataset.desc;
+          closeModal(DOM.modalImportJobs);
+
+          try {
+            await window.JobNexResumeStore.saveTargetJob({ title, company, description });
+            showToast("Job Imported", `Now targeting "${title}".`);
+            if (window.JobNexResumeStore.currentResume) {
+              renderOptimizeTab(window.JobNexResumeStore.currentResume);
+            }
+          } catch (err) {
+            showToast("Import Failed", err.message, true);
+          }
+        });
+      });
+    };
+
+    document.getElementById("btn-open-import-jobs-modal")?.addEventListener("click", openImportJobsModal);
+    document.getElementById("btn-empty-import-job")?.addEventListener("click", openImportJobsModal);
+    document.getElementById("btn-close-import-modal")?.addEventListener("click", () => closeModal(DOM.modalImportJobs));
+    document.getElementById("btn-cancel-import-jobs")?.addEventListener("click", () => closeModal(DOM.modalImportJobs));
+
+    // 11. Tailor Bullet Diff Modal Handling
+    document.addEventListener("click", async (e) => {
+      const btn = e.target.closest(".btn-open-tailor-diff");
+      if (!btn) return;
+
+      const keyword = btn.dataset.keyword;
+      const originalText = btn.dataset.orig;
+      const secId = btn.dataset.secId;
+      const itemId = btn.dataset.itemId;
+      const bulletIdx = btn.dataset.bulletIdx !== "" ? parseInt(btn.dataset.bulletIdx, 10) : null;
+
+      state.activeTailorSuggestion = {
+        keyword,
+        originalText,
+        targetSectionId: secId,
+        targetItemId: itemId,
+        bulletIndex: bulletIdx,
+      };
+
+      openModal(DOM.modalTailorBullet);
+      if (DOM.tailorModalLoader) DOM.tailorModalLoader.classList.remove("hidden");
+      if (DOM.tailorModalBody) DOM.tailorModalBody.classList.add("hidden");
+      if (DOM.btnTailorAccept) DOM.btnTailorAccept.disabled = true;
+
+      const subtitleEl = document.getElementById("tailor-keyword-subtitle");
+      if (subtitleEl) subtitleEl.textContent = `Integrating in-demand keyword: ${keyword}`;
+
+      const apiBase = window.location.port === "8000" ? "" : "http://127.0.0.1:8000";
+      const headers = { "Content-Type": "application/json" };
+      const token = localStorage.getItem("jobnex_access_token");
+      if (token) headers["Authorization"] = `Bearer ${token}`;
+      const user = window.JobNexAuth?.getUser ? window.JobNexAuth.getUser() : null;
+      if (user && user.id) headers["X-User-Id"] = String(user.id);
+
+      try {
+        const curResume = window.JobNexResumeStore.currentResume;
+        const res = await fetch(`${apiBase}/api/resumes/tailor-bullet`, {
+          method: "POST",
+          headers: headers,
+          body: JSON.stringify({
+            resume_id: curResume ? curResume.id : "res-current",
+            bullet_text: originalText,
+            keyword: keyword,
+          }),
+        });
+
+        if (!res.ok) throw new Error("Tailoring service unavailable");
+
+        const data = await res.json();
+        state.activeTailorSuggestion.suggestedText = data.suggested_text;
+
+        if (DOM.tailorModalLoader) DOM.tailorModalLoader.classList.add("hidden");
+        if (DOM.tailorModalBody) DOM.tailorModalBody.classList.remove("hidden");
+
+        if (DOM.tailorExplanation) DOM.tailorExplanation.textContent = data.explanation || `Strategically woven '${keyword}' into existing factual context.`;
+        if (DOM.tailorOriginal) DOM.tailorOriginal.textContent = data.original_text || originalText;
+        if (DOM.tailorSuggested) DOM.tailorSuggested.textContent = data.suggested_text;
+
+        if (DOM.btnTailorAccept) DOM.btnTailorAccept.disabled = false;
+      } catch (err) {
+        // Fallback
+        if (DOM.tailorModalLoader) DOM.tailorModalLoader.classList.add("hidden");
+        if (DOM.tailorModalBody) DOM.tailorModalBody.classList.remove("hidden");
+
+        const cleanTailored = `${(originalText || "").trim().replace(/\.$/, "")} leveraging ${keyword} to enhance performance and maintainability.`;
+        state.activeTailorSuggestion.suggestedText = cleanTailored;
+
+        if (DOM.tailorExplanation) DOM.tailorExplanation.textContent = `Integrated '${keyword}' to strengthen ATS discovery.`;
+        if (DOM.tailorOriginal) DOM.tailorOriginal.textContent = originalText;
+        if (DOM.tailorSuggested) DOM.tailorSuggested.textContent = cleanTailored;
+
+        if (DOM.btnTailorAccept) DOM.btnTailorAccept.disabled = false;
+      }
+
+      if (typeof lucide !== "undefined" && lucide.createIcons) lucide.createIcons();
+    });
+
+    document.getElementById("btn-close-tailor-modal")?.addEventListener("click", () => closeModal(DOM.modalTailorBullet));
+    document.getElementById("btn-tailor-cancel")?.addEventListener("click", () => closeModal(DOM.modalTailorBullet));
+
+    document.getElementById("btn-tailor-accept")?.addEventListener("click", () => {
+      const sug = state.activeTailorSuggestion;
+      if (!sug || !sug.suggestedText) return;
+
+      window.JobNexResumeStore.applyTailoredBullet({
+        targetSectionId: sug.targetSectionId,
+        targetItemId: sug.targetItemId,
+        bulletIndex: sug.bulletIndex,
+        newText: sug.suggestedText,
+      });
+
+      closeModal(DOM.modalTailorBullet);
+      showToast("Bullet Tailored", `Updated achievement bullet with "${sug.keyword}".`);
+      if (window.JobNexResumeStore.currentResume) {
+        renderOptimizeTab(window.JobNexResumeStore.currentResume);
+      }
+    });
+
+    // Quick Apply from suggestion card
+    document.addEventListener("click", (e) => {
+      const btn = e.target.closest(".btn-direct-apply-tailored");
+      if (!btn) return;
+      const secId = btn.dataset.secId;
+      const itemId = btn.dataset.itemId;
+      const bulletIdx = btn.dataset.bulletIdx !== "" ? parseInt(btn.dataset.bulletIdx, 10) : null;
+      const text = btn.dataset.text;
+
+      window.JobNexResumeStore.applyTailoredBullet({
+        targetSectionId: secId,
+        targetItemId: itemId,
+        bulletIndex: bulletIdx,
+        newText: text,
+      });
+
+      showToast("Bullet Updated", "Tailored bullet applied to resume.");
+      if (window.JobNexResumeStore.currentResume) {
+        renderOptimizeTab(window.JobNexResumeStore.currentResume);
+      }
+    });
+  }
+
+  // =========================================================================
   // File Upload & 5-Stage Real Progress Tracking
   // =========================================================================
 
@@ -3151,6 +3837,8 @@
 
     if (tabKey === "ats" && window.JobNexResumeStore.currentResume) {
       renderATSScoreTab(window.JobNexResumeStore.currentResume);
+    } else if (tabKey === "optimize" && window.JobNexResumeStore.currentResume) {
+      renderOptimizeTab(window.JobNexResumeStore.currentResume);
     }
   }
 
@@ -3796,6 +4484,9 @@
     // ATS Tab Handling (Phase 6)
     initATSScoreTab();
 
+    // Optimize Tab Handling (Phase 7)
+    initOptimizeTab();
+
     // Preview Toolbar: Undo / Redo
     document.getElementById("btn-preview-undo")?.addEventListener("click", () => {
       window.JobNexResumeStore.undo();
@@ -3857,7 +4548,12 @@
         event.type === "undo" ||
         event.type === "redo" ||
         event.type === "resume_loaded" ||
-        event.type === "ats_evaluated"
+        event.type === "ats_evaluated" ||
+        event.type === "target_job_saved" ||
+        event.type === "active_target_job_changed" ||
+        event.type === "target_job_deleted" ||
+        event.type === "skill_added" ||
+        event.type === "bullet_tailored"
       ) {
         if (window.JobNexResumeStore.currentResume) {
           renderResumePreview(window.JobNexResumeStore.currentResume);
@@ -3876,6 +4572,10 @@
           const atsPane = document.getElementById("pane-ats");
           if (atsPane && !atsPane.classList.contains("hidden")) {
             renderATSScoreTab(curRes);
+          }
+          const optPane = document.getElementById("pane-optimize");
+          if (optPane && !optPane.classList.contains("hidden")) {
+            renderOptimizeTab(curRes);
           }
         }
       }

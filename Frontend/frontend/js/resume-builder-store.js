@@ -688,6 +688,162 @@
         }
       });
     }
+
+    // =========================================================================
+    // Phase 7: Optimize for Job Methods
+    // =========================================================================
+
+    async saveTargetJob({ title, company, description }) {
+      if (!this.currentResume) return null;
+      try {
+        const res = await fetch(`${getApiBaseUrl()}/api/resumes/${this.currentResume.id}/target-jobs`, {
+          method: "POST",
+          headers: getAuthHeaders(),
+          body: JSON.stringify({ title, company: company || "", description }),
+        });
+        if (!res.ok) {
+          const errData = await res.json().catch(() => ({}));
+          throw new Error(errData.detail || "Failed to analyze and save target job.");
+        }
+        const targetJob = await res.json();
+        this.updateCurrentResume((resume) => {
+          if (!resume.targetJobs) resume.targetJobs = [];
+          resume.targetJobs.forEach((tj) => { tj.is_active = false; });
+          targetJob.is_active = true;
+          const existingIdx = resume.targetJobs.findIndex((tj) => tj.id === targetJob.id);
+          if (existingIdx >= 0) {
+            resume.targetJobs[existingIdx] = targetJob;
+          } else {
+            resume.targetJobs.unshift(targetJob);
+          }
+        });
+        this.notify("target_job_saved", targetJob);
+        return targetJob;
+      } catch (err) {
+        console.error("[ResumeBuilderStore] saveTargetJob error:", err);
+        throw err;
+      }
+    }
+
+    async setActiveTargetJob(jobId) {
+      if (!this.currentResume) return;
+      try {
+        await fetch(`${getApiBaseUrl()}/api/resumes/${this.currentResume.id}/target-jobs/${jobId}/active`, {
+          method: "POST",
+          headers: getAuthHeaders(),
+        });
+        this.updateCurrentResume((resume) => {
+          (resume.targetJobs || []).forEach((tj) => {
+            tj.is_active = (tj.id === jobId);
+          });
+        });
+        this.notify("active_target_job_changed", jobId);
+      } catch (err) {
+        console.error("[ResumeBuilderStore] setActiveTargetJob error:", err);
+      }
+    }
+
+    async deleteTargetJob(jobId) {
+      if (!this.currentResume) return;
+      try {
+        await fetch(`${getApiBaseUrl()}/api/resumes/${this.currentResume.id}/target-jobs/${jobId}`, {
+          method: "DELETE",
+          headers: getAuthHeaders(),
+        });
+        this.updateCurrentResume((resume) => {
+          resume.targetJobs = (resume.targetJobs || []).filter((tj) => tj.id !== jobId);
+          if (resume.targetJobs.length > 0 && !resume.targetJobs.some((tj) => tj.is_active)) {
+            resume.targetJobs[0].is_active = true;
+          }
+        });
+        this.notify("target_job_deleted", jobId);
+      } catch (err) {
+        console.error("[ResumeBuilderStore] deleteTargetJob error:", err);
+        throw err;
+      }
+    }
+
+    addMissingSkillToResume(skillName) {
+      if (!skillName || !this.currentResume) return;
+      const cleanSkill = skillName.trim();
+      this.updateCurrentResume((resume) => {
+        if (!resume.sections) resume.sections = [];
+        let skillsSec = resume.sections.find((s) => s.type === "skills" || s.title.toLowerCase().includes("skill"));
+        if (!skillsSec) {
+          skillsSec = {
+            id: `sec-${Math.random().toString(36).substr(2, 8)}`,
+            type: "skills",
+            title: "Technical Skills",
+            hidden: false,
+            items: [
+              {
+                id: `item-${Math.random().toString(36).substr(2, 8)}`,
+                title: "Technologies",
+                organization: "",
+                dates: "",
+                location: "",
+                bullets: [],
+                technologies: [cleanSkill],
+                hidden: false,
+              },
+            ],
+          };
+          resume.sections.push(skillsSec);
+        } else {
+          if (!skillsSec.items || skillsSec.items.length === 0) {
+            skillsSec.items = [
+              {
+                id: `item-${Math.random().toString(36).substr(2, 8)}`,
+                title: "Core Technologies",
+                organization: "",
+                dates: "",
+                location: "",
+                bullets: [],
+                technologies: [cleanSkill],
+                hidden: false,
+              },
+            ];
+          } else {
+            const firstItem = skillsSec.items[0];
+            if (!firstItem.technologies) firstItem.technologies = [];
+            if (!firstItem.technologies.some((t) => t.toLowerCase() === cleanSkill.toLowerCase())) {
+              firstItem.technologies.push(cleanSkill);
+            }
+          }
+        }
+      });
+      this.notify("skill_added", cleanSkill);
+    }
+
+    applyTailoredBullet({ targetSectionId, targetItemId, bulletIndex, newText }) {
+      if (!this.currentResume || !newText) return;
+      this.updateCurrentResume((resume) => {
+        const sec = (resume.sections || []).find((s) => s.id === targetSectionId);
+        if (sec && sec.items) {
+          const itm = sec.items.find((i) => i.id === targetItemId);
+          if (itm && itm.bullets && bulletIndex !== null && bulletIndex !== undefined) {
+            if (itm.bullets[bulletIndex] !== undefined) {
+              itm.bullets[bulletIndex] = newText;
+            }
+          }
+        }
+      });
+      this.notify("bullet_tailored", { targetSectionId, targetItemId, bulletIndex, newText });
+    }
+
+    async fetchImportableJobs() {
+      try {
+        const res = await fetch(`${getApiBaseUrl()}/api/resumes/import-jobs`, {
+          headers: getAuthHeaders(),
+        });
+        if (!res.ok) return [];
+        const data = await res.json();
+        return data.jobs || [];
+      } catch (err) {
+        console.warn("[ResumeBuilderStore] fetchImportableJobs error:", err);
+        return [];
+      }
+    }
   }
 
   window.JobNexResumeStore = new ResumeBuilderStore();
