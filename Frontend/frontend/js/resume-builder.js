@@ -29,6 +29,8 @@
     currentJobId: null,
     jobPollingTimer: null,
     pendingUploadFile: null,
+    atsFilter: "Pending",
+    activeDiffSuggestion: null,
   };
 
   // DOM Elements
@@ -55,6 +57,14 @@
     DOM.modalProgress = document.getElementById("modal-analysis-progress");
     DOM.modalRename = document.getElementById("modal-rename-resume");
     DOM.modalDelete = document.getElementById("modal-delete-resume");
+    DOM.modalDiff = document.getElementById("modal-fix-ats-diff");
+    DOM.diffModalLoader = document.getElementById("diff-modal-loader");
+    DOM.diffModalBody = document.getElementById("diff-modal-body");
+    DOM.diffExplanation = document.getElementById("diff-explanation-text");
+    DOM.diffOriginal = document.getElementById("diff-original-box");
+    DOM.diffSuggested = document.getElementById("diff-suggested-box");
+    DOM.btnDiffAccept = document.getElementById("btn-diff-accept");
+    DOM.btnDiffCancel = document.getElementById("btn-diff-cancel");
 
     // Dropzone & File picker
     DOM.dropzone = document.getElementById("dropzone-area");
@@ -671,6 +681,1022 @@
   }
 
   // =========================================================================
+  // Phase 6: Deterministic ATS Engine, Scoring Breakdown & AI Fixer
+  // =========================================================================
+
+  function computeClientSideATSScore(resume) {
+    if (!resume) {
+      return {
+        score: 0,
+        label: "Poor",
+        breakdown: {
+          contact: { score: 0, max: 15 },
+          summary: { score: 0, max: 10 },
+          core_sections: { score: 0, max: 20 },
+          experience_depth: { score: 0, max: 20 },
+          action_impact: { score: 0, max: 15 },
+          skills: { score: 0, max: 10 },
+          chronology: { score: 0, max: 10 },
+        },
+        suggestions: [],
+      };
+    }
+
+    const suggestions = [];
+
+    // 1. Contact Info (15 pts)
+    let contactScore = 0;
+    const p = resume.personal || {};
+    const name = (p.name || "").trim();
+    if (name) {
+      contactScore += 5;
+    } else {
+      suggestions.push({
+        id: "sug-name",
+        ruleId: "rule_contact_name",
+        level: "Error",
+        category: "Contact Info",
+        reason: "Candidate full name is missing. Add your full name prominently at the top of your resume.",
+        targetSection: "personal",
+        targetItemId: "name",
+        originalText: "",
+        status: "Pending",
+      });
+    }
+
+    const email = (p.email || "").trim();
+    const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+    if (emailValid) {
+      contactScore += 5;
+    } else {
+      suggestions.push({
+        id: "sug-email",
+        ruleId: "rule_contact_email",
+        level: "Error",
+        category: "Contact Info",
+        reason: "Valid email address is missing. ATS parsers require a direct contact email.",
+        targetSection: "personal",
+        targetItemId: "email",
+        originalText: email,
+        status: "Pending",
+      });
+    }
+
+    const phone = (p.phone || "").trim();
+    const digits = phone.replace(/\D/g, "");
+    if (digits.length >= 7) {
+      contactScore += 3;
+    } else {
+      suggestions.push({
+        id: "sug-phone",
+        ruleId: "rule_contact_phone",
+        level: "Warning",
+        category: "Contact Info",
+        reason: "Phone number is missing or has fewer than 7 digits. Include an accessible contact number.",
+        targetSection: "personal",
+        targetItemId: "phone",
+        originalText: phone,
+        status: "Pending",
+      });
+    }
+
+    const loc = (p.location || "").trim();
+    const hasLinks = Array.isArray(p.links) && p.links.some((l) => l.url && l.url.trim());
+    if (loc || hasLinks) {
+      contactScore += 2;
+    } else {
+      suggestions.push({
+        id: "sug-location",
+        ruleId: "rule_contact_location",
+        level: "Warning",
+        category: "Contact Info",
+        reason: "Location (City, State / Remote) or online profile link is missing.",
+        targetSection: "personal",
+        targetItemId: "location",
+        originalText: "",
+        status: "Pending",
+      });
+    }
+
+    // 2. Professional Summary (10 pts)
+    let summaryScore = 0;
+    const summary = (resume.summary || "").trim();
+    const words = summary ? summary.split(/\s+/).filter(Boolean) : [];
+    const wordCount = words.length;
+
+    if (wordCount >= 40 && wordCount <= 100) {
+      summaryScore += 8;
+    } else if (wordCount >= 15 && wordCount < 40) {
+      summaryScore += 4;
+      suggestions.push({
+        id: "sug-sum-len",
+        ruleId: "rule_summary_length",
+        level: "Warning",
+        category: "Summary",
+        reason: `Summary is currently ${wordCount} words. Expand to 40–100 words to effectively highlight career scope and target qualifications.`,
+        targetSection: "summary",
+        originalText: summary,
+        status: "Pending",
+      });
+    } else if (wordCount > 100) {
+      summaryScore += 5;
+      suggestions.push({
+        id: "sug-sum-len",
+        ruleId: "rule_summary_length",
+        level: "Warning",
+        category: "Summary",
+        reason: `Summary is currently ${wordCount} words. Condense to under 100 words for optimal recruiter scan rate.`,
+        targetSection: "summary",
+        originalText: summary,
+        status: "Pending",
+      });
+    } else {
+      suggestions.push({
+        id: "sug-sum-len",
+        ruleId: "rule_summary_length",
+        level: "Warning",
+        category: "Summary",
+        reason: "Professional summary is missing. Add a 3–4 sentence executive summary highlighting your key achievements and qualifications.",
+        targetSection: "summary",
+        originalText: "",
+        status: "Pending",
+      });
+    }
+
+    const pronounMatches = summary.match(/\b(i|me|my|myself|we|our|ours|us)\b/gi) || [];
+    if (pronounMatches.length > 0) {
+      const distinctPronouns = Array.from(new Set(pronounMatches.map((p) => p.toLowerCase())));
+      suggestions.push({
+        id: "sug-sum-pro",
+        ruleId: "rule_summary_pronouns",
+        level: "Warning",
+        category: "Summary",
+        reason: `Summary contains 1st-person pronouns ("${distinctPronouns.join('", "')}"). ATS standards recommend third-person implied action phrasing.`,
+        targetSection: "summary",
+        originalText: summary,
+        status: "Pending",
+      });
+    } else {
+      summaryScore += 2;
+    }
+
+    // 3. Core Sections Presence (20 pts)
+    let sectionsScore = 0;
+    const sections = resume.sections || [];
+    const workSec = sections.find((s) => s.type === "work" && !s.hidden);
+    const visibleWorkItems = workSec ? (workSec.items || []).filter((i) => !i.hidden) : [];
+
+    if (workSec && visibleWorkItems.length > 0) {
+      sectionsScore += 10;
+    } else {
+      suggestions.push({
+        id: "sug-sec-work",
+        ruleId: "rule_missing_work",
+        level: "Error",
+        category: "Experience",
+        reason: "Work Experience section is missing or has no active positions. Add your professional work history.",
+        targetSection: "work",
+        status: "Pending",
+      });
+    }
+
+    const eduSec = sections.find((s) => s.type === "education" && !s.hidden);
+    const visibleEduItems = eduSec ? (eduSec.items || []).filter((i) => !i.hidden) : [];
+    if (eduSec && visibleEduItems.length > 0) {
+      sectionsScore += 5;
+    } else {
+      suggestions.push({
+        id: "sug-sec-edu",
+        ruleId: "rule_missing_education",
+        level: "Warning",
+        category: "Education",
+        reason: "Education section is missing or has no active entries. Include your university, degree, or credentials.",
+        targetSection: "education",
+        status: "Pending",
+      });
+    }
+
+    const skillsSec = sections.find((s) => s.type === "skills" && !s.hidden);
+    const visibleSkillsItems = skillsSec ? (skillsSec.items || []).filter((i) => !i.hidden) : [];
+    let totalTechnologiesCount = 0;
+    sections.forEach((s) => {
+      if (!s.hidden) {
+        (s.items || []).forEach((i) => {
+          if (!i.hidden) totalTechnologiesCount += (i.technologies || []).length;
+        });
+      }
+    });
+
+    if ((skillsSec && visibleSkillsItems.length > 0) || totalTechnologiesCount >= 3) {
+      sectionsScore += 5;
+    } else {
+      suggestions.push({
+        id: "sug-sec-skills",
+        ruleId: "rule_missing_skills",
+        level: "Warning",
+        category: "Skills",
+        reason: "Skills section is missing. Add technical tools and core proficiencies to pass automated keyword screens.",
+        targetSection: "skills",
+        status: "Pending",
+      });
+    }
+
+    // 4. Experience Depth & Bullet Counts (20 pts)
+    let depthScore = 0;
+    if (visibleWorkItems.length > 0) {
+      const bulletCounts = visibleWorkItems.map((i) => (i.bullets || []).length);
+      const allOptimal = bulletCounts.every((c) => c >= 2 && c <= 6);
+      const avgBullets = bulletCounts.reduce((a, b) => a + b, 0) / bulletCounts.length;
+
+      visibleWorkItems.forEach((itm) => {
+        const cnt = (itm.bullets || []).length;
+        const label = itm.title || itm.organization || "Work Position";
+        if (cnt === 0) {
+          suggestions.push({
+            id: `sug-bc-${itm.id}`,
+            ruleId: "rule_bullet_count",
+            level: "Error",
+            category: "Experience",
+            reason: `Position '${label}' has zero bullet points. Add 2–6 achievement bullets detailing responsibilities and measurable results.`,
+            targetSection: workSec.id,
+            targetItemId: itm.id,
+            status: "Pending",
+          });
+        } else if (cnt === 1) {
+          suggestions.push({
+            id: `sug-bc-${itm.id}`,
+            ruleId: "rule_bullet_count",
+            level: "Warning",
+            category: "Experience",
+            reason: `Position '${label}' has only 1 bullet point. Add at least 1–2 more bullets to demonstrate depth and impact.`,
+            targetSection: workSec.id,
+            targetItemId: itm.id,
+            status: "Pending",
+          });
+        } else if (cnt > 7) {
+          suggestions.push({
+            id: `sug-bc-${itm.id}`,
+            ruleId: "rule_bullet_count",
+            level: "Warning",
+            category: "Experience",
+            reason: `Position '${label}' has ${cnt} bullet points. Consider condensing to 3–6 top-priority achievements.`,
+            targetSection: workSec.id,
+            targetItemId: itm.id,
+            status: "Pending",
+          });
+        }
+      });
+
+      if (allOptimal) depthScore += 10;
+      else if (avgBullets >= 2) depthScore += 7;
+      else if (bulletCounts.some((c) => c > 0)) depthScore += 4;
+      else depthScore += 1;
+    }
+
+    // Check non-empty titles and organizations for work & edu
+    let itemsComplete = true;
+    sections.forEach((sec) => {
+      if (sec.hidden || (sec.type !== "work" && sec.type !== "education" && sec.type !== "projects")) return;
+      (sec.items || []).forEach((itm) => {
+        if (itm.hidden) return;
+        if (!itm.title || !itm.title.trim() || !itm.organization || !itm.organization.trim()) {
+          itemsComplete = false;
+          const lbl = (itm.title || "").trim() || (itm.organization || "").trim() || "Entry";
+          suggestions.push({
+            id: `sug-comp-${itm.id}`,
+            ruleId: "rule_item_completeness",
+            level: "Warning",
+            category: sec.title || "Section",
+            reason: `'${lbl}' is missing either title/role or organization/institution name.`,
+            targetSection: sec.id,
+            targetItemId: itm.id,
+            status: "Pending",
+          });
+        }
+      });
+    });
+    if (itemsComplete) depthScore += 5;
+
+    // Check dates specified
+    let datesComplete = true;
+    sections.forEach((sec) => {
+      if (sec.hidden || (sec.type !== "work" && sec.type !== "education")) return;
+      (sec.items || []).forEach((itm) => {
+        if (itm.hidden) return;
+        if (!itm.dates || !itm.dates.trim()) {
+          datesComplete = false;
+          const lbl = (itm.title || "").trim() || (itm.organization || "").trim() || "Entry";
+          suggestions.push({
+            id: `sug-date-${itm.id}`,
+            ruleId: "rule_item_dates",
+            level: "Warning",
+            category: sec.title || "Section",
+            reason: `'${lbl}' has no timeframe or dates specified.`,
+            targetSection: sec.id,
+            targetItemId: itm.id,
+            status: "Pending",
+          });
+        }
+      });
+    });
+    if (datesComplete) depthScore += 5;
+
+    // 5. Action Verbs & Weak Phrases (15 pts)
+    let actionScore = 0;
+    const allBullets = [];
+    sections.forEach((sec) => {
+      if (sec.hidden || (sec.type !== "work" && sec.type !== "projects" && sec.type !== "custom")) return;
+      (sec.items || []).forEach((itm) => {
+        if (itm.hidden) return;
+        (itm.bullets || []).forEach((b, bIdx) => {
+          if (b && b.trim()) {
+            allBullets.push({ secId: sec.id, itemId: itm.id, bulletIdx: bIdx, text: b.trim() });
+          }
+        });
+      });
+    });
+
+    let strongVerbCount = 0;
+    allBullets.forEach((b) => {
+      const analysis = analyzeBulletActionVerb(b.text);
+      if (analysis.status === "strong") strongVerbCount++;
+    });
+
+    const ratio = allBullets.length > 0 ? strongVerbCount / allBullets.length : 0;
+    if (ratio >= 0.6) {
+      actionScore += 10;
+    } else if (ratio >= 0.3) {
+      actionScore += 5;
+      suggestions.push({
+        id: "sug-verbs",
+        ruleId: "rule_action_verbs",
+        level: "Warning",
+        category: "Action Verbs",
+        reason: `Only ${Math.round(ratio * 100)}% of bullets begin with decisive action verbs. Begin bullets with strong verbs like 'Spearheaded', 'Architected', 'Optimized'.`,
+        targetSection: "work",
+        status: "Pending",
+      });
+    } else {
+      if (allBullets.length > 0) actionScore += 2;
+      suggestions.push({
+        id: "sug-verbs",
+        ruleId: "rule_action_verbs",
+        level: "Warning",
+        category: "Action Verbs",
+        reason: "Most bullet points do not start with recognized action verbs. ATS algorithms favor active leadership statements.",
+        targetSection: "work",
+        status: "Pending",
+      });
+    }
+
+    // Weak phrases scan
+    const weakPhrasesList = [
+      "responsible for", "duties included", "helped with", "worked on",
+      "assisted in", "assisted with", "tasked with", "handled",
+      "served as", "involved in", "participated in"
+    ];
+
+    let hasWeakPhrase = false;
+    allBullets.forEach((b) => {
+      const lower = b.text.toLowerCase();
+      for (const phrase of weakPhrasesList) {
+        const regex = new RegExp(`\\b${phrase}\\b`, "i");
+        if (regex.test(lower)) {
+          hasWeakPhrase = true;
+          suggestions.push({
+            id: `sug-weak-${b.itemId}-${b.bulletIdx}`,
+            ruleId: "rule_weak_phrase",
+            level: "Warning",
+            category: "Phrasing",
+            reason: `Bullet contains passive phrase '${phrase}'. Replace with decisive action verbs demonstrating ownership.`,
+            targetSection: b.secId,
+            targetItemId: b.itemId,
+            bulletIndex: b.bulletIdx,
+            originalText: b.text,
+            status: "Pending",
+          });
+          break;
+        }
+      }
+    });
+
+    if (!hasWeakPhrase) actionScore += 5;
+
+    // 6. Skills & Keyword Count (10 pts)
+    let skillsScore = 0;
+    const skillsSet = new Set();
+    sections.forEach((sec) => {
+      if (sec.hidden) return;
+      (sec.items || []).forEach((itm) => {
+        if (itm.hidden) return;
+        (itm.technologies || []).forEach((t) => {
+          if (t && t.trim()) skillsSet.add(t.trim().toLowerCase());
+        });
+        if (sec.type === "skills") {
+          (itm.bullets || []).forEach((b) => {
+            b.split(/[,;|•]/).forEach((part) => {
+              if (part.trim()) skillsSet.add(part.trim().toLowerCase());
+            });
+          });
+        }
+      });
+    });
+
+    const skillsCount = skillsSet.size;
+    if (skillsCount >= 5) {
+      skillsScore = 10;
+    } else if (skillsCount >= 3) {
+      skillsScore = 5;
+      suggestions.push({
+        id: "sug-skills",
+        ruleId: "rule_skills_count",
+        level: "Warning",
+        category: "Skills",
+        reason: `Found ${skillsCount} skills. Add at least 5 key technologies/tools to improve ATS keyword discoverability.`,
+        targetSection: "skills",
+        status: "Pending",
+      });
+    } else {
+      skillsScore = 0;
+      suggestions.push({
+        id: "sug-skills",
+        ruleId: "rule_skills_count",
+        level: "Warning",
+        category: "Skills",
+        reason: "Very few skills detected. Add at least 5 core technologies and competencies.",
+        targetSection: "skills",
+        status: "Pending",
+      });
+    }
+
+    // 7. Date Chronology Consistency (10 pts)
+    let chronoScore = 10;
+    sections.forEach((sec) => {
+      if (sec.hidden || (sec.type !== "work" && sec.type !== "education")) return;
+      (sec.items || []).forEach((itm) => {
+        if (itm.hidden || !itm.dates) return;
+        const years = itm.dates.match(/\b(19\d\d|20\d\d)\b/g);
+        if (years && years.length >= 2) {
+          const startYear = parseInt(years[0], 10);
+          const endYear = parseInt(years[1], 10);
+          if (startYear > endYear) {
+            chronoScore = 0;
+            const lbl = itm.title || itm.organization || "Position";
+            suggestions.push({
+              id: `sug-chrono-${itm.id}`,
+              ruleId: "rule_chronology",
+              level: "Error",
+              category: "Chronology",
+              reason: `Invalid chronology in '${lbl}': start year (${startYear}) is after end year (${endYear}).`,
+              targetSection: sec.id,
+              targetItemId: itm.id,
+              originalText: itm.dates,
+              status: "Pending",
+            });
+          }
+        }
+      });
+    });
+
+    const totalScore = Math.min(100, Math.max(0, contactScore + summaryScore + sectionsScore + depthScore + actionScore + skillsScore + chronoScore));
+    let label = "Poor";
+    if (totalScore >= 85) label = "Excellent";
+    else if (totalScore >= 70) label = "Good";
+    else if (totalScore >= 40) label = "Okayish";
+
+    return {
+      score: totalScore,
+      label: label,
+      breakdown: {
+        contact: { score: contactScore, max: 15, label: "Contact Details" },
+        summary: { score: summaryScore, max: 10, label: "Professional Summary" },
+        core_sections: { score: sectionsScore, max: 20, label: "Core Sections" },
+        experience_depth: { score: depthScore, max: 20, label: "Experience Depth" },
+        action_impact: { score: actionScore, max: 15, label: "Action Verbs & Phrasing" },
+        skills: { score: skillsScore, max: 10, label: "Skills & Keywords" },
+        chronology: { score: chronoScore, max: 10, label: "Date Chronology" },
+      },
+      suggestions: suggestions,
+    };
+  }
+
+  function renderATSScoreTab(resume) {
+    if (!resume) return;
+
+    // Merge client-side real-time calculation with any stored suggestions
+    const evalData = computeClientSideATSScore(resume);
+    const score = evalData.score;
+    const label = evalData.label;
+    const bd = evalData.breakdown;
+
+    // Preserve status from resume.atsSuggestions if any matches exist
+    const storedSuggestions = resume.atsSuggestions || [];
+    const storedStatusMap = new Map();
+    storedSuggestions.forEach((s) => {
+      if (s.ruleId) {
+        const key = `${s.ruleId}-${s.targetSection || ""}-${s.targetItemId || ""}-${s.bulletIndex !== undefined ? s.bulletIndex : ""}`;
+        storedStatusMap.set(key, s.status || "Pending");
+      }
+    });
+
+    evalData.suggestions.forEach((s) => {
+      const key = `${s.ruleId}-${s.targetSection || ""}-${s.targetItemId || ""}-${s.bulletIndex !== undefined ? s.bulletIndex : ""}`;
+      if (storedStatusMap.has(key)) {
+        s.status = storedStatusMap.get(key);
+      }
+    });
+
+    // 1. Hero Score
+    const heroScoreEl = document.getElementById("ats-hero-score");
+    if (heroScoreEl) heroScoreEl.textContent = score;
+
+    // Update sidebar ATS badge
+    const sidebarBadge = document.getElementById("sidebar-ats-badge");
+    if (sidebarBadge) {
+      sidebarBadge.textContent = `${score}%`;
+      if (score >= 85) sidebarBadge.className = "absolute -top-1 -right-1 px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-emerald-500 text-white";
+      else if (score >= 70) sidebarBadge.className = "absolute -top-1 -right-1 px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-brand-500 text-white";
+      else if (score >= 40) sidebarBadge.className = "absolute -top-1 -right-1 px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-amber-500 text-slate-950";
+      else sidebarBadge.className = "absolute -top-1 -right-1 px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-rose-500 text-white";
+    }
+
+    // 2. Rating Badge
+    const badgeEl = document.getElementById("ats-hero-rating-badge");
+    const badgeTextEl = document.getElementById("ats-hero-rating-text");
+    const headlineEl = document.getElementById("ats-hero-headline");
+    const summaryEl = document.getElementById("ats-hero-summary");
+
+    if (badgeEl && badgeTextEl) {
+      if (score >= 85) {
+        badgeEl.className = "badge-excellent text-xs font-bold px-2.5 py-0.5 rounded-full inline-flex items-center gap-1";
+        badgeEl.innerHTML = '<i data-lucide="check-circle-2" class="w-3.5 h-3.5"></i><span>Ready to Apply (Excellent)</span>';
+        if (headlineEl) headlineEl.textContent = "ATS-Optimized & Production Ready";
+        if (summaryEl) summaryEl.textContent = "Your resume meets top ATS benchmark standards. Core sections, active verbs, and formatting are primed for high search visibility.";
+      } else if (score >= 70) {
+        badgeEl.className = "badge-good text-xs font-bold px-2.5 py-0.5 rounded-full inline-flex items-center gap-1";
+        badgeEl.innerHTML = '<i data-lucide="check" class="w-3.5 h-3.5"></i><span>Good Readiness (Minor Polish)</span>';
+        if (headlineEl) headlineEl.textContent = "Solid Baseline with Polish Potential";
+        if (summaryEl) summaryEl.textContent = "Good overall structure. Resolving the remaining warnings below will maximize your recruiter callback rate.";
+      } else if (score >= 40) {
+        badgeEl.className = "badge-okayish text-xs font-bold px-2.5 py-0.5 rounded-full inline-flex items-center gap-1";
+        badgeEl.innerHTML = '<i data-lucide="alert-circle" class="w-3.5 h-3.5"></i><span>Needs Work (Moderate Issues)</span>';
+        if (headlineEl) headlineEl.textContent = "Improvement Required Before Submitting";
+        if (summaryEl) summaryEl.textContent = "Essential sections or formatting criteria need attention. Review the action items below to elevate your score.";
+      } else {
+        badgeEl.className = "badge-poor text-xs font-bold px-2.5 py-0.5 rounded-full inline-flex items-center gap-1";
+        badgeEl.innerHTML = '<i data-lucide="alert-triangle" class="w-3.5 h-3.5"></i><span>Critical Issues (High Risk)</span>';
+        if (headlineEl) headlineEl.textContent = "Critical ATS Blockers Detected";
+        if (summaryEl) summaryEl.textContent = "Automated parsers will likely reject or misparse this resume. Add your full contact info and professional experience.";
+      }
+    }
+
+    // 3. Issue counts
+    const activeSuggestions = evalData.suggestions.filter((s) => s.status !== "Deleted");
+    const errorCount = activeSuggestions.filter((s) => s.level === "Error" && s.status !== "Completed").length;
+    const warningCount = activeSuggestions.filter((s) => s.level === "Warning" && s.status !== "Completed").length;
+
+    const cntErrorsEl = document.getElementById("cnt-errors");
+    const cntWarningsEl = document.getElementById("cnt-warnings");
+    if (cntErrorsEl) cntErrorsEl.textContent = `${errorCount} ${errorCount === 1 ? "Error" : "Errors"}`;
+    if (cntWarningsEl) cntWarningsEl.textContent = `${warningCount} ${warningCount === 1 ? "Warning" : "Warnings"}`;
+
+    // 4. Update 7 Category Bars
+    const catKeys = ["contact", "summary", "sections", "depth", "action", "skills", "chrono"];
+    const bdMap = {
+      contact: bd.contact,
+      summary: bd.summary,
+      sections: bd.core_sections,
+      depth: bd.experience_depth,
+      action: bd.action_impact,
+      skills: bd.skills,
+      chrono: bd.chronology,
+    };
+
+    catKeys.forEach((key) => {
+      const data = bdMap[key];
+      if (!data) return;
+      const ptsEl = document.getElementById(`pts-cat-${key}`);
+      const barEl = document.getElementById(`bar-cat-${key}`);
+      if (ptsEl) ptsEl.textContent = `${data.score} / ${data.max}`;
+      if (barEl) {
+        const pct = Math.min(100, Math.round((data.score / data.max) * 100));
+        barEl.style.width = `${pct}%`;
+        if (pct >= 85) barEl.className = "bg-emerald-500 h-full rounded-full transition-all duration-300";
+        else if (pct >= 60) barEl.className = "bg-brand-600 h-full rounded-full transition-all duration-300";
+        else if (pct >= 40) barEl.className = "bg-amber-500 h-full rounded-full transition-all duration-300";
+        else barEl.className = "bg-rose-500 h-full rounded-full transition-all duration-300";
+      }
+    });
+
+    // 5. Update Tab Counts
+    const allCount = evalData.suggestions.length;
+    const pendingCount = evalData.suggestions.filter((s) => s.status === "Pending").length;
+    const completedCount = evalData.suggestions.filter((s) => s.status === "Completed").length;
+    const dismissedCount = evalData.suggestions.filter((s) => s.status === "Deleted").length;
+
+    const tabPending = document.getElementById("cnt-tab-pending");
+    const tabAll = document.getElementById("cnt-tab-all");
+    const tabCompleted = document.getElementById("cnt-tab-completed");
+    const tabDismissed = document.getElementById("cnt-tab-dismissed");
+
+    if (tabPending) tabPending.textContent = pendingCount;
+    if (tabAll) tabAll.textContent = allCount;
+    if (tabCompleted) tabCompleted.textContent = completedCount;
+    if (tabDismissed) tabDismissed.textContent = dismissedCount;
+
+    // 6. Render Suggestions List
+    renderATSSuggestionsList(evalData.suggestions);
+
+    if (typeof lucide !== "undefined" && lucide.createIcons) lucide.createIcons();
+  }
+
+  function renderATSSuggestionsList(suggestions) {
+    const container = document.getElementById("ats-suggestions-container");
+    if (!container) return;
+
+    const currentFilter = state.atsFilter || "Pending";
+    let filtered = suggestions || [];
+
+    if (currentFilter === "Pending") {
+      filtered = filtered.filter((s) => s.status === "Pending" || !s.status);
+    } else if (currentFilter === "Completed") {
+      filtered = filtered.filter((s) => s.status === "Completed");
+    } else if (currentFilter === "Deleted") {
+      filtered = filtered.filter((s) => s.status === "Deleted");
+    }
+
+    if (filtered.length === 0) {
+      container.innerHTML = `
+        <div class="p-8 text-center bg-slate-50 border border-slate-200/80 rounded-2xl space-y-2">
+          <div class="w-10 h-10 rounded-full bg-emerald-100 text-emerald-600 mx-auto flex items-center justify-center">
+            <i data-lucide="check" class="w-5 h-5"></i>
+          </div>
+          <h5 class="text-xs font-bold text-slate-800 m-0">No ${escapeHtml(currentFilter)} Suggestions</h5>
+          <p class="text-[11px] text-slate-500 m-0 max-w-sm mx-auto">
+            ${currentFilter === "Pending" ? "All current rules in this category have passed. Great work!" : `No suggestions marked as ${escapeHtml(currentFilter)}.`}
+          </p>
+        </div>
+      `;
+      if (typeof lucide !== "undefined" && lucide.createIcons) lucide.createIcons();
+      return;
+    }
+
+    let html = "";
+    filtered.forEach((sug) => {
+      const isError = sug.level === "Error";
+      const isCompleted = sug.status === "Completed";
+      const isDeleted = sug.status === "Deleted";
+
+      let cardClass = "ats-suggestion-card";
+      if (isCompleted) cardClass += " is-completed";
+      else if (isError) cardClass += " is-error";
+      else cardClass += " is-warning";
+
+      const hasSnippet = !!(sug.originalText && sug.originalText.trim());
+
+      html += `
+        <div class="${cardClass}" data-suggestion-id="${escapeHtml(sug.id)}">
+          <div class="flex items-start justify-between gap-3 pb-2 border-b border-slate-100">
+            <div class="flex items-center gap-2">
+              <span class="text-[10px] font-bold px-2 py-0.5 rounded-full ${isError ? "bg-rose-100 text-rose-700" : isCompleted ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-800"}">
+                ${isCompleted ? "Resolved" : escapeHtml(sug.level || "Warning")}
+              </span>
+              <span class="text-[11px] font-semibold text-slate-500">
+                ${escapeHtml(sug.category || "ATS Rule")}
+              </span>
+            </div>
+
+            <div class="flex items-center gap-1">
+              ${
+                !isDeleted && !isCompleted
+                  ? `<button type="button" class="btn-ats-dismiss p-1 text-slate-400 hover:text-slate-600 rounded cursor-pointer" data-sug-id="${escapeHtml(sug.id)}" title="Dismiss this suggestion"><i data-lucide="x" class="w-3.5 h-3.5"></i></button>`
+                  : ""
+              }
+            </div>
+          </div>
+
+          <div class="py-2.5 space-y-2">
+            <p class="text-xs font-semibold text-slate-800 m-0 leading-relaxed">
+              ${escapeHtml(sug.reason || "")}
+            </p>
+
+            ${
+              hasSnippet
+                ? `<div class="ats-snippet-quote">${escapeHtml(sug.originalText)}</div>`
+                : ""
+            }
+          </div>
+
+          <div class="flex items-center justify-between pt-2 border-t border-slate-100">
+            <div class="flex items-center gap-2">
+              ${
+                sug.targetSection
+                  ? `<button
+                      type="button"
+                      class="btn-ats-view-editor px-2.5 py-1 rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-700 text-[11px] font-bold flex items-center gap-1.5 cursor-pointer transition-colors"
+                      data-target-sec="${escapeHtml(sug.targetSection)}"
+                      data-target-item="${escapeHtml(sug.targetItemId || "")}"
+                      data-bullet-idx="${sug.bulletIndex !== undefined && sug.bulletIndex !== null ? sug.bulletIndex : ""}"
+                    >
+                      <i data-lucide="eye" class="w-3.5 h-3.5 text-slate-500"></i>
+                      <span>View in Editor</span>
+                    </button>`
+                  : ""
+              }
+
+              ${
+                hasSnippet && !isCompleted
+                  ? `<button
+                      type="button"
+                      class="btn-ats-fix-ai px-3 py-1 rounded-lg bg-brand-600 hover:bg-brand-700 text-white text-[11px] font-bold flex items-center gap-1.5 shadow-2xs cursor-pointer transition-colors"
+                      data-sug-id="${escapeHtml(sug.id)}"
+                      data-rule-id="${escapeHtml(sug.ruleId || "")}"
+                      data-target-sec="${escapeHtml(sug.targetSection || "")}"
+                      data-target-item="${escapeHtml(sug.targetItemId || "")}"
+                      data-bullet-idx="${sug.bulletIndex !== undefined && sug.bulletIndex !== null ? sug.bulletIndex : ""}"
+                      data-orig-text="${escapeHtml(sug.originalText)}"
+                      data-reason="${escapeHtml(sug.reason || "")}"
+                    >
+                      <i data-lucide="sparkles" class="w-3.5 h-3.5 text-brand-200"></i>
+                      <span>Fix with AI</span>
+                    </button>`
+                  : ""
+              }
+            </div>
+
+            <div>
+              ${
+                !isCompleted
+                  ? `<button
+                      type="button"
+                      class="btn-ats-mark-done px-2.5 py-1 text-slate-500 hover:text-emerald-700 text-[11px] font-semibold flex items-center gap-1 cursor-pointer"
+                      data-sug-id="${escapeHtml(sug.id)}"
+                    >
+                      <i data-lucide="check" class="w-3 h-3"></i>
+                      <span>Mark Done</span>
+                    </button>`
+                  : `<span class="text-[10px] font-semibold text-emerald-600 flex items-center gap-1"><i data-lucide="check-check" class="w-3.5 h-3.5"></i> Resolved</span>`
+              }
+            </div>
+          </div>
+        </div>
+      `;
+    });
+
+    container.innerHTML = html;
+    if (typeof lucide !== "undefined" && lucide.createIcons) lucide.createIcons();
+
+    // Bind card actions
+    // 1. View in editor
+    container.querySelectorAll(".btn-ats-view-editor").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const sec = btn.dataset.targetSec;
+        const item = btn.dataset.targetItem;
+        const bIdx = btn.dataset.bulletIdx;
+        viewATSIssueInEditor(sec, item, bIdx !== "" ? parseInt(bIdx, 10) : null);
+      });
+    });
+
+    // 2. Fix with AI
+    container.querySelectorAll(".btn-ats-fix-ai").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const sug = {
+          id: btn.dataset.sugId,
+          ruleId: btn.dataset.ruleId,
+          targetSection: btn.dataset.targetSec,
+          targetItemId: btn.dataset.targetItem,
+          bulletIndex: btn.dataset.bulletIdx !== "" ? parseInt(btn.dataset.bulletIdx, 10) : null,
+          originalText: btn.dataset.origText,
+          reason: btn.dataset.reason,
+        };
+        openDiffFixModal(sug);
+      });
+    });
+
+    // 3. Dismiss
+    container.querySelectorAll(".btn-ats-dismiss").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const id = btn.dataset.sugId;
+        window.JobNexResumeStore.updateATSSuggestionStatus(id, "Deleted");
+        renderATSScoreTab(window.JobNexResumeStore.currentResume);
+      });
+    });
+
+    // 4. Mark Done
+    container.querySelectorAll(".btn-ats-mark-done").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const id = btn.dataset.sugId;
+        window.JobNexResumeStore.updateATSSuggestionStatus(id, "Completed");
+        renderATSScoreTab(window.JobNexResumeStore.currentResume);
+      });
+    });
+  }
+
+  function viewATSIssueInEditor(targetSec, targetItemId, bulletIdx) {
+    // 1. Switch to Content Tab
+    switchEditorTab("content");
+
+    // Give DOM a microtick to render
+    setTimeout(() => {
+      let targetEl = null;
+
+      if (targetSec === "personal") {
+        const body = document.getElementById("body-sec-personal");
+        if (body && body.classList.contains("hidden")) {
+          body.classList.remove("hidden");
+        }
+        if (targetItemId === "name") targetEl = document.getElementById("inp-personal-name");
+        else if (targetItemId === "email") targetEl = document.getElementById("inp-personal-email");
+        else if (targetItemId === "phone") targetEl = document.getElementById("inp-personal-phone");
+        else if (targetItemId === "location") targetEl = document.getElementById("inp-personal-location");
+        else targetEl = body;
+      } else if (targetSec === "summary") {
+        const body = document.getElementById("body-sec-summary");
+        if (body && body.classList.contains("hidden")) {
+          body.classList.remove("hidden");
+        }
+        targetEl = document.getElementById("inp-personal-summary");
+      } else {
+        // Expand section accordion
+        const secCard = document.querySelector(`.section-accordion-card[data-section-id="${targetSec}"]`);
+        if (secCard) {
+          const body = secCard.querySelector(".section-accordion-body");
+          if (body && body.classList.contains("hidden")) {
+            body.classList.remove("hidden");
+          }
+          if (targetItemId) {
+            const itemCard = secCard.querySelector(`.section-item-card[data-item-id="${targetItemId}"]`);
+            if (itemCard) {
+              if (bulletIdx !== null && bulletIdx !== undefined) {
+                targetEl = itemCard.querySelector(`.bullet-row[data-bullet-idx="${bulletIdx}"]`) || itemCard;
+              } else {
+                targetEl = itemCard;
+              }
+            } else {
+              targetEl = secCard;
+            }
+          } else {
+            targetEl = secCard;
+          }
+        }
+      }
+
+      if (targetEl) {
+        targetEl.scrollIntoView({ behavior: "smooth", block: "center" });
+        targetEl.classList.add("ats-highlight-pulse");
+        if (targetEl.focus && typeof targetEl.focus === "function") {
+          try { targetEl.focus(); } catch (e) {}
+        }
+        setTimeout(() => {
+          targetEl.classList.remove("ats-highlight-pulse");
+        }, 3600);
+      }
+    }, 80);
+  }
+
+  async function openDiffFixModal(suggestion) {
+    state.activeDiffSuggestion = suggestion;
+
+    if (!DOM.modalDiff) return;
+
+    // Reset modal UI
+    openModal(DOM.modalDiff);
+    if (DOM.diffModalLoader) DOM.diffModalLoader.classList.remove("hidden");
+    if (DOM.diffModalBody) DOM.diffModalBody.classList.add("hidden");
+    if (DOM.btnDiffAccept) DOM.btnDiffAccept.disabled = true;
+
+    const subtitleEl = document.getElementById("diff-rule-subtitle");
+    if (subtitleEl) subtitleEl.textContent = suggestion.reason || "ATS surgical rewrite";
+
+    const apiBase = window.location.port === "8000" ? "" : "http://127.0.0.1:8000";
+    const headers = { "Content-Type": "application/json" };
+    const token = localStorage.getItem("jobnex_access_token");
+    if (token) headers["Authorization"] = `Bearer ${token}`;
+    const user = window.JobNexAuth?.getUser ? window.JobNexAuth.getUser() : null;
+    if (user && user.id) headers["X-User-Id"] = String(user.id);
+
+    try {
+      const curResume = window.JobNexResumeStore.currentResume;
+      const res = await fetch(`${apiBase}/api/resumes/fix-ats`, {
+        method: "POST",
+        headers: headers,
+        body: JSON.stringify({
+          resume_id: curResume ? curResume.id : "res-current",
+          rule_id: suggestion.ruleId || "rule_general",
+          original_text: suggestion.originalText,
+          reason: suggestion.reason,
+          target_section_id: suggestion.targetSection,
+          target_item_id: suggestion.targetItemId,
+          bullet_index: suggestion.bulletIndex,
+        }),
+      });
+
+      if (!res.ok) {
+        throw new Error("Failed to generate rewrite.");
+      }
+
+      const data = await res.json();
+      state.activeDiffSuggestion.suggestedText = data.suggested_text;
+
+      if (DOM.diffModalLoader) DOM.diffModalLoader.classList.add("hidden");
+      if (DOM.diffModalBody) DOM.diffModalBody.classList.remove("hidden");
+
+      if (DOM.diffExplanation) DOM.diffExplanation.textContent = data.explanation || "Rewritten with strong active verbs for ATS ranking.";
+      if (DOM.diffOriginal) DOM.diffOriginal.textContent = data.original_text || suggestion.originalText;
+      if (DOM.diffSuggested) DOM.diffSuggested.textContent = data.suggested_text;
+
+      if (DOM.btnDiffAccept) DOM.btnDiffAccept.disabled = false;
+    } catch (err) {
+      console.warn("AI fix failed, using deterministic fallback:", err);
+      // Fallback
+      if (DOM.diffModalLoader) DOM.diffModalLoader.classList.add("hidden");
+      if (DOM.diffModalBody) DOM.diffModalBody.classList.remove("hidden");
+
+      const cleanText = (suggestion.originalText || "")
+        .replace(/\bresponsible for\b/gi, "Spearheaded")
+        .replace(/\bhelped with\b/gi, "Collaborated on")
+        .replace(/\bworked on\b/gi, "Developed and delivered");
+
+      state.activeDiffSuggestion.suggestedText = cleanText;
+
+      if (DOM.diffExplanation) DOM.diffExplanation.textContent = "Converted passive phrasing into decisive, action-oriented recruiter syntax.";
+      if (DOM.diffOriginal) DOM.diffOriginal.textContent = suggestion.originalText;
+      if (DOM.diffSuggested) DOM.diffSuggested.textContent = cleanText;
+
+      if (DOM.btnDiffAccept) DOM.btnDiffAccept.disabled = false;
+    }
+
+    if (typeof lucide !== "undefined" && lucide.createIcons) lucide.createIcons();
+  }
+
+  function initATSScoreTab() {
+    // Filter tab clicks
+    document.querySelectorAll(".ats-filter-btn").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const filter = btn.dataset.filter;
+        state.atsFilter = filter;
+
+        document.querySelectorAll(".ats-filter-btn").forEach((b) => b.classList.remove("is-active"));
+        btn.classList.add("is-active");
+
+        if (window.JobNexResumeStore.currentResume) {
+          renderATSScoreTab(window.JobNexResumeStore.currentResume);
+        }
+      });
+    });
+
+    // Re-evaluate button click
+    document.getElementById("btn-re-evaluate-ats")?.addEventListener("click", async () => {
+      const btn = document.getElementById("btn-re-evaluate-ats");
+      const icon = btn?.querySelector("svg, i");
+      if (icon) icon.classList.add("animate-spin");
+
+      try {
+        if (window.JobNexResumeStore.currentResume) {
+          await window.JobNexResumeStore.evaluateATS();
+          renderATSScoreTab(window.JobNexResumeStore.currentResume);
+          showToast("ATS Evaluation Complete", "Calculated fresh ATS benchmark score.");
+        }
+      } catch (e) {
+        showToast("Evaluation Notice", "Evaluated score locally.", false);
+        if (window.JobNexResumeStore.currentResume) {
+          renderATSScoreTab(window.JobNexResumeStore.currentResume);
+        }
+      } finally {
+        if (icon) icon.classList.remove("animate-spin");
+      }
+    });
+
+    // Diff modal events
+    document.getElementById("btn-close-diff-modal")?.addEventListener("click", () => {
+      closeModal(DOM.modalDiff);
+    });
+
+    DOM.btnDiffCancel?.addEventListener("click", () => {
+      closeModal(DOM.modalDiff);
+    });
+
+    DOM.btnDiffAccept?.addEventListener("click", () => {
+      const sug = state.activeDiffSuggestion;
+      if (!sug || !sug.suggestedText) return;
+
+      window.JobNexResumeStore.applyATSChange({
+        targetSectionId: sug.targetSection,
+        targetItemId: sug.targetItemId,
+        bulletIndex: sug.bulletIndex,
+        newText: sug.suggestedText,
+        suggestionId: sug.id,
+      });
+
+      closeModal(DOM.modalDiff);
+      showToast("ATS Improvement Applied", "Updated content with recruiter-optimized phrasing.");
+      if (window.JobNexResumeStore.currentResume) {
+        renderATSScoreTab(window.JobNexResumeStore.currentResume);
+      }
+    });
+  }
+
+  // =========================================================================
   // File Upload & 5-Stage Real Progress Tracking
   // =========================================================================
 
@@ -916,6 +1942,16 @@
         renderResumePreview(resume);
         updateUndoRedoUI();
         updateSaveStatusUI(window.JobNexResumeStore.saveStatus);
+
+        const atsData = computeClientSideATSScore(resume);
+        const sidebarBadge = document.getElementById("sidebar-ats-badge");
+        if (sidebarBadge) {
+          sidebarBadge.textContent = `${atsData.score}%`;
+          if (atsData.score >= 85) sidebarBadge.className = "absolute -top-1 -right-1 px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-emerald-500 text-white";
+          else if (atsData.score >= 70) sidebarBadge.className = "absolute -top-1 -right-1 px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-brand-500 text-white";
+          else if (atsData.score >= 40) sidebarBadge.className = "absolute -top-1 -right-1 px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-amber-500 text-slate-950";
+          else sidebarBadge.className = "absolute -top-1 -right-1 px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-rose-500 text-white";
+        }
 
         showToast("Resume Loaded", `Ready to edit "${resume.name}"`);
       })
@@ -2112,6 +3148,10 @@
 
     const activePane = document.getElementById(`pane-${tabKey}`);
     if (activePane) activePane.classList.remove("hidden");
+
+    if (tabKey === "ats" && window.JobNexResumeStore.currentResume) {
+      renderATSScoreTab(window.JobNexResumeStore.currentResume);
+    }
   }
 
   /**
@@ -2753,6 +3793,9 @@
     // Template Gallery & Styling Controls Handling
     initTemplateControls();
 
+    // ATS Tab Handling (Phase 6)
+    initATSScoreTab();
+
     // Preview Toolbar: Undo / Redo
     document.getElementById("btn-preview-undo")?.addEventListener("click", () => {
       window.JobNexResumeStore.undo();
@@ -2813,11 +3856,27 @@
         event.type === "state_changed" ||
         event.type === "undo" ||
         event.type === "redo" ||
-        event.type === "resume_loaded"
+        event.type === "resume_loaded" ||
+        event.type === "ats_evaluated"
       ) {
         if (window.JobNexResumeStore.currentResume) {
           renderResumePreview(window.JobNexResumeStore.currentResume);
           populateEditorInputs(window.JobNexResumeStore.currentResume);
+
+          const curRes = window.JobNexResumeStore.currentResume;
+          const atsData = computeClientSideATSScore(curRes);
+          const sidebarBadge = document.getElementById("sidebar-ats-badge");
+          if (sidebarBadge) {
+            sidebarBadge.textContent = `${atsData.score}%`;
+            if (atsData.score >= 85) sidebarBadge.className = "absolute -top-1 -right-1 px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-emerald-500 text-white";
+            else if (atsData.score >= 70) sidebarBadge.className = "absolute -top-1 -right-1 px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-brand-500 text-white";
+            else if (atsData.score >= 40) sidebarBadge.className = "absolute -top-1 -right-1 px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-amber-500 text-slate-950";
+            else sidebarBadge.className = "absolute -top-1 -right-1 px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-rose-500 text-white";
+          }
+          const atsPane = document.getElementById("pane-ats");
+          if (atsPane && !atsPane.classList.contains("hidden")) {
+            renderATSScoreTab(curRes);
+          }
         }
       }
 

@@ -613,6 +613,81 @@
         }
       });
     }
+
+    // =========================================================================
+    // Phase 6: ATS Evaluation & Surgical Fix Store Helpers
+    // =========================================================================
+
+    async evaluateATS(resumeId = null) {
+      const targetId = resumeId || (this.currentResume ? this.currentResume.id : null);
+      if (!targetId) return null;
+
+      try {
+        const res = await fetch(`${getApiBaseUrl()}/api/resumes/${targetId}/evaluate-ats`, {
+          method: "POST",
+          headers: getAuthHeaders(),
+        });
+
+        if (!res.ok) {
+          throw new Error("Failed to evaluate ATS score.");
+        }
+
+        const data = await res.json();
+        if (this.currentResume && this.currentResume.id === targetId) {
+          this.currentResume.readiness_score = data.readiness_score;
+          this.currentResume.readiness_label = data.readiness_label;
+          this.currentResume.atsSuggestions = data.suggestions || [];
+          this.notify("ats_evaluated", data);
+        }
+        return data;
+      } catch (err) {
+        console.error("[ResumeBuilderStore] evaluateATS error:", err);
+        throw err;
+      }
+    }
+
+    updateATSSuggestionStatus(suggestionId, newStatus) {
+      this.updateCurrentResume((resume) => {
+        const sugs = resume.atsSuggestions || [];
+        const found = sugs.find((s) => s.id === suggestionId);
+        if (found) {
+          found.status = newStatus;
+        }
+      });
+    }
+
+    applyATSChange({ targetSectionId, targetItemId, bulletIndex, newText, suggestionId = null }) {
+      this.updateCurrentResume((resume) => {
+        // 1. Update text content
+        if (targetSectionId === "summary") {
+          resume.summary = newText;
+        } else if (targetSectionId === "personal") {
+          if (targetItemId === "name") resume.personal.name = newText;
+          else if (targetItemId === "email") resume.personal.email = newText;
+          else if (targetItemId === "phone") resume.personal.phone = newText;
+          else if (targetItemId === "location") resume.personal.location = newText;
+        } else if (targetSectionId && targetItemId) {
+          const sec = (resume.sections || []).find((s) => s.id === targetSectionId);
+          if (sec && sec.items) {
+            const itm = sec.items.find((i) => i.id === targetItemId);
+            if (itm && itm.bullets && bulletIndex !== null && bulletIndex !== undefined) {
+              if (itm.bullets[bulletIndex] !== undefined) {
+                itm.bullets[bulletIndex] = newText;
+              }
+            }
+          }
+        }
+
+        // 2. Mark suggestion Completed if provided
+        if (suggestionId && resume.atsSuggestions) {
+          const sug = resume.atsSuggestions.find((s) => s.id === suggestionId);
+          if (sug) {
+            sug.status = "Completed";
+            sug.suggestedText = newText;
+          }
+        }
+      });
+    }
   }
 
   window.JobNexResumeStore = new ResumeBuilderStore();

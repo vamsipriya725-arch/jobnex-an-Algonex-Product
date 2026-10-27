@@ -5,13 +5,15 @@ readiness evaluation, and undo-friendly state synchronization.
 """
 from __future__ import annotations
 
+import hashlib
 import json
 import logging
 import os
+import re
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 import jwt
 from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request, status, UploadFile, File
@@ -87,9 +89,20 @@ class ATSSuggestion(BaseModel):
     reason: str = Field(default="", description="Reason for the ATS issue")
     targetSection: str = Field(default="", description="Target section ID or type")
     targetItemId: str = Field(default="", description="Target item ID if applicable")
+    bulletIndex: Optional[int] = Field(default=None, description="Bullet index if applicable")
     originalText: str = Field(default="", description="Problematic snippet")
     suggestedText: str = Field(default="", description="Proposed rewrite")
     status: str = Field(default="Pending", description="Pending, Completed, or Deleted")
+
+
+class FixATSRequest(BaseModel):
+    resume_id: str
+    rule_id: str
+    original_text: str
+    reason: str
+    target_section_id: Optional[str] = None
+    target_item_id: Optional[str] = None
+    bullet_index: Optional[int] = None
 
 
 class AnalysisHistory(BaseModel):
@@ -659,6 +672,778 @@ def delete_resume(
 
 
 # ============================================================================
+# 3.5. Phase 6: Deterministic ATS Engine, Rules, & AI Fixer
+# ============================================================================
+
+STRONG_ACTION_VERBS = {
+    "accelerated", "accomplished", "achieved", "acquired", "acted", "adapted", "administered",
+    "advanced", "advised", "allocated", "amplified", "analyzed", "appraised", "approved",
+    "arbitrated", "architected", "arranged", "assembled", "assessed", "assigned", "attained",
+    "audited", "authored", "automated", "benchmarked", "bolstered", "boosted", "briefed",
+    "budgeted", "built", "calculated", "calibrated", "capitalized", "captured", "centralized",
+    "championed", "charted", "clarified", "classified", "closed", "coached", "collaborated",
+    "compiled", "composed", "computed", "conceived", "conceptualized", "conducted", "consolidated",
+    "constructed", "consulted", "contracted", "converted", "conveyed", "coordinated", "counseled",
+    "crafted", "created", "critiqued", "cultivated", "customized", "debugged", "decentralized",
+    "decreased", "defined", "delegated", "delivered", "demonstrated", "deployed", "designed",
+    "detailed", "detected", "developed", "devised", "diagnosed", "directed", "discovered",
+    "dispatched", "diversified", "documented", "doubled", "drafted", "drove", "earned", "educated",
+    "effected", "elicited", "eliminated", "emphasized", "enabled", "enacted", "encouraged",
+    "enforced", "engineered", "enhanced", "enlarged", "enlisted", "ensured", "established",
+    "estimated", "evaluated", "examined", "exceeded", "executed", "expanded", "expedited",
+    "experimented", "explored", "extended", "extracted", "fabricated", "facilitated", "finalized",
+    "financed", "focused", "forecasted", "formulated", "fostered", "founded", "fulfilled",
+    "gained", "gathered", "generated", "governed", "guided", "halted", "handled", "harnessed",
+    "headed", "heightened", "hired", "hosted", "identified", "illuminated", "illustrated",
+    "implemented", "improved", "improvised", "inaugurated", "increased", "indexed",
+    "individualized", "influenced", "informed", "initiated", "innovated", "inspected", "inspired",
+    "installed", "instituted", "instructed", "integrated", "intensified", "interpreted",
+    "interviewed", "introduced", "invented", "investigated", "isolated", "issued", "joined",
+    "launched", "lead", "leader", "leading", "lectured", "led", "leveraged", "licensed", "lifted",
+    "lobbied", "located", "magnified", "maintained", "managed", "mapped", "marketed", "mastered",
+    "maximized", "measured", "mediated", "mentored", "merged", "migrated", "minimized",
+    "mobilized", "modeled", "moderated", "modernized", "modified", "monitored", "motivated",
+    "multiplied", "navigated", "negotiated", "nurtured", "observed", "obtained", "opened",
+    "operated", "optimized", "orchestrated", "organized", "originated", "outperformed",
+    "overhauled", "oversaw", "partnered", "performed", "persuaded", "piloted", "pioneered",
+    "planned", "prepared", "presented", "presided", "prevailed", "prioritized", "produced",
+    "programmed", "promoted", "proposed", "provided", "published", "purchased", "quantified",
+    "questioned", "raised", "ranked", "rated", "reached", "realigned", "rebuilt", "recaptured",
+    "reclaimed", "reconciled", "recruited", "redesigned", "reduced", "reengineered", "refactored",
+    "refined", "reformed", "regulated", "rehabilitated", "reinforced", "rejuvenated", "remedied",
+    "remodeled", "reorganized", "repaired", "replaced", "replenished", "reported", "represented",
+    "researched", "resolved", "restored", "restructured", "retrieved", "revamped", "reviewed",
+    "revitalized", "revolutionized", "routed", "safeguarded", "saved", "scaled", "scheduled",
+    "screened", "scrutinized", "secured", "segmented", "selected", "separated", "served", "shaped",
+    "sharpened", "shielded", "simplified", "simulated", "slashed", "solidified", "solved",
+    "sparked", "spearheaded", "specialized", "specified", "spurred", "staffed", "standardized",
+    "steered", "stimulated", "streamlined", "strengthened", "structured", "studied", "succeeded",
+    "summarized", "superseded", "supervised", "supplied", "supported", "surpassed", "surveyed",
+    "sustained", "synthesized", "systematized", "tabulated", "targeted", "taught", "terminated",
+    "tested", "tightened", "traced", "tracked", "trained", "transcribed", "transformed",
+    "transitioned", "translated", "transmitted", "trimmed", "tripled", "troubleshot", "unified",
+    "unlocked", "unraveled", "updated", "upgraded", "utilized", "validated", "valued", "verbalized",
+    "verified", "visualized", "won", "worked", "yielded"
+}
+
+WEAK_PHRASES = [
+    "responsible for",
+    "duties included",
+    "helped with",
+    "worked on",
+    "assisted in",
+    "assisted with",
+    "tasked with",
+    "handled",
+    "served as",
+    "involved in",
+    "participated in",
+    "contributed to the",
+]
+
+
+def compute_resume_content_hash(resume_data: ResumeData) -> str:
+    """Calculates deterministic MD5 hash of resume contents to identify changes."""
+    parts = [
+        resume_data.personal.name.strip().lower(),
+        resume_data.personal.email.strip().lower(),
+        resume_data.personal.phone.strip(),
+        resume_data.personal.location.strip().lower(),
+        resume_data.summary.strip().lower(),
+    ]
+    for link in resume_data.personal.links:
+        parts.append(link.url.strip().lower())
+
+    for sec in resume_data.sections:
+        if sec.hidden:
+            continue
+        parts.append(sec.title.strip().lower())
+        for itm in sec.items:
+            if itm.hidden:
+                continue
+            parts.append(itm.title.strip().lower())
+            parts.append(itm.organization.strip().lower())
+            parts.append(itm.dates.strip().lower())
+            parts.append(itm.location.strip().lower())
+            for b in itm.bullets:
+                if b and b.strip():
+                    parts.append(b.strip().lower())
+            for t in itm.technologies:
+                if t and t.strip():
+                    parts.append(t.strip().lower())
+
+    raw_str = "|".join(parts).encode("utf-8")
+    return hashlib.md5(raw_str).hexdigest()
+
+
+def compute_deterministic_ats_score(resume_data: ResumeData) -> Dict[str, Any]:
+    """
+    Evaluates resume against deterministic 0-100 ATS scoring rubric:
+    1. Contact Info: 15 pts
+    2. Professional Summary: 10 pts
+    3. Core Sections Presence: 20 pts
+    4. Experience Depth & Bullet Counts: 20 pts
+    5. Action Verbs & Weak Phrases: 15 pts
+    6. Skills & Keyword Count: 10 pts
+    7. Date Chronology Consistency: 10 pts
+    """
+    suggestions: List[ATSSuggestion] = []
+
+    # 1. Contact info (15 pts)
+    contact_score = 0
+    name = (resume_data.personal.name or "").strip()
+    if name:
+        contact_score += 5
+    else:
+        suggestions.append(
+            ATSSuggestion(
+                ruleId="rule_contact_name",
+                level="Error",
+                reason="Candidate full name is missing. Add your full name prominently at the top of your resume.",
+                targetSection="personal",
+                originalText="",
+                suggestedText="Candidate Name",
+                status="Pending",
+            )
+        )
+
+    email = (resume_data.personal.email or "").strip()
+    email_valid = bool(re.match(r"^[\w\.-]+@[\w\.-]+\.\w{2,}$", email))
+    if email_valid:
+        contact_score += 5
+    else:
+        suggestions.append(
+            ATSSuggestion(
+                ruleId="rule_contact_email",
+                level="Error",
+                reason="Valid email address is missing. ATS parsers and recruiters require a direct contact email.",
+                targetSection="personal",
+                originalText=email,
+                suggestedText="candidate@example.com",
+                status="Pending",
+            )
+        )
+
+    phone = (resume_data.personal.phone or "").strip()
+    digits = re.sub(r"\D", "", phone)
+    if len(digits) >= 7:
+        contact_score += 3
+    else:
+        suggestions.append(
+            ATSSuggestion(
+                ruleId="rule_contact_phone",
+                level="Warning",
+                reason="Phone number is missing or has fewer than 7 digits. Include an accessible contact number with area code.",
+                targetSection="personal",
+                originalText=phone,
+                suggestedText="+1 (555) 012-3456",
+                status="Pending",
+            )
+        )
+
+    location = (resume_data.personal.location or "").strip()
+    has_links = any(bool(l.url and l.url.strip()) for l in resume_data.personal.links)
+    if location or has_links:
+        contact_score += 2
+    else:
+        suggestions.append(
+            ATSSuggestion(
+                ruleId="rule_contact_location",
+                level="Warning",
+                reason="Location (City, State / Remote) or online profile link is missing.",
+                targetSection="personal",
+                originalText="",
+                suggestedText="City, State (or Remote)",
+                status="Pending",
+            )
+        )
+
+    # 2. Professional Summary (10 pts)
+    summary_score = 0
+    summary = (resume_data.summary or "").strip()
+    words = [w for w in re.split(r"\s+", summary) if w] if summary else []
+    word_count = len(words)
+
+    if 40 <= word_count <= 100:
+        summary_score += 8
+    elif 15 <= word_count < 40:
+        summary_score += 4
+        suggestions.append(
+            ATSSuggestion(
+                ruleId="rule_summary_length",
+                level="Warning",
+                reason=f"Summary is currently {word_count} words. Expand to 40–100 words to effectively highlight career scope and target qualifications.",
+                targetSection="summary",
+                originalText=summary,
+                suggestedText="",
+                status="Pending",
+            )
+        )
+    elif word_count > 100:
+        summary_score += 5
+        suggestions.append(
+            ATSSuggestion(
+                ruleId="rule_summary_length",
+                level="Warning",
+                reason=f"Summary is currently {word_count} words. Condense to under 100 words for optimal recruiter scan rate.",
+                targetSection="summary",
+                originalText=summary,
+                suggestedText="",
+                status="Pending",
+            )
+        )
+    else:
+        suggestions.append(
+            ATSSuggestion(
+                ruleId="rule_summary_length",
+                level="Warning",
+                reason="Professional summary is missing. Add a 3–4 sentence executive summary highlighting your key achievements and qualifications.",
+                targetSection="summary",
+                originalText="",
+                suggestedText="",
+                status="Pending",
+            )
+        )
+
+    pronoun_matches = re.findall(r"\b(i|me|my|myself|we|our|ours|us)\b", summary, re.IGNORECASE) if summary else []
+    if pronoun_matches:
+        suggestions.append(
+            ATSSuggestion(
+                ruleId="rule_summary_pronouns",
+                level="Warning",
+                reason="Summary contains 1st-person pronouns ('" + "', '".join(sorted(set(p.lower() for p in pronoun_matches))) + "'). ATS standards recommend third-person implied action phrasing.",
+                targetSection="summary",
+                originalText=summary,
+                suggestedText="",
+                status="Pending",
+            )
+        )
+    else:
+        summary_score += 2
+
+    # 3. Core Sections Presence (20 pts)
+    sections_score = 0
+    work_sec = next((s for s in resume_data.sections if s.type == "work" and not s.hidden), None)
+    visible_work_items = [i for i in work_sec.items if not i.hidden] if work_sec else []
+    if work_sec and visible_work_items:
+        sections_score += 10
+    else:
+        suggestions.append(
+            ATSSuggestion(
+                ruleId="rule_missing_work",
+                level="Error",
+                reason="Work Experience section is missing or has no active positions. Add your professional work history.",
+                targetSection="work",
+                status="Pending",
+            )
+        )
+
+    edu_sec = next((s for s in resume_data.sections if s.type == "education" and not s.hidden), None)
+    visible_edu_items = [i for i in edu_sec.items if not i.hidden] if edu_sec else []
+    if edu_sec and visible_edu_items:
+        sections_score += 5
+    else:
+        suggestions.append(
+            ATSSuggestion(
+                ruleId="rule_missing_education",
+                level="Warning",
+                reason="Education section is missing or has no active entries. Include your university, degree, or credentials.",
+                targetSection="education",
+                status="Pending",
+            )
+        )
+
+    skills_sec = next((s for s in resume_data.sections if s.type == "skills" and not s.hidden), None)
+    visible_skills_items = [i for i in skills_sec.items if not i.hidden] if skills_sec else []
+    total_technologies = sum(len(i.technologies) for s in resume_data.sections if not s.hidden for i in s.items if not i.hidden)
+    if (skills_sec and visible_skills_items) or total_technologies >= 3:
+        sections_score += 5
+    else:
+        suggestions.append(
+            ATSSuggestion(
+                ruleId="rule_missing_skills",
+                level="Warning",
+                reason="Skills section is missing. Add technical tools and core proficiencies to pass automated keyword screens.",
+                targetSection="skills",
+                status="Pending",
+            )
+        )
+
+    # 4. Experience Depth & Bullet Counts (20 pts)
+    depth_score = 0
+    if visible_work_items:
+        bullet_counts = [len(i.bullets) for i in visible_work_items]
+        all_optimal = all(2 <= c <= 6 for c in bullet_counts)
+        avg_bullets = sum(bullet_counts) / len(bullet_counts)
+
+        for itm in visible_work_items:
+            cnt = len(itm.bullets)
+            label = itm.title or itm.organization or "Work Position"
+            if cnt == 0:
+                suggestions.append(
+                    ATSSuggestion(
+                        ruleId="rule_bullet_count",
+                        level="Error",
+                        reason=f"Position '{label}' has zero bullet points. Add 2–6 achievement bullets detailing responsibilities and measurable results.",
+                        targetSection=work_sec.id,
+                        targetItemId=itm.id,
+                        status="Pending",
+                    )
+                )
+            elif cnt == 1:
+                suggestions.append(
+                    ATSSuggestion(
+                        ruleId="rule_bullet_count",
+                        level="Warning",
+                        reason=f"Position '{label}' has only 1 bullet point. Add at least 1–2 more bullets to demonstrate depth and impact.",
+                        targetSection=work_sec.id,
+                        targetItemId=itm.id,
+                        status="Pending",
+                    )
+                )
+            elif cnt > 7:
+                suggestions.append(
+                    ATSSuggestion(
+                        ruleId="rule_bullet_count",
+                        level="Warning",
+                        reason=f"Position '{label}' has {cnt} bullet points. Consider condensing to 3–6 top-priority achievements.",
+                        targetSection=work_sec.id,
+                        targetItemId=itm.id,
+                        status="Pending",
+                    )
+                )
+
+        if all_optimal:
+            depth_score += 10
+        elif avg_bullets >= 2:
+            depth_score += 7
+        elif any(c > 0 for c in bullet_counts):
+            depth_score += 4
+        else:
+            depth_score += 1
+
+    # Check non-empty titles and organizations for work & edu
+    items_complete = True
+    for sec in resume_data.sections:
+        if sec.hidden or sec.type not in ("work", "education", "projects"):
+            continue
+        for itm in sec.items:
+            if itm.hidden:
+                continue
+            if not itm.title.strip() or not itm.organization.strip():
+                items_complete = False
+                lbl = itm.title.strip() or itm.organization.strip() or "Entry"
+                suggestions.append(
+                    ATSSuggestion(
+                        ruleId="rule_item_completeness",
+                        level="Warning",
+                        reason=f"'{lbl}' is missing either title/role or organization/institution name.",
+                        targetSection=sec.id,
+                        targetItemId=itm.id,
+                        status="Pending",
+                    )
+                )
+    if items_complete:
+        depth_score += 5
+
+    # Check dates specified
+    dates_complete = True
+    for sec in resume_data.sections:
+        if sec.hidden or sec.type not in ("work", "education"):
+            continue
+        for itm in sec.items:
+            if itm.hidden:
+                continue
+            if not itm.dates.strip():
+                dates_complete = False
+                lbl = itm.title.strip() or itm.organization.strip() or "Entry"
+                suggestions.append(
+                    ATSSuggestion(
+                        ruleId="rule_item_dates",
+                        level="Warning",
+                        reason=f"'{lbl}' has no timeframe or dates specified.",
+                        targetSection=sec.id,
+                        targetItemId=itm.id,
+                        status="Pending",
+                    )
+                )
+    if dates_complete:
+        depth_score += 5
+
+    # 5. Action Verbs & Weak Phrases (15 pts)
+    action_score = 0
+    all_bullets: List[Tuple[str, str, int, str]] = []  # (sec_id, item_id, bullet_idx, bullet_text)
+    for sec in resume_data.sections:
+        if sec.hidden or sec.type not in ("work", "projects", "custom"):
+            continue
+        for itm in sec.items:
+            if itm.hidden:
+                continue
+            for b_idx, b in enumerate(itm.bullets):
+                if b and b.strip():
+                    all_bullets.append((sec.id, itm.id, b_idx, b.strip()))
+
+    strong_verb_count = 0
+    for sec_id, itm_id, b_idx, bullet in all_bullets:
+        first_word = re.split(r"[^\w]", bullet)[0].lower() if bullet else ""
+        if first_word in STRONG_ACTION_VERBS:
+            strong_verb_count += 1
+
+    bullet_count = len(all_bullets)
+    ratio = (strong_verb_count / bullet_count) if bullet_count > 0 else 0.0
+
+    if ratio >= 0.60:
+        action_score += 10
+    elif ratio >= 0.30:
+        action_score += 5
+        suggestions.append(
+            ATSSuggestion(
+                ruleId="rule_action_verbs",
+                level="Warning",
+                reason=f"Only {int(ratio * 100)}% of bullets begin with decisive action verbs. Begin bullets with strong verbs like 'Spearheaded', 'Architected', 'Optimized'.",
+                targetSection="work",
+                status="Pending",
+            )
+        )
+    else:
+        if bullet_count > 0:
+            action_score += 2
+        suggestions.append(
+            ATSSuggestion(
+                ruleId="rule_action_verbs",
+                level="Warning",
+                reason="Most bullet points do not start with recognized action verbs. ATS algorithms favor active leadership statements.",
+                targetSection="work",
+                status="Pending",
+            )
+        )
+
+    # Weak phrases scan
+    has_weak_phrase = False
+    for sec_id, itm_id, b_idx, bullet in all_bullets:
+        lower_bullet = bullet.lower()
+        for phrase in WEAK_PHRASES:
+            if re.search(r"\b" + re.escape(phrase) + r"\b", lower_bullet):
+                has_weak_phrase = True
+                suggestions.append(
+                    ATSSuggestion(
+                        ruleId="rule_weak_phrase",
+                        level="Warning",
+                        reason=f"Bullet contains passive phrase '{phrase}'. Replace with decisive action verbs demonstrating ownership.",
+                        targetSection=sec_id,
+                        targetItemId=itm_id,
+                        bulletIndex=b_idx,
+                        originalText=bullet,
+                        suggestedText="",
+                        status="Pending",
+                    )
+                )
+                break
+
+    if not has_weak_phrase:
+        action_score += 5
+
+    # 6. Skills & Keyword Count (10 pts)
+    skills_score = 0
+    collected_skills = set()
+    for sec in resume_data.sections:
+        if sec.hidden:
+            continue
+        for itm in sec.items:
+            if itm.hidden:
+                continue
+            for t in itm.technologies:
+                if t and t.strip():
+                    collected_skills.add(t.strip().lower())
+            if sec.type == "skills":
+                for b in itm.bullets:
+                    for part in re.split(r"[,;|•]", b):
+                        if part.strip():
+                            collected_skills.add(part.strip().lower())
+
+    skills_count = len(collected_skills)
+    if skills_count >= 5:
+        skills_score = 10
+    elif skills_count >= 3:
+        skills_score = 5
+        suggestions.append(
+            ATSSuggestion(
+                ruleId="rule_skills_count",
+                level="Warning",
+                reason=f"Found {skills_count} skills. Add at least 5 key technologies/tools to improve ATS keyword discoverability.",
+                targetSection="skills",
+                status="Pending",
+            )
+        )
+    else:
+        skills_score = 0
+        suggestions.append(
+            ATSSuggestion(
+                ruleId="rule_skills_count",
+                level="Warning",
+                reason="Very few skills detected. Add at least 5 core technologies and competencies.",
+                targetSection="skills",
+                status="Pending",
+            )
+        )
+
+    # 7. Date Chronology Consistency (10 pts)
+    chrono_score = 10
+    for sec in resume_data.sections:
+        if sec.hidden or sec.type not in ("work", "education"):
+            continue
+        for itm in sec.items:
+            if itm.hidden or not itm.dates:
+                continue
+            years = [int(y) for y in re.findall(r"\b(19\d\d|20\d\d)\b", itm.dates)]
+            if len(years) >= 2:
+                start_year, end_year = years[0], years[1]
+                if start_year > end_year:
+                    chrono_score = 0
+                    lbl = itm.title or itm.organization or "Position"
+                    suggestions.append(
+                        ATSSuggestion(
+                            ruleId="rule_chronology",
+                            level="Error",
+                            reason=f"Invalid chronology in '{lbl}': start year ({start_year}) is after end year ({end_year}).",
+                            targetSection=sec.id,
+                            targetItemId=itm.id,
+                            originalText=itm.dates,
+                            status="Pending",
+                        )
+                    )
+
+    total_score = min(100, max(0, contact_score + summary_score + sections_score + depth_score + action_score + skills_score + chrono_score))
+    label = calculate_readiness_label(total_score)
+    content_hash = compute_resume_content_hash(resume_data)
+
+    breakdown = {
+        "contact": {"score": contact_score, "max": 15, "label": "Contact Information"},
+        "summary": {"score": summary_score, "max": 10, "label": "Professional Summary"},
+        "core_sections": {"score": sections_score, "max": 20, "label": "Core Sections"},
+        "experience_depth": {"score": depth_score, "max": 20, "label": "Experience & Bullets"},
+        "action_impact": {"score": action_score, "max": 15, "label": "Action Verbs & Impact"},
+        "skills": {"score": skills_score, "max": 10, "label": "Skills & Keywords"},
+        "chronology": {"score": chrono_score, "max": 10, "label": "Date Chronology"},
+    }
+
+    return {
+        "score": total_score,
+        "label": label,
+        "content_hash": content_hash,
+        "breakdown": breakdown,
+        "suggestions": suggestions,
+    }
+
+
+def fallback_ats_fix(original_text: str, reason: str, rule_id: str) -> Dict[str, str]:
+    """
+    Deterministic rule-based surgical text rewriter when Gemini is unreachable.
+    Guarantees zero hallucinations and preserves extracted candidate data.
+    """
+    text = original_text.strip()
+    if not text:
+        return {
+            "original_text": "",
+            "suggested_text": "",
+            "explanation": "No text provided to rewrite.",
+        }
+
+    replacements = [
+        (r"\bresponsible for managing\b", "Managed and led"),
+        (r"\bresponsible for leading\b", "Spearheaded and directed"),
+        (r"\bresponsible for developing\b", "Architected and developed"),
+        (r"\bresponsible for creating\b", "Designed and built"),
+        (r"\bresponsible for\b", "Spearheaded"),
+        (r"\bduties included\b", "Executed"),
+        (r"\bhelping with\b", "collaborating on"),
+        (r"\bhelped with\b", "Collaborated on"),
+        (r"\bhelp with\b", "collaborate on"),
+        (r"\bworking on\b", "developing and delivering"),
+        (r"\bworked on\b", "Developed and delivered"),
+        (r"\bwork on\b", "develop and deliver"),
+        (r"\bassisting in\b", "contributing to"),
+        (r"\bassisted in\b", "Contributed to"),
+        (r"\bassisting with\b", "collaborating on"),
+        (r"\bassisted with\b", "Collaborated on"),
+        (r"\btasked with\b", "Directed"),
+        (r"\bhandled\b", "Managed"),
+        (r"\bserving as\b", "Appointed as"),
+        (r"\binvolved in\b", "Participated directly in"),
+    ]
+
+    cleaned = text
+    for pattern, repl in replacements:
+        cleaned = re.sub(pattern, repl, cleaned, flags=re.IGNORECASE)
+
+    # Remove 1st person pronouns: "I managed..." -> "Managed..."
+    cleaned = re.sub(r"^(I|We)\s+", "", cleaned, flags=re.IGNORECASE)
+    cleaned = re.sub(r"\b(my|our)\s+", "", cleaned, flags=re.IGNORECASE)
+    cleaned = re.sub(r"\b(I|me|we|us)\b", "", cleaned, flags=re.IGNORECASE)
+
+    # Clean double spaces
+    cleaned = re.sub(r"\s+", " ", cleaned).strip()
+    if cleaned and not cleaned[0].isupper():
+        cleaned = cleaned[0].upper() + cleaned[1:]
+
+    return {
+        "original_text": original_text,
+        "suggested_text": cleaned,
+        "explanation": "Converted passive phrasing into decisive, action-oriented recruiter syntax.",
+    }
+
+
+def generate_ats_fix_with_gemini(original_text: str, reason: str, rule_id: str) -> Dict[str, str]:
+    """
+    Surgically rewrites problematic resume text using Gemini (temp 0.1) with strict zero-hallucination policy.
+    """
+    client = get_genai_client()
+    if not client:
+        return fallback_ats_fix(original_text, reason, rule_id)
+
+    prompt = f"""You are an elite technical recruiter and ATS resume optimization specialist.
+Task: Surgically rewrite the following problematic resume text to resolve the ATS critique.
+
+CRITIQUE:
+{reason}
+
+RULE ID:
+{rule_id}
+
+SNIPPET TO REWRITE:
+"{original_text}"
+
+STRICT ZERO-HALLUCINATION & REWRITING RULES:
+1. STRICT TRUTHFULNESS: Never invent or hallucinate metrics, employers, dates, degrees, or tools not in the original snippet.
+2. If replacing weak passive phrases (e.g. 'responsible for', 'worked on'), lead with high-impact, active verbs (e.g. 'Engineered', 'Orchestrated', 'Spearheaded', 'Optimized', 'Delivered').
+3. If removing 1st-person pronouns ('I', 'me', 'my'), convert to implied-subject recruiter syntax.
+4. Keep the rewrite concise, professional, and impactful.
+5. Return ONLY a valid JSON object matching this schema:
+{{
+  "original_text": "{original_text}",
+  "suggested_text": "Rewritten professional text",
+  "explanation": "One clear sentence explaining why this change improves ATS scanning and recruiter impact."
+}}
+"""
+
+    models_to_try = [
+        "gemini-2.5-flash",
+        "gemini-2.0-flash",
+        "gemini-1.5-flash",
+    ]
+
+    for model in models_to_try:
+        try:
+            response = client.models.generate_content(
+                model=model,
+                contents=prompt,
+                config={"response_mime_type": "application/json", "temperature": 0.1},
+            )
+            if response and response.text:
+                clean = response.text.strip()
+                if clean.startswith("```json"):
+                    clean = clean[7:]
+                if clean.startswith("```"):
+                    clean = clean[3:]
+                if clean.endswith("```"):
+                    clean = clean[:-3]
+                parsed = json.loads(clean.strip())
+                if "suggested_text" in parsed and parsed["suggested_text"]:
+                    return {
+                        "original_text": original_text,
+                        "suggested_text": parsed["suggested_text"].strip(),
+                        "explanation": parsed.get("explanation", "Rewritten with strong action-oriented phrasing for ATS optimization."),
+                    }
+        except Exception as e:
+            logger.warning("Gemini ATS fix model %s returned error: %s", model, e)
+            continue
+
+    return fallback_ats_fix(original_text, reason, rule_id)
+
+
+@router.post("/{resume_id}/evaluate-ats")
+def evaluate_resume_ats(
+    resume_id: str,
+    user_id: str = Depends(get_current_user_id),
+):
+    """
+    Evaluates resume against deterministic 0-100 ATS rule engine,
+    updates readiness_score, readiness_label, and atsSuggestions in database,
+    and returns comprehensive breakdown and suggestions.
+    """
+    conn = get_connection()
+    cursor = conn.cursor(dictionary=True)
+    try:
+        cursor.execute("SELECT content FROM resumes WHERE id = %s AND user_id = %s", (resume_id, user_id))
+        row = cursor.fetchone()
+        if not row:
+            raise HTTPException(status_code=404, detail="Resume not found or unauthorized.")
+
+        resume_dict = json.loads(row["content"])
+        resume_data = ResumeData.model_validate(resume_dict)
+
+        eval_result = compute_deterministic_ats_score(resume_data)
+
+        # Update resume object
+        resume_data.readiness_score = eval_result["score"]
+        resume_data.readiness_label = eval_result["label"]
+        resume_data.atsSuggestions = eval_result["suggestions"]
+        resume_data.updated_at = datetime.now(timezone.utc).isoformat()
+
+        cursor.execute(
+            """
+            UPDATE resumes
+            SET readiness_score = %s, readiness_label = %s, content = %s, updated_at = CURRENT_TIMESTAMP
+            WHERE id = %s AND user_id = %s
+            """,
+            (
+                resume_data.readiness_score,
+                resume_data.readiness_label,
+                resume_data.model_dump_json(),
+                resume_id,
+                user_id,
+            ),
+        )
+        conn.commit()
+
+        return {
+            "resume_id": resume_id,
+            "readiness_score": eval_result["score"],
+            "readiness_label": eval_result["label"],
+            "content_hash": eval_result["content_hash"],
+            "breakdown": eval_result["breakdown"],
+            "suggestions": [s.model_dump() for s in eval_result["suggestions"]],
+        }
+    except HTTPException:
+        conn.rollback()
+        raise
+    except Exception as e:
+        conn.rollback()
+        logger.exception("Failed to evaluate resume ATS: %s", e)
+        raise HTTPException(status_code=500, detail=f"ATS evaluation failed: {str(e)}")
+    finally:
+        cursor.close()
+        conn.close()
+
+
+@router.post("/fix-ats")
+def fix_ats_suggestion(
+    req: FixATSRequest,
+    user_id: str = Depends(get_current_user_id),
+):
+    """
+    Applies surgical AI rewrite using Gemini (temp 0.1) with strict zero-hallucination policy.
+    Returns original text, suggested rewrite, and recruiter explanation.
+    """
+    try:
+        result = generate_ats_fix_with_gemini(req.original_text, req.reason, req.rule_id)
+        return result
+    except Exception as e:
+        logger.exception("Failed to generate ATS fix: %s", e)
+        return fallback_ats_fix(req.original_text, req.reason, req.rule_id)
+
+
+# ============================================================================
 # 4. Resume Upload & Real 5-Stage Analysis Pipeline
 # ============================================================================
 
@@ -999,45 +1784,10 @@ def fallback_deterministic_parse(raw_text: str, filename: str) -> Dict[str, Any]
 
 
 def compute_baseline_ats_score(resume_data: ResumeData) -> int:
-    """Computes deterministic baseline ATS score (0-100) based on resume completeness."""
-    score = 0
-    # 1. Contact info present (+20)
-    if resume_data.personal.name:
-        score += 5
-    if resume_data.personal.email:
-        score += 5
-    if resume_data.personal.phone:
-        score += 5
-    if resume_data.personal.location or resume_data.personal.links:
-        score += 5
+    """Computes deterministic baseline ATS score (0-100) using full rule engine."""
+    eval_res = compute_deterministic_ats_score(resume_data)
+    return eval_res["score"]
 
-    # 2. Summary present and length (+15)
-    if resume_data.summary and len(resume_data.summary.strip()) >= 50:
-        score += 15
-    elif resume_data.summary:
-        score += 8
-
-    # 3. Work section with bullets (+30)
-    work_sec = next((s for s in resume_data.sections if s.type == "work" and not s.hidden), None)
-    if work_sec and work_sec.items:
-        score += 15
-        total_bullets = sum(len(i.bullets) for i in work_sec.items)
-        if total_bullets >= 4:
-            score += 15
-        elif total_bullets >= 2:
-            score += 8
-
-    # 4. Education present (+15)
-    edu_sec = next((s for s in resume_data.sections if s.type == "education" and not s.hidden), None)
-    if edu_sec and edu_sec.items:
-        score += 15
-
-    # 5. Skills section present (+20)
-    skills_sec = next((s for s in resume_data.sections if s.type == "skills" and not s.hidden), None)
-    if skills_sec and skills_sec.items:
-        score += 20
-
-    return min(100, max(15, score))
 
 
 async def run_upload_pipeline(job_id: str, temp_path: Path, filename: str, user_id: str):
@@ -1165,9 +1915,10 @@ async def run_upload_pipeline(job_id: str, temp_path: Path, filename: str, user_
             updated_at=now_str,
         )
 
-        final_score = compute_baseline_ats_score(resume_obj)
-        resume_obj.readiness_score = final_score
-        resume_obj.readiness_label = calculate_readiness_label(final_score)
+        eval_res = compute_deterministic_ats_score(resume_obj)
+        resume_obj.readiness_score = eval_res["score"]
+        resume_obj.readiness_label = eval_res["label"]
+        resume_obj.atsSuggestions = eval_res["suggestions"]
 
         # Save to database
         conn = get_connection()
