@@ -647,10 +647,7 @@ def _default_ai_generator(history: List[Tuple[str, str]], message: str, context:
     )
 
     preferred = os.getenv("GEMINI_MODEL", "gemini-3.5-flash")
-    candidates = []
-    for m in ["gemini-3.5-flash", preferred, "gemini-3.5-flash-lite", "gemini-flash-latest"]:
-        if m and m not in candidates:
-            candidates.append(m)
+    candidates = list(dict.fromkeys([c for c in ["gemini-3.5-flash", preferred, "gemini-3.5-flash-lite", "gemini-flash-latest"] if c]))
 
     last_error = None
     for model_name in candidates:
@@ -660,6 +657,7 @@ def _default_ai_generator(history: List[Tuple[str, str]], message: str, context:
             if response and response.text:
                 return _clean_reply(response.text)
         except Exception as err:
+            logger.error("Gemini generate with model %s failed: %s (type=%s)", model_name, err, type(err).__name__)
             last_error = err
             continue
 
@@ -750,10 +748,10 @@ class ChatbotAssistant:
                     reply = _clean_reply(raw_reply)
                     source = "gemini" if reply else "fallback"
                     if not reply:
-                        reply = FALLBACK_REPLY
+                        reply = "I'm having trouble connecting to the AI service right now. Please try again in a moment."
                 except Exception as err:
-                    logger.warning("Gemini execution failed: %s, using fallback", err)
-                    reply = FALLBACK_REPLY
+                    logger.error("Gemini execution failed: %s (type=%s)", err, type(err).__name__)
+                    reply = "I'm having trouble connecting to the AI service right now. Please try again in a moment."
                     source = "fallback"
             else:
                 if intent == "resources":
@@ -813,16 +811,18 @@ class ChatbotAssistant:
             load_dotenv()
             load_dotenv("backend/.env")
             api_key = os.getenv("GEMINI_API_KEY")
+            if not api_key:
+                raise RuntimeError("GEMINI_API_KEY was not found")
             from google import genai
             from google.genai import types
             http_opts = types.HttpOptions(timeout=25000)
-            client = genai.Client(api_key=api_key, http_opts=http_opts) if hasattr(genai, 'Client') else genai.Client(api_key=api_key)
+            client = genai.Client(api_key=api_key, http_options=http_opts)
         except Exception as e:
-            logger.warning("Gemini client initialization failed: %s", e)
-            fallback = FALLBACK_REPLY
+            logger.error("Gemini client initialization failed: %s (type=%s)", e, type(e).__name__)
+            fallback = "I'm having trouble connecting to the AI service right now. Please try again in a moment."
             self._save_turn(sid, text, fallback)
             yield f"data: {json.dumps({'type': 'token', 'token': fallback})}\n\n"
-            yield f"data: {json.dumps({'type': 'done', 'session_id': sid, 'reply': fallback, 'suggestedChips': quick_replies(context), 'actionLinks': []})}\n\n"
+            yield f"data: {json.dumps({'type': 'done', 'session_id': sid, 'reply': fallback, 'suggestedChips': generate_followup_chips(fallback, text), 'actionLinks': []})}\n\n"
             return
 
         history = self.store.history(sid)
@@ -843,10 +843,7 @@ class ChatbotAssistant:
 
         full_reply_parts: List[str] = []
         preferred = os.getenv("GEMINI_MODEL", "gemini-3.5-flash")
-        candidates = [preferred]
-        for m in ["gemini-3.5-flash", "gemini-3.5-flash-lite", "gemini-3.1-flash-lite", "gemini-flash-latest"]:
-            if m not in candidates:
-                candidates.append(m)
+        candidates = list(dict.fromkeys([c for c in ["gemini-3.5-flash", preferred, "gemini-3.5-flash-lite", "gemini-flash-latest"] if c]))
 
         stream_success = False
         for model_name in candidates:
@@ -860,13 +857,13 @@ class ChatbotAssistant:
                 stream_success = True
                 break
             except Exception as stream_err:
-                logger.warning("Streaming with model %s failed: %s", model_name, stream_err)
+                logger.error("Streaming with model %s failed: %s (type=%s)", model_name, stream_err, type(stream_err).__name__)
                 time.sleep(0.3)
                 continue
 
         full_reply = "".join(full_reply_parts).strip()
         if not stream_success or not full_reply:
-            full_reply = FALLBACK_REPLY
+            full_reply = "I'm having trouble connecting to the AI service right now. Please try again in a moment."
             yield f"data: {json.dumps({'type': 'token', 'token': full_reply})}\n\n"
 
         self._save_turn(sid, text, full_reply)

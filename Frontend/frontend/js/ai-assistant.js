@@ -636,14 +636,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       quickReplies = ["Find Python Developer jobs", "Interview prep questions"];
 
     } else {
-      const userName = (currentUser && currentUser.name) ? currentUser.name.split(" ")[0] : "there";
-      reply = `Hello ${userName}! 👋 I am **JobNex AI Career Agent**, your dedicated career copilot.\n\n` +
-        `Here is what you can do right now:\n` +
-        `- 🔍 **Job Search:** Ask *"Find Python Developer jobs"* or *"Remote roles"*\n` +
-        `- 📚 **Learning Roadmaps:** Ask *"Courses for Docker & SQL"*\n` +
-        `- 📄 **Resume Review:** Ask *"How do I analyze my resume?"*\n` +
-        `- 🎯 **Interview Prep:** Ask *"Interview prep questions"*\n\n` +
-        `What role or skill are you targeting?`;
+      reply = `I am currently having trouble connecting to the JobNex AI service. Please ensure the backend server is running on port 8000, or try asking about job searches, resume analysis, courses, or interview prep.`;
       quickReplies = [
         "Find Python Developer jobs",
         "How do I analyze my resume?",
