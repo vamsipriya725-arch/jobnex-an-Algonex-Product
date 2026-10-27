@@ -213,6 +213,12 @@ document.addEventListener("DOMContentLoaded", async () => {
     clean = clean.replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>");
     // Italics
     clean = clean.replace(/\*(.*?)\*/g, "<em>$1</em>");
+    // Markdown links [title](url)
+    clean = clean.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer" class="text-brand-600 hover:text-brand-800 underline font-semibold transition-colors">$1</a>');
+    // Headers ### Title
+    clean = clean.replace(/^###\s+(.+)$/gm, "<h4 class='font-bold text-sm text-slate-800 mt-2 mb-1'>$1</h4>");
+    // Numbered lists 1. Item
+    clean = clean.replace(/^(\d+)\.\s+(.+)$/gm, "<div class='flex gap-2 items-start pl-2'><span class='text-brand-600 font-bold text-xs mt-0.5'>$1.</span><span>$2</span></div>");
     // Bullet points
     clean = clean.replace(/^-\s+(.+)$/gm, "<div class='flex gap-1.5 items-start pl-2'><span class='text-brand-500'>•</span><span>$1</span></div>");
     return clean;
@@ -232,6 +238,11 @@ document.addEventListener("DOMContentLoaded", async () => {
     const trimmed = content.trim();
     if (!trimmed || isChatLoading) return;
 
+    if (trimmed.length > 1000) {
+      alert("Please limit your message to 1000 characters.");
+      return;
+    }
+
     chatMessages.push({
       id: `user-${Date.now()}`,
       sender: "USER",
@@ -245,86 +256,162 @@ document.addEventListener("DOMContentLoaded", async () => {
     renderMessages();
 
     const lastAnalysis = getLastAnalysis();
-
-    // 1. Try Live Backend API if available
-    let data = null;
     const apiBase = getApiBase();
 
-    if (apiBase !== null) {
-      try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 3500);
-
-        const response = await fetch(`${apiBase}/api/chat`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          signal: controller.signal,
-          body: JSON.stringify({
-            message: trimmed,
-            session_id: sessionId,
-            analysis: lastAnalysis,
-            use_ai: true,
-            user_id: user ? (user.id || user.email || "guest") : "guest",
-          }),
-        });
-        clearTimeout(timeoutId);
-
-        if (response.ok) {
-          data = await response.json();
-          updateStatusBadge("gemini");
-        }
-      } catch (networkErr) {
-        console.info("Live backend unreachable, running autonomous client copilot engine:", networkErr.message);
-      }
-    }
-
-    // 2. Seamless Autonomous Copilot Fallback (if backend is offline, cloudflare workers, or mixed content)
-    if (!data) {
-      updateStatusBadge("copilot");
-      data = generateAutonomousCopilotReply(trimmed, lastAnalysis, user);
-    }
-
-    sessionId = data.session_id || sessionId;
-    try {
-      localStorage.setItem(SESSION_KEY, sessionId);
-    } catch (e) {}
-
-    // Determine dynamic action links based on context
-    const actionLinks = Array.isArray(data.actionLinks) && data.actionLinks.length > 0 ? [...data.actionLinks] : [];
-    const lowerReply = (data.reply || "").toLowerCase();
-    const lowerQuery = trimmed.toLowerCase();
-
-    if (actionLinks.length === 0) {
-      if (lowerQuery.includes("job") || lowerReply.includes("job") || lowerQuery.includes("role") || lowerQuery.includes("hiring")) {
-        actionLinks.push({ title: "View Matching Jobs", url: "jobs.html", type: "JOB" });
-      }
-      if (lowerQuery.includes("interview") || lowerReply.includes("interview")) {
-        actionLinks.push({ title: "Open Interview Simulator", url: "interview-prep.html", type: "INTERVIEW" });
-      }
-      if (lowerQuery.includes("course") || lowerReply.includes("course") || (data.resources && data.resources.length > 0)) {
-        actionLinks.push({ title: "View Learning Resources", url: "courses.html", type: "COURSE" });
-      }
-      if (lowerQuery.includes("resume") || lowerQuery.includes("ats") || lowerQuery.includes("analy")) {
-        actionLinks.push({ title: "Analyze Resume Fit", url: "resume-privacy.html", type: "RESUME" });
-      }
-    }
-
-    chatMessages.push({
-      id: `bot-${Date.now()}`,
+    // Placeholder bot response for streaming
+    const botMsgId = `bot-${Date.now()}`;
+    const botMsg = {
+      id: botMsgId,
       sender: "ASSISTANT",
-      content: data.reply || "I am here to assist with your career goals.",
+      content: "",
       timestamp: "Just now",
-      suggestedChips: data.quick_replies && data.quick_replies.length > 0 ? data.quick_replies : [
+      suggestedChips: [],
+      actionLinks: [],
+      resources: [],
+    };
+    chatMessages.push(botMsg);
+
+    let streamSucceeded = false;
+
+    if (apiBase !== null) {
+      const maxRetries = 2;
+      for (let attempt = 0; attempt <= maxRetries; attempt++) {
+        try {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 30000);
+
+          const response = await fetch(`${apiBase}/api/chat`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Accept": "text/event-stream, application/json",
+            },
+            signal: controller.signal,
+            body: JSON.stringify({
+              message: trimmed,
+              session_id: sessionId,
+              analysis: lastAnalysis,
+              use_ai: true,
+              user_id: user ? (user.id || user.email || "guest") : "guest",
+              stream: true,
+            }),
+          });
+          clearTimeout(timeoutId);
+
+          if (response.status === 429) {
+            botMsg.content = "⏳ You are sending messages too quickly. Please wait a moment and try again.";
+            streamSucceeded = true;
+            break;
+          }
+
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+          }
+
+          updateStatusBadge("gemini");
+          const contentType = response.headers.get("content-type") || "";
+
+          if (contentType.includes("text/event-stream") && response.body) {
+            isChatLoading = false; // Streaming tokens take over typing indicator
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder();
+            let buffer = "";
+
+            while (true) {
+              const { done, value } = await reader.read();
+              if (done) break;
+              buffer += decoder.decode(value, { stream: true });
+              const lines = buffer.split("\n\n");
+              buffer = lines.pop() || "";
+
+              for (const block of lines) {
+                for (const line of block.split("\n")) {
+                  if (line.startsWith("data: ")) {
+                    try {
+                      const payload = JSON.parse(line.slice(6));
+                      if (payload.type === "token" && payload.token) {
+                        botMsg.content += payload.token;
+                        renderMessages();
+                      } else if (payload.type === "done") {
+                        if (payload.session_id) {
+                          sessionId = payload.session_id;
+                          try { localStorage.setItem(SESSION_KEY, sessionId); } catch (e) {}
+                        }
+                        if (payload.reply && !botMsg.content) {
+                          botMsg.content = payload.reply;
+                        }
+                        botMsg.suggestedChips = payload.suggestedChips || payload.quick_replies || [];
+                        botMsg.actionLinks = payload.actionLinks || [];
+                        botMsg.resources = payload.resources || [];
+                      } else if (payload.type === "error") {
+                        botMsg.content = payload.message || "An error occurred.";
+                      }
+                    } catch (e) {}
+                  }
+                }
+              }
+            }
+            streamSucceeded = true;
+            break;
+          } else {
+            // Standard JSON response fallback
+            const data = await response.json();
+            botMsg.content = data.reply || "I am here to assist with your career goals.";
+            botMsg.suggestedChips = data.suggestedChips || data.quick_replies || [];
+            botMsg.actionLinks = data.actionLinks || [];
+            botMsg.resources = data.resources || [];
+            if (data.session_id) {
+              sessionId = data.session_id;
+              try { localStorage.setItem(SESSION_KEY, sessionId); } catch (e) {}
+            }
+            streamSucceeded = true;
+            break;
+          }
+        } catch (fetchErr) {
+          console.warn(`Attempt ${attempt + 1} failed:`, fetchErr.message);
+          if (attempt < maxRetries) {
+            await new Promise((r) => setTimeout(r, 800 * (attempt + 1)));
+          }
+        }
+      }
+    }
+
+    // Client-side fallback if backend was completely unreachable
+    if (!streamSucceeded || !botMsg.content) {
+      updateStatusBadge("copilot");
+      const offlineData = generateAutonomousCopilotReply(trimmed, lastAnalysis, user);
+      botMsg.content = offlineData.reply;
+      botMsg.suggestedChips = offlineData.quick_replies || [];
+      botMsg.actionLinks = offlineData.actionLinks || [];
+      botMsg.resources = offlineData.resources || [];
+    }
+
+    // Fallback default action links if none specified
+    if (!botMsg.actionLinks || botMsg.actionLinks.length === 0) {
+      const lower = botMsg.content.toLowerCase();
+      if (lower.includes("job") || lower.includes("hiring")) {
+        botMsg.actionLinks.push({ title: "View Matching Jobs", url: "jobs.html", type: "JOB" });
+      }
+      if (lower.includes("interview") || lower.includes("simulator")) {
+        botMsg.actionLinks.push({ title: "Open Interview Simulator", url: "interview-prep.html", type: "INTERVIEW" });
+      }
+      if (lower.includes("course") || lower.includes("docker") || lower.includes("sql")) {
+        botMsg.actionLinks.push({ title: "View Learning Resources", url: "courses.html", type: "COURSE" });
+      }
+      if (lower.includes("resume") || lower.includes("ats")) {
+        botMsg.actionLinks.push({ title: "Analyze Resume Fit", url: "resume-privacy.html", type: "RESUME" });
+      }
+    }
+
+    // Fallback chips if none specified
+    if (!botMsg.suggestedChips || botMsg.suggestedChips.length === 0) {
+      botMsg.suggestedChips = [
         "Find Python Developer jobs",
         "How do I analyze my resume?",
         "Courses for Docker & SQL",
         "Interview prep questions",
-      ],
-      resources: data.resources || [],
-      actionLinks: actionLinks.length > 0 ? actionLinks : undefined,
-    });
+      ];
+    }
 
     saveMessages();
     isChatLoading = false;
