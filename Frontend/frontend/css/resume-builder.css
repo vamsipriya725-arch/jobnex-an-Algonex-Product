@@ -148,3 +148,251 @@
   color: #059669;
   border: 1px solid #a7f3d0;
 }
+
+/* ==========================================================================
+   Phase 3: Editor Layout, Split Panels, Toolbar & A4 Preview Sheet
+   ========================================================================== */
+
+/* Split Pane Layout */
+.builder-layout-container {
+  display: flex;
+  height: calc(100vh - 72px);
+  height: calc(100dvh - 72px);
+  width: 100%;
+  overflow: hidden;
+  background-color: #f8fafc;
+}
+
+/* Left Icon Sidebar */
+.editor-icon-sidebar {
+  width: 72px;
+  background: #1e2030;
+  border-right: 1px solid #2e3049;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 0;
+  flex-shrink: 0;
+  z-index: 20;
+}
+
+.sidebar-tab-btn {
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: #9ba3d2;
+  transition: all 0.2s ease;
+  position: relative;
+  cursor: pointer;
+}
+
+.sidebar-tab-btn:hover {
+  color: #ffffff;
+  background-color: rgba(255, 255, 255, 0.08);
+}
+
+.sidebar-tab-btn.is-active {
+  color: #ffffff;
+  background: linear-gradient(135deg, #646ca6, #505787);
+  box-shadow: 0 4px 12px rgba(80, 87, 135, 0.4);
+}
+
+.sidebar-tab-btn .tab-tooltip {
+  position: absolute;
+  left: 64px;
+  background-color: #0f172a;
+  color: #ffffff;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.15s ease;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  z-index: 50;
+}
+
+.sidebar-tab-btn:hover .tab-tooltip {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* Middle Content Editor Panel */
+.editor-middle-panel {
+  flex: 0 0 520px;
+  min-width: 380px;
+  max-width: 760px;
+  background: #ffffff;
+  border-right: 1px solid #e2e8f0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  transition: width 0.05s ease;
+}
+
+.editor-middle-panel.is-collapsed {
+  display: none !important;
+}
+
+/* Resizer Handle */
+.editor-resizer-bar {
+  width: 8px;
+  background-color: #f1f5f9;
+  border-left: 1px solid #e2e8f0;
+  border-right: 1px solid #e2e8f0;
+  cursor: col-resize;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  user-select: none;
+  transition: background-color 0.2s ease;
+  position: relative;
+  z-index: 10;
+}
+
+.editor-resizer-bar:hover,
+.editor-resizer-bar.is-dragging {
+  background-color: #646ca6;
+}
+
+.editor-resizer-handle {
+  width: 3px;
+  height: 24px;
+  border-radius: 2px;
+  background-color: #cbd5e1;
+}
+
+.editor-resizer-bar:hover .editor-resizer-handle,
+.editor-resizer-bar.is-dragging .editor-resizer-handle {
+  background-color: #ffffff;
+}
+
+/* Right Live Preview Panel */
+.editor-preview-panel {
+  flex: 1 1 0%;
+  min-width: 440px;
+  background-color: #f1f5f9;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+/* Preview Toolbar */
+.preview-toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 15;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid #e2e8f0;
+  padding: 0.6rem 1.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+}
+
+/* A4 Paper Preview Canvas */
+.preview-sheet-wrapper {
+  padding: 2rem 1rem;
+  display: flex;
+  justify-content: center;
+  width: 100%;
+}
+
+.resume-sheet {
+  width: 100%;
+  max-width: 794px; /* A4 width at 96 DPI */
+  min-height: 1123px; /* A4 height at 96 DPI */
+  background: #ffffff;
+  box-shadow: 0 10px 30px -5px rgba(15, 23, 42, 0.15), 0 0 0 1px rgba(15, 23, 42, 0.05);
+  border-radius: 2px;
+  margin: 0 auto;
+  transition: all 0.2s ease;
+  position: relative;
+  box-sizing: border-box;
+}
+
+/* Page Break Indicator for Visual Multi-page Feedback */
+.page-break-indicator {
+  position: absolute;
+  top: 1123px;
+  left: -20px;
+  right: -20px;
+  height: 2px;
+  border-top: 2px dashed #94a3b8;
+  pointer-events: none;
+}
+.page-break-indicator::after {
+  content: 'Page 2 Start';
+  position: absolute;
+  right: 0;
+  top: -18px;
+  font-size: 10px;
+  font-weight: 700;
+  color: #64748b;
+  background: #f1f5f9;
+  padding: 1px 6px;
+  border-radius: 4px;
+}
+
+/* "Fit to Single Page" Mode Overrides */
+.resume-sheet.fit-single-page {
+  max-height: 1123px !important;
+  overflow: hidden !important;
+}
+
+/* Print Isolation Pipeline */
+@media print {
+  body {
+    background: #ffffff !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+  #navbar-container,
+  .editor-icon-sidebar,
+  .editor-middle-panel,
+  .editor-resizer-bar,
+  .preview-toolbar,
+  .modal-backdrop,
+  #builder-toast,
+  #jobnex-robo-launcher,
+  #builder-dashboard-view {
+    display: none !important;
+  }
+  .builder-layout-container {
+    height: auto !important;
+    background: #ffffff !important;
+  }
+  .editor-preview-panel {
+    background: #ffffff !important;
+    padding: 0 !important;
+    overflow: visible !important;
+  }
+  .preview-sheet-wrapper {
+    padding: 0 !important;
+  }
+  .resume-sheet {
+    box-shadow: none !important;
+    border: none !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-height: auto !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+  .page-break-indicator {
+    display: none !important;
+  }
+}

@@ -566,9 +566,271 @@
     </div>
   </div>
 
-  <!-- EDITOR PLACEHOLDER VIEW (Will be filled and toggled in Phase 3) -->
-  <div id="builder-editor-view" class="hidden flex-1 w-full h-[calc(100vh-72px)] overflow-hidden">
-    <!-- Editor and Live Preview rendered in Phase 3 -->
+  <!-- EDITOR VIEW (Phase 3 Editor Layout and Live Preview) -->
+  <div id="builder-editor-view" class="hidden builder-layout-container">
+    <!-- 1. Left Icon Sidebar -->
+    <aside class="editor-icon-sidebar">
+      <div class="flex flex-col items-center gap-3">
+        <!-- Back to All Resumes -->
+        <button
+          id="btn-sidebar-back"
+          type="button"
+          class="sidebar-tab-btn"
+          title="Back to All Resumes"
+        >
+          <i data-lucide="arrow-left" class="w-5 h-5"></i>
+          <span class="tab-tooltip">Back to All Resumes</span>
+        </button>
+
+        <div class="w-8 h-px bg-slate-800 my-1"></div>
+
+        <!-- Tab 1: Edit Content -->
+        <button
+          id="tab-btn-content"
+          type="button"
+          class="sidebar-tab-btn is-active"
+          data-tab="content"
+          title="Edit Content"
+        >
+          <i data-lucide="file-text" class="w-5 h-5"></i>
+          <span class="tab-tooltip">Edit Content</span>
+        </button>
+
+        <!-- Tab 2: Customize Template -->
+        <button
+          id="tab-btn-template"
+          type="button"
+          class="sidebar-tab-btn"
+          data-tab="template"
+          title="Customize Template"
+        >
+          <i data-lucide="palette" class="w-5 h-5"></i>
+          <span class="tab-tooltip">Customize Template</span>
+        </button>
+
+        <!-- Tab 3: ATS Score -->
+        <button
+          id="tab-btn-ats"
+          type="button"
+          class="sidebar-tab-btn"
+          data-tab="ats"
+          title="ATS Score"
+        >
+          <i data-lucide="shield-check" class="w-5 h-5"></i>
+          <span id="sidebar-ats-badge" class="absolute -top-1 -right-1 px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-amber-500 text-slate-950">
+            0%
+          </span>
+          <span class="tab-tooltip">ATS Score</span>
+        </button>
+
+        <!-- Tab 4: Optimize for Job -->
+        <button
+          id="tab-btn-optimize"
+          type="button"
+          class="sidebar-tab-btn"
+          data-tab="optimize"
+          title="Optimize for Job"
+        >
+          <i data-lucide="sparkles" class="w-5 h-5"></i>
+          <span class="tab-tooltip">Optimize for Job</span>
+        </button>
+      </div>
+
+      <!-- Bottom controls / user avatar -->
+      <div class="flex flex-col items-center gap-2">
+        <div id="sidebar-save-indicator" class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" title="Changes auto-saved"></div>
+      </div>
+    </aside>
+
+    <!-- 2. Middle Content Panel (Tab Panes) -->
+    <div id="editor-middle-panel" class="editor-middle-panel">
+      <!-- Middle Header -->
+      <div class="p-4 border-b border-slate-200 flex items-center justify-between gap-3 bg-white sticky top-0 z-10">
+        <div class="flex items-center gap-2 flex-1 min-w-0">
+          <input
+            id="editor-resume-title-input"
+            type="text"
+            value="Untitled Resume"
+            class="text-sm font-bold text-slate-900 bg-transparent border-b border-transparent hover:border-slate-300 focus:border-brand-500 focus:bg-slate-50 px-1 py-0.5 rounded outline-none truncate w-full"
+            title="Click to rename resume"
+          />
+        </div>
+        <div class="flex items-center gap-2 shrink-0">
+          <button
+            id="btn-toggle-active-status"
+            type="button"
+            class="text-[11px] font-bold px-2.5 py-1 rounded-full border transition-all cursor-pointer"
+          >
+            <!-- Rendered dynamically -->
+          </button>
+          <button
+            id="btn-collapse-middle"
+            type="button"
+            class="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 cursor-pointer"
+            title="Collapse Editor to View Full Preview"
+          >
+            <i data-lucide="chevrons-left" class="w-4 h-4"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Tab Content Panes Container -->
+      <div class="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6">
+        <!-- Pane 1: Edit Content (Form controls implemented in Phase 4) -->
+        <div id="pane-content" class="tab-pane space-y-6">
+          <div class="p-4 rounded-xl bg-brand-50/70 border border-brand-100 flex items-center justify-between">
+            <div>
+              <h3 class="text-xs font-bold text-brand-900 m-0">Live Content Editor</h3>
+              <p class="text-[11px] text-brand-700 m-0 mt-0.5">Edit sections, bullets, and personal details. The preview updates instantly.</p>
+            </div>
+            <span class="text-[10px] font-bold text-brand-700 bg-white px-2 py-0.5 rounded-md shadow-2xs">Phase 3 Active</span>
+          </div>
+
+          <!-- Quick Personal Info Form -->
+          <div class="bg-white rounded-xl border border-slate-200 p-4 space-y-3 shadow-2xs">
+            <h4 class="text-xs font-bold text-slate-900 uppercase tracking-wider m-0">Personal Contact</h4>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label for="inp-personal-name" class="text-[11px] font-semibold text-slate-600">Full Name</label>
+                <input id="inp-personal-name" type="text" placeholder="e.g. Elena Rostova" class="w-full mt-1 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-900 outline-none focus:border-brand-500 focus:bg-white" />
+              </div>
+              <div>
+                <label for="inp-personal-email" class="text-[11px] font-semibold text-slate-600">Email Address</label>
+                <input id="inp-personal-email" type="email" placeholder="e.g. elena@example.com" class="w-full mt-1 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-900 outline-none focus:border-brand-500 focus:bg-white" />
+              </div>
+              <div>
+                <label for="inp-personal-phone" class="text-[11px] font-semibold text-slate-600">Phone</label>
+                <input id="inp-personal-phone" type="text" placeholder="e.g. +1 (555) 019-2834" class="w-full mt-1 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-900 outline-none focus:border-brand-500 focus:bg-white" />
+              </div>
+              <div>
+                <label for="inp-personal-location" class="text-[11px] font-semibold text-slate-600">Location</label>
+                <input id="inp-personal-location" type="text" placeholder="e.g. San Francisco, CA (or Remote)" class="w-full mt-1 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-900 outline-none focus:border-brand-500 focus:bg-white" />
+              </div>
+            </div>
+            <div>
+              <label for="inp-personal-summary" class="text-[11px] font-semibold text-slate-600">Professional Summary</label>
+              <textarea id="inp-personal-summary" rows="3" placeholder="Compelling summary highlighting your qualifications..." class="w-full mt-1 p-3 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-900 outline-none focus:border-brand-500 focus:bg-white leading-relaxed"></textarea>
+            </div>
+          </div>
+
+          <!-- Section Summary Card -->
+          <div id="content-sections-container" class="space-y-4">
+            <!-- Rendered by Phase 4 or Phase 3 section preview -->
+          </div>
+        </div>
+
+        <!-- Pane 2: Customize Template (Phase 5) -->
+        <div id="pane-template" class="tab-pane hidden space-y-6">
+          <div class="p-4 rounded-xl bg-slate-50 border border-slate-200">
+            <h3 class="text-xs font-bold text-slate-900 m-0">Template Gallery & Typography</h3>
+            <p class="text-[11px] text-slate-500 m-0 mt-0.5">Customize font families, line heights, and margin padding live.</p>
+          </div>
+        </div>
+
+        <!-- Pane 3: ATS Score (Phase 6) -->
+        <div id="pane-ats" class="tab-pane hidden space-y-6">
+          <div class="p-4 rounded-xl bg-slate-50 border border-slate-200">
+            <h3 class="text-xs font-bold text-slate-900 m-0">ATS Score & Rule Engine</h3>
+            <p class="text-[11px] text-slate-500 m-0 mt-0.5">Deterministic evaluation and AI-assisted surgical rewrites.</p>
+          </div>
+        </div>
+
+        <!-- Pane 4: Optimize for Job (Phase 7) -->
+        <div id="pane-optimize" class="tab-pane hidden space-y-6">
+          <div class="p-4 rounded-xl bg-slate-50 border border-slate-200">
+            <h3 class="text-xs font-bold text-slate-900 m-0">Job Description Matcher</h3>
+            <p class="text-[11px] text-slate-500 m-0 mt-0.5">Compare against target job postings with strict evidence verification.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3. Draggable Split Resizer Bar -->
+    <div id="editor-resizer-bar" class="editor-resizer-bar" title="Drag horizontally to resize middle & preview panels">
+      <div class="editor-resizer-handle"></div>
+    </div>
+
+    <!-- 4. Right Live Preview Panel -->
+    <div id="editor-preview-panel" class="editor-preview-panel">
+      <!-- Preview Toolbar -->
+      <div class="preview-toolbar">
+        <div class="flex items-center gap-2">
+          <!-- View mode toggle -->
+          <button
+            id="btn-toggle-editor-collapse"
+            type="button"
+            class="px-2.5 py-1.5 rounded-lg border border-slate-200 text-xs font-semibold text-slate-700 hover:bg-slate-100 flex items-center gap-1.5 cursor-pointer shadow-2xs"
+            title="Expand Preview to Full Width"
+          >
+            <i data-lucide="maximize-2" class="w-3.5 h-3.5 text-slate-500"></i>
+            <span id="btn-toggle-collapse-label">Full Preview</span>
+          </button>
+
+          <!-- Undo / Redo controls -->
+          <div class="flex items-center gap-1 bg-slate-100 p-0.5 rounded-lg border border-slate-200">
+            <button
+              id="btn-preview-undo"
+              type="button"
+              class="p-1.5 rounded text-slate-600 hover:text-slate-900 hover:bg-white disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors"
+              title="Undo (Ctrl+Z)"
+              disabled
+            >
+              <i data-lucide="undo-2" class="w-3.5 h-3.5"></i>
+            </button>
+            <button
+              id="btn-preview-redo"
+              type="button"
+              class="p-1.5 rounded text-slate-600 hover:text-slate-900 hover:bg-white disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors"
+              title="Redo (Ctrl+Y)"
+              disabled
+            >
+              <i data-lucide="redo-2" class="w-3.5 h-3.5"></i>
+            </button>
+          </div>
+
+          <!-- Save status pill -->
+          <span id="toolbar-save-status" class="inline-flex items-center gap-1 text-[11px] font-semibold text-slate-500 bg-slate-50 px-2 py-0.5 rounded-md border border-slate-200">
+            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+            <span>Saved</span>
+          </span>
+        </div>
+
+        <div class="flex items-center gap-3">
+          <!-- Page indicator -->
+          <span id="preview-page-indicator" class="text-xs font-semibold text-slate-500">
+            Page 1 of 1
+          </span>
+
+          <!-- Fit to single page switch -->
+          <label class="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-700 cursor-pointer select-none">
+            <input id="toggle-fit-single-page" type="checkbox" class="rounded text-brand-600 focus:ring-brand-500 cursor-pointer" />
+            <span>Fit to single page</span>
+          </label>
+
+          <!-- Export PDF -->
+          <button
+            id="btn-export-pdf"
+            type="button"
+            class="px-3.5 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs flex items-center gap-1.5 shadow-sm cursor-pointer transition-colors"
+            title="Print or Save as PDF"
+          >
+            <i data-lucide="printer" class="w-3.5 h-3.5"></i>
+            <span>Export PDF</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Live A4 Paper Sheet Wrapper -->
+      <div class="preview-sheet-wrapper">
+        <div id="resume-preview-sheet" class="resume-sheet">
+          <!-- Rendered dynamically by renderResumePreview(resumeData) -->
+          <div class="p-10 text-center text-slate-400">
+            <i data-lucide="loader-2" class="w-6 h-6 animate-spin mx-auto text-brand-500 mb-2"></i>
+            <p class="text-xs font-medium">Rendering resume preview...</p>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 
   <!-- Global Scripts -->

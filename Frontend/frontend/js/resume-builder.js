@@ -674,18 +674,358 @@
   }
 
   // =========================================================================
-  // Editor Transition
+  // Phase 3: Editor Layout, Live Preview & Resizer Engine
   // =========================================================================
 
   function openEditor(resumeId) {
-    // Phase 2 transition logic: loads resume into store and notifies user
     window.JobNexResumeStore.loadResume(resumeId)
       .then((resume) => {
+        // Toggle view from Dashboard to Editor
+        DOM.dashboardView.classList.add("hidden");
+        DOM.editorView.classList.remove("hidden");
+
+        populateEditorInputs(resume);
+        renderResumePreview(resume);
+        updateUndoRedoUI();
+        updateSaveStatusUI(window.JobNexResumeStore.saveStatus);
+
         showToast("Resume Loaded", `Ready to edit "${resume.name}"`);
       })
       .catch((err) => {
         showToast("Error", err.message, true);
       });
+  }
+
+  function closeEditor() {
+    window.JobNexResumeStore.saveNow();
+    DOM.editorView.classList.add("hidden");
+    DOM.dashboardView.classList.remove("hidden");
+    loadDashboard();
+  }
+
+  function populateEditorInputs(resume) {
+    if (!resume) return;
+
+    // Header title
+    const titleInput = document.getElementById("editor-resume-title-input");
+    if (titleInput) titleInput.value = resume.name || "Untitled Resume";
+
+    // Active status button
+    const activeBtn = document.getElementById("btn-toggle-active-status");
+    if (activeBtn) {
+      if (resume.is_active) {
+        activeBtn.className = "text-[11px] font-bold px-2.5 py-1 rounded-full bg-brand-100 text-brand-800 border border-brand-200 flex items-center gap-1 cursor-default";
+        activeBtn.innerHTML = '<i data-lucide="check" class="w-3 h-3 text-brand-600"></i><span>Active Resume</span>';
+      } else {
+        activeBtn.className = "text-[11px] font-bold px-2.5 py-1 rounded-full bg-slate-100 text-slate-700 hover:bg-brand-50 hover:text-brand-700 hover:border-brand-300 border border-slate-200 transition-colors cursor-pointer";
+        activeBtn.innerHTML = '<span>Make Active</span>';
+      }
+    }
+
+    // Sidebar ATS badge
+    const atsBadge = document.getElementById("sidebar-ats-badge");
+    if (atsBadge) {
+      atsBadge.textContent = `${resume.readiness_score || 0}%`;
+      const label = resume.readiness_label || "Poor";
+      if (label === "Excellent") atsBadge.className = "absolute -top-1 -right-1 px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-emerald-500 text-white";
+      else if (label === "Good") atsBadge.className = "absolute -top-1 -right-1 px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-blue-500 text-white";
+      else if (label === "Okayish") atsBadge.className = "absolute -top-1 -right-1 px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-amber-500 text-slate-950";
+      else atsBadge.className = "absolute -top-1 -right-1 px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-rose-500 text-white";
+    }
+
+    // Personal info inputs
+    const p = resume.personal || {};
+    const nameInp = document.getElementById("inp-personal-name");
+    const emailInp = document.getElementById("inp-personal-email");
+    const phoneInp = document.getElementById("inp-personal-phone");
+    const locInp = document.getElementById("inp-personal-location");
+    const sumInp = document.getElementById("inp-personal-summary");
+
+    if (nameInp) nameInp.value = p.name || "";
+    if (emailInp) emailInp.value = p.email || "";
+    if (phoneInp) phoneInp.value = p.phone || "";
+    if (locInp) locInp.value = p.location || "";
+    if (sumInp) sumInp.value = resume.summary || "";
+
+    if (typeof lucide !== "undefined" && lucide.createIcons) lucide.createIcons();
+  }
+
+  function switchEditorTab(tabKey) {
+    document.querySelectorAll(".sidebar-tab-btn").forEach((btn) => {
+      btn.classList.toggle("is-active", btn.getAttribute("data-tab") === tabKey);
+    });
+
+    document.querySelectorAll(".tab-pane").forEach((pane) => {
+      pane.classList.add("hidden");
+    });
+
+    const activePane = document.getElementById(`pane-${tabKey}`);
+    if (activePane) activePane.classList.remove("hidden");
+  }
+
+  /**
+   * High-Fidelity Live Resume Preview Renderer
+   * CRITICAL ZERO-PLACEHOLDER RULE:
+   * NEVER renders empty placeholders like "[Location]" or "[Employment Type]".
+   * Hides empty fields and empty/hidden sections completely.
+   */
+  function renderResumePreview(resume) {
+    const sheet = document.getElementById("resume-preview-sheet");
+    if (!sheet || !resume) return;
+
+    const t = resume.templateSettings || {
+      fontFamily: "Plus Jakarta Sans",
+      fontSize: 10.5,
+      lineHeight: 1.45,
+      sectionGap: 16,
+      itemSpacing: 10,
+      paddingTop: 24,
+      paddingBottom: 24,
+      paddingSide: 28,
+      primaryColor: "#2e3049",
+      headingStyle: "bold",
+    };
+
+    // Apply templateSettings styles
+    sheet.style.fontFamily = `"${t.fontFamily}", Inter, sans-serif`;
+    sheet.style.fontSize = `${t.fontSize}pt`;
+    sheet.style.lineHeight = `${t.lineHeight}`;
+    sheet.style.padding = `${t.paddingTop}px ${t.paddingSide}px ${t.paddingBottom}px ${t.paddingSide}px`;
+    sheet.style.color = "#1f2937";
+
+    const primaryColor = t.primaryColor || "#2e3049";
+    const headingTransform = t.headingStyle === "uppercase" ? "uppercase" : "none";
+    const headingDecoration = t.headingStyle === "underline" ? "border-b border-slate-300 pb-1" : "";
+
+    let html = "";
+
+    // 1. Header (Candidate Name & Contact Info)
+    const p = resume.personal || {};
+    const candidateName = p.name ? p.name.trim() : "";
+
+    html += `<div class="preview-header text-center" style="margin-bottom: ${t.sectionGap}px;">`;
+    if (candidateName) {
+      html += `<h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight m-0" style="color: ${primaryColor};">${escapeHtml(candidateName)}</h1>`;
+    }
+
+    // Build contact elements array, omitting any empty attributes
+    const contactParts = [];
+    if (p.email && p.email.trim()) {
+      contactParts.push(`<a href="mailto:${escapeHtml(p.email.trim())}" class="hover:underline text-slate-700">${escapeHtml(p.email.trim())}</a>`);
+    }
+    if (p.phone && p.phone.trim()) {
+      contactParts.push(`<span class="text-slate-700">${escapeHtml(p.phone.trim())}</span>`);
+    }
+    if (p.location && p.location.trim()) {
+      contactParts.push(`<span class="text-slate-700">${escapeHtml(p.location.trim())}</span>`);
+    }
+    if (p.links && Array.isArray(p.links)) {
+      p.links.forEach((l) => {
+        if (l.url && l.url.trim()) {
+          const label = l.label && l.label.trim() ? l.label.trim() : "Portfolio";
+          contactParts.push(`<a href="${escapeHtml(l.url.trim())}" target="_blank" rel="noopener" class="hover:underline text-brand-700 font-medium">${escapeHtml(label)}</a>`);
+        }
+      });
+    }
+
+    if (contactParts.length > 0) {
+      html += `<div class="text-[9.5pt] text-slate-600 mt-2 flex flex-wrap items-center justify-center gap-x-2 gap-y-1">${contactParts.join(' <span class="text-slate-300">•</span> ')}</div>`;
+    }
+    html += `</div>`;
+
+    // 2. Summary Section (Omitted entirely if empty)
+    if (resume.summary && resume.summary.trim()) {
+      html += `
+        <div class="preview-summary-section" style="margin-bottom: ${t.sectionGap}px;">
+          <h2 class="text-xs font-bold tracking-wider mb-1.5 ${headingDecoration}" style="color: ${primaryColor}; text-transform: ${headingTransform};">
+            Professional Summary
+          </h2>
+          <p class="text-[9.5pt] text-slate-700 leading-relaxed m-0 text-justify">
+            ${escapeHtml(resume.summary.trim())}
+          </p>
+        </div>
+      `;
+    }
+
+    // 3. Sections
+    const sections = resume.sections || [];
+    for (const sec of sections) {
+      if (sec.hidden) continue;
+
+      const visibleItems = (sec.items || []).filter((i) => !i.hidden);
+      // Zero-placeholder: If section has no visible items and no text, hide the section header
+      if (visibleItems.length === 0) continue;
+
+      html += `<div class="preview-section" style="margin-bottom: ${t.sectionGap}px;">`;
+      html += `
+        <h2 class="text-xs font-bold tracking-wider mb-2 ${headingDecoration} border-b border-slate-200 pb-1" style="color: ${primaryColor}; text-transform: ${headingTransform};">
+          ${escapeHtml(sec.title || "Section")}
+        </h2>
+      `;
+
+      html += `<div class="space-y-[${t.itemSpacing}px]" style="display: flex; flex-direction: column; gap: ${t.itemSpacing}px;">`;
+
+      for (const itm of visibleItems) {
+        html += `<div class="preview-item">`;
+
+        // Item Header Line: Title & Organization on left, Dates & Location on right
+        const hasTitle = itm.title && itm.title.trim();
+        const hasOrg = itm.organization && itm.organization.trim();
+        const hasDates = itm.dates && itm.dates.trim();
+        const hasLoc = itm.location && itm.location.trim();
+
+        if (hasTitle || hasOrg || hasDates || hasLoc) {
+          html += `<div class="flex flex-col sm:flex-row sm:items-baseline justify-between text-[9.5pt] leading-snug">`;
+          html += `<div class="font-bold text-slate-900">`;
+          if (hasTitle) html += `<span>${escapeHtml(itm.title.trim())}</span>`;
+          if (hasTitle && hasOrg) html += `<span class="text-slate-400 font-normal"> | </span>`;
+          if (hasOrg) html += `<span class="text-slate-700 font-semibold">${escapeHtml(itm.organization.trim())}</span>`;
+          html += `</div>`;
+
+          if (hasDates || hasLoc) {
+            html += `<div class="text-[9pt] text-slate-500 font-medium whitespace-nowrap">`;
+            if (hasDates) html += `<span>${escapeHtml(itm.dates.trim())}</span>`;
+            if (hasDates && hasLoc) html += `<span>, </span>`;
+            if (hasLoc) html += `<span>${escapeHtml(itm.location.trim())}</span>`;
+            html += `</div>`;
+          }
+          html += `</div>`;
+        }
+
+        // Item Bullets
+        const validBullets = (itm.bullets || []).filter((b) => b && typeof b === "string" && b.trim());
+        if (validBullets.length > 0) {
+          html += `<ul class="list-disc pl-4 text-[9.5pt] text-slate-700 space-y-1 mt-1.5 leading-relaxed">`;
+          for (const bullet of validBullets) {
+            html += `<li>${escapeHtml(bullet.trim())}</li>`;
+          }
+          html += `</ul>`;
+        }
+
+        // Technologies tags / list
+        const validTech = (itm.technologies || []).filter((tc) => tc && typeof tc === "string" && tc.trim());
+        if (validTech.length > 0) {
+          html += `<div class="text-[8.5pt] text-slate-500 mt-1.5">`;
+          html += `<strong class="text-slate-700 font-semibold">Key Skills:</strong> ${validTech.map(escapeHtml).join(", ")}`;
+          html += `</div>`;
+        }
+
+        html += `</div>`; // end item
+      }
+
+      html += `</div>`; // end items container
+      html += `</div>`; // end section
+    }
+
+    sheet.innerHTML = html;
+
+    // Recalculate Page Count & Breaks
+    updatePageIndicatorAndBreaks();
+  }
+
+  function updatePageIndicatorAndBreaks() {
+    const sheet = document.getElementById("resume-preview-sheet");
+    const indicator = document.getElementById("preview-page-indicator");
+    if (!sheet || !indicator) return;
+
+    const A4_HEIGHT_PX = 1123;
+    const scrollHeight = sheet.scrollHeight;
+
+    // Remove any existing page break indicator
+    sheet.querySelectorAll(".page-break-indicator").forEach((el) => el.remove());
+
+    if (scrollHeight > A4_HEIGHT_PX + 20) {
+      const pageCount = Math.ceil(scrollHeight / A4_HEIGHT_PX);
+      indicator.textContent = `Page 1 of ${pageCount}`;
+
+      // Insert visual page break indicator
+      const breakEl = document.createElement("div");
+      breakEl.className = "page-break-indicator";
+      sheet.appendChild(breakEl);
+    } else {
+      indicator.textContent = "Page 1 of 1";
+    }
+  }
+
+  function updateUndoRedoUI() {
+    if (DOM.btnPreviewUndo) {
+      DOM.btnPreviewUndo.disabled = !window.JobNexResumeStore.canUndo();
+    }
+    if (DOM.btnPreviewRedo) {
+      DOM.btnPreviewRedo.disabled = !window.JobNexResumeStore.canRedo();
+    }
+  }
+
+  function updateSaveStatusUI(statusText) {
+    if (!DOM.toolbarSaveStatus) return;
+    const text = statusText || "Saved";
+
+    if (text === "Saving...") {
+      DOM.toolbarSaveStatus.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-amber-500 animate-ping"></span><span>Saving...</span>';
+      DOM.toolbarSaveStatus.className = "inline-flex items-center gap-1 text-[11px] font-semibold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200";
+    } else if (text === "Unsaved") {
+      DOM.toolbarSaveStatus.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span><span>Unsaved changes</span>';
+      DOM.toolbarSaveStatus.className = "inline-flex items-center gap-1 text-[11px] font-semibold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200";
+    } else if (text === "Error") {
+      DOM.toolbarSaveStatus.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span><span>Save error</span>';
+      DOM.toolbarSaveStatus.className = "inline-flex items-center gap-1 text-[11px] font-semibold text-rose-700 bg-rose-50 px-2 py-0.5 rounded-md border border-rose-200";
+    } else {
+      DOM.toolbarSaveStatus.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span><span>Saved</span>';
+      DOM.toolbarSaveStatus.className = "inline-flex items-center gap-1 text-[11px] font-semibold text-slate-500 bg-slate-50 px-2 py-0.5 rounded-md border border-slate-200";
+    }
+  }
+
+  // =========================================================================
+  // Resizer and Panel Collapse Logic
+  // =========================================================================
+
+  function initSplitResizer() {
+    const resizer = document.getElementById("editor-resizer-bar");
+    const middlePanel = document.getElementById("editor-middle-panel");
+    if (!resizer || !middlePanel) return;
+
+    let isDragging = false;
+
+    resizer.addEventListener("mousedown", (e) => {
+      e.preventDefault();
+      isDragging = true;
+      resizer.classList.add("is-dragging");
+      document.body.style.cursor = "col-resize";
+      document.body.style.userSelect = "none";
+    });
+
+    window.addEventListener("mousemove", (e) => {
+      if (!isDragging) return;
+      const sidebarWidth = 72;
+      const newWidth = Math.max(360, Math.min(e.clientX - sidebarWidth, 760));
+      middlePanel.style.flex = `0 0 ${newWidth}px`;
+      middlePanel.style.width = `${newWidth}px`;
+    });
+
+    window.addEventListener("mouseup", () => {
+      if (isDragging) {
+        isDragging = false;
+        resizer.classList.remove("is-dragging");
+        document.body.style.cursor = "";
+        document.body.style.userSelect = "";
+      }
+    });
+
+    // Collapse Middle Panel Toggle
+    const btnCollapse = document.getElementById("btn-collapse-middle");
+    const btnToggleEditor = document.getElementById("btn-toggle-editor-collapse");
+    const labelToggle = document.getElementById("btn-toggle-collapse-label");
+
+    function toggleMiddleCollapse() {
+      const isCollapsed = middlePanel.classList.toggle("is-collapsed");
+      if (labelToggle) {
+        labelToggle.textContent = isCollapsed ? "Show Editor" : "Full Preview";
+      }
+      updatePageIndicatorAndBreaks();
+    }
+
+    if (btnCollapse) btnCollapse.addEventListener("click", toggleMiddleCollapse);
+    if (btnToggleEditor) btnToggleEditor.addEventListener("click", toggleMiddleCollapse);
   }
 
   // =========================================================================
@@ -909,11 +1249,140 @@
       }
     });
 
-    // Subscribe to store updates
+    // -----------------------------------------------------------------------
+    // Phase 3 Event Listeners
+    // -----------------------------------------------------------------------
+
+    // Back to Dashboard
+    document.getElementById("btn-sidebar-back")?.addEventListener("click", () => {
+      closeEditor();
+    });
+
+    // Sidebar Tab Switching
+    document.querySelectorAll(".sidebar-tab-btn[data-tab]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const tab = btn.getAttribute("data-tab");
+        switchEditorTab(tab);
+      });
+    });
+
+    // Rename title inline in editor header
+    const editorTitleInput = document.getElementById("editor-resume-title-input");
+    editorTitleInput?.addEventListener("change", async (e) => {
+      const cur = window.JobNexResumeStore.currentResume;
+      if (!cur) return;
+      const newName = e.target.value.trim() || "Untitled Resume";
+      try {
+        await window.JobNexResumeStore.renameResume(cur.id, newName);
+        showToast("Renamed", `Resume title updated.`);
+      } catch (err) {
+        showToast("Rename Failed", err.message, true);
+      }
+    });
+
+    // Toggle active status in editor header
+    document.getElementById("btn-toggle-active-status")?.addEventListener("click", async () => {
+      const cur = window.JobNexResumeStore.currentResume;
+      if (!cur || cur.is_active) return;
+      try {
+        await window.JobNexResumeStore.setActiveResume(cur.id);
+        populateEditorInputs(window.JobNexResumeStore.currentResume);
+        showToast("Active Resume", `Marked "${cur.name}" as your active resume.`);
+      } catch (err) {
+        showToast("Update Failed", err.message, true);
+      }
+    });
+
+    // Two-Way Sync for Personal Info Inputs
+    document.getElementById("inp-personal-name")?.addEventListener("input", (e) => {
+      window.JobNexResumeStore.updatePersonalInfo("name", e.target.value);
+    });
+    document.getElementById("inp-personal-email")?.addEventListener("input", (e) => {
+      window.JobNexResumeStore.updatePersonalInfo("email", e.target.value);
+    });
+    document.getElementById("inp-personal-phone")?.addEventListener("input", (e) => {
+      window.JobNexResumeStore.updatePersonalInfo("phone", e.target.value);
+    });
+    document.getElementById("inp-personal-location")?.addEventListener("input", (e) => {
+      window.JobNexResumeStore.updatePersonalInfo("location", e.target.value);
+    });
+    document.getElementById("inp-personal-summary")?.addEventListener("input", (e) => {
+      window.JobNexResumeStore.updateSummary(e.target.value);
+    });
+
+    // Preview Toolbar: Undo / Redo
+    document.getElementById("btn-preview-undo")?.addEventListener("click", () => {
+      window.JobNexResumeStore.undo();
+    });
+    document.getElementById("btn-preview-redo")?.addEventListener("click", () => {
+      window.JobNexResumeStore.redo();
+    });
+
+    // Keyboard Shortcuts: Ctrl+Z / Ctrl+Y
+    window.addEventListener("keydown", (e) => {
+      // Don't intercept when focus is in textarea or standard text inputs unless Ctrl
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "z" && !e.shiftKey) {
+        if (window.JobNexResumeStore.canUndo()) {
+          e.preventDefault();
+          window.JobNexResumeStore.undo();
+        }
+      } else if (
+        ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "y") ||
+        ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === "z")
+      ) {
+        if (window.JobNexResumeStore.canRedo()) {
+          e.preventDefault();
+          window.JobNexResumeStore.redo();
+        }
+      }
+    });
+
+    // Fit to single page switch
+    document.getElementById("toggle-fit-single-page")?.addEventListener("change", (e) => {
+      const sheet = document.getElementById("resume-preview-sheet");
+      if (sheet) {
+        sheet.classList.toggle("fit-single-page", e.target.checked);
+        updatePageIndicatorAndBreaks();
+      }
+    });
+
+    // Export PDF
+    document.getElementById("btn-export-pdf")?.addEventListener("click", () => {
+      window.print();
+    });
+
+    // Initialize Split Resizer
+    initSplitResizer();
+
+    // Store Event Subscriptions
     window.JobNexResumeStore.subscribe((event) => {
-      if (event.type === "resumes_loaded" || event.type === "resume_renamed" || event.type === "active_changed" || event.type === "resume_deleted") {
+      if (
+        event.type === "resumes_loaded" ||
+        event.type === "resume_renamed" ||
+        event.type === "active_changed" ||
+        event.type === "resume_deleted"
+      ) {
         renderTable(window.JobNexResumeStore.resumes);
       }
+
+      // Live re-render of resume preview and editor controls
+      if (
+        event.type === "state_changed" ||
+        event.type === "undo" ||
+        event.type === "redo" ||
+        event.type === "resume_loaded"
+      ) {
+        if (window.JobNexResumeStore.currentResume) {
+          renderResumePreview(window.JobNexResumeStore.currentResume);
+          populateEditorInputs(window.JobNexResumeStore.currentResume);
+        }
+      }
+
+      if (event.type === "save_status" || event.type === "saved" || event.type === "save_error" || event.type === "state_changed") {
+        updateSaveStatusUI(window.JobNexResumeStore.saveStatus);
+      }
+
+      updateUndoRedoUI();
     });
   }
 
