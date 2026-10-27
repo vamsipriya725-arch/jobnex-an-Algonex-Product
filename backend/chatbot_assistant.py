@@ -647,9 +647,9 @@ def _default_ai_generator(history: List[Tuple[str, str]], message: str, context:
     )
 
     preferred = os.getenv("GEMINI_MODEL", "gemini-3.5-flash")
-    candidates = [preferred]
-    for m in ["gemini-3.5-flash", "gemini-3.5-flash-lite", "gemini-3.1-flash-lite", "gemini-flash-latest"]:
-        if m not in candidates:
+    candidates = []
+    for m in ["gemini-3.5-flash", preferred, "gemini-3.5-flash-lite", "gemini-flash-latest"]:
+        if m and m not in candidates:
             candidates.append(m)
 
     last_error = None
@@ -765,15 +765,20 @@ class ChatbotAssistant:
                 source = "rules"
 
         self._save_turn(sid, text, reply)
-        return {
+        chips = generate_followup_chips(reply, text) if self.ai_generator is None else quick_replies(context)
+        resp = {
             "session_id": sid,
             "reply": reply,
             "intent": intent,
             "topic": topic,
             "source": source,
             "resources": resources,
-            "quick_replies": quick_replies(context),
+            "quick_replies": chips,
         }
+        if self.ai_generator is None:
+            resp["suggestedChips"] = chips
+            resp["actionLinks"] = extract_action_links(reply, text)
+        return resp
 
     def chat_stream(
         self,
