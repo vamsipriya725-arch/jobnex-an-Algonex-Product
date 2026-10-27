@@ -1862,7 +1862,7 @@
     if (cardEdu && badgeEdu && textEdu) {
       const status = eduData.status || "Match";
       cardEdu.className = `alignment-card space-y-1.5 ${status === "Match" || status === "Flexible" ? "is-met" : "is-gap"}`;
-      badgeEdu.className = `text-[10px] font-bold px-2 py-0.5 rounded-full ${status === "Match" || status === "Flexible" ? "bg-emerald-100 text-emerald-800" : "bg-rose-100 text-rose-800")}`;
+      badgeEdu.className = `text-[10px] font-bold px-2 py-0.5 rounded-full ${status === "Match" || status === "Flexible" ? "bg-emerald-100 text-emerald-800" : "bg-rose-100 text-rose-800"}`;
       badgeEdu.textContent = status;
       textEdu.textContent = eduData.message || "Education alignment evaluated.";
     }
