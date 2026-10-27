@@ -515,6 +515,162 @@
   }
 
   // =========================================================================
+  // Phase 5: Template Gallery & Live Customizer Controls
+  // =========================================================================
+
+  const DEFAULT_TEMPLATE_SETTINGS = {
+    templateId: "modern",
+    fontFamily: "Plus Jakarta Sans",
+    fontSize: 10.5,
+    lineHeight: 1.45,
+    sectionGap: 16,
+    itemSpacing: 10,
+    paddingTop: 24,
+    paddingBottom: 24,
+    paddingSide: 28,
+    primaryColor: "#2e3049",
+    headingStyle: "bold",
+  };
+
+  function initTemplateControls() {
+    // 1. Template Card selection
+    document.querySelectorAll(".template-card").forEach((card) => {
+      card.addEventListener("click", () => {
+        const templateId = card.getAttribute("data-template-id");
+        document.querySelectorAll(".template-card").forEach((c) => c.classList.remove("is-active"));
+        card.classList.add("is-active");
+
+        // Specific style presets for templates
+        const updates = { templateId };
+        if (templateId === "executive") {
+          updates.fontFamily = "Georgia";
+          updates.headingStyle = "uppercase";
+          updates.primaryColor = "#1e293b";
+        } else if (templateId === "minimalist") {
+          updates.fontFamily = "Inter";
+          updates.headingStyle = "bold";
+          updates.primaryColor = "#334155";
+        } else if (templateId === "tech-slate") {
+          updates.fontFamily = "Roboto";
+          updates.headingStyle = "accent-bar";
+          updates.primaryColor = "#505787";
+        } else {
+          updates.fontFamily = "Plus Jakarta Sans";
+          updates.headingStyle = "bold";
+          updates.primaryColor = "#2e3049";
+        }
+
+        window.JobNexResumeStore.updateTemplateSettings(updates);
+        syncTemplateSettingsInputs(window.JobNexResumeStore.currentResume);
+      });
+    });
+
+    // 2. Font family select
+    document.getElementById("tpl-font-family")?.addEventListener("change", (e) => {
+      window.JobNexResumeStore.updateTemplateSettings({ fontFamily: e.target.value });
+    });
+
+    // 3. Heading style select
+    document.getElementById("tpl-heading-style")?.addEventListener("change", (e) => {
+      window.JobNexResumeStore.updateTemplateSettings({ headingStyle: e.target.value });
+    });
+
+    // 4. Font size slider
+    const fsSlider = document.getElementById("tpl-font-size");
+    const fsVal = document.getElementById("val-font-size");
+    fsSlider?.addEventListener("input", (e) => {
+      const val = parseFloat(e.target.value);
+      if (fsVal) fsVal.textContent = `${val} pt`;
+      window.JobNexResumeStore.updateTemplateSettings({ fontSize: val });
+    });
+
+    // 5. Line height slider
+    const lhSlider = document.getElementById("tpl-line-height");
+    const lhVal = document.getElementById("val-line-height");
+    lhSlider?.addEventListener("input", (e) => {
+      const val = parseFloat(e.target.value);
+      if (lhVal) lhVal.textContent = `${val}`;
+      window.JobNexResumeStore.updateTemplateSettings({ lineHeight: val });
+    });
+
+    // 6. Color Swatches
+    document.querySelectorAll(".color-swatch-btn").forEach((swatch) => {
+      swatch.addEventListener("click", () => {
+        const color = swatch.getAttribute("data-color");
+        document.querySelectorAll(".color-swatch-btn").forEach((b) => b.classList.remove("is-active"));
+        swatch.classList.add("is-active");
+        const colorPicker = document.getElementById("tpl-color-picker");
+        const customColorInput = document.getElementById("tpl-custom-color-input");
+        if (colorPicker) colorPicker.value = color;
+        if (customColorInput) customColorInput.value = color;
+        window.JobNexResumeStore.updateTemplateSettings({ primaryColor: color });
+      });
+    });
+
+    // Custom Color Picker & Text Input
+    const colorPicker = document.getElementById("tpl-color-picker");
+    const customColorInput = document.getElementById("tpl-custom-color-input");
+
+    colorPicker?.addEventListener("input", (e) => {
+      const color = e.target.value;
+      if (customColorInput) customColorInput.value = color;
+      document.querySelectorAll(".color-swatch-btn").forEach((b) => {
+        b.classList.toggle("is-active", b.getAttribute("data-color").toLowerCase() === color.toLowerCase());
+      });
+      window.JobNexResumeStore.updateTemplateSettings({ primaryColor: color });
+    });
+
+    customColorInput?.addEventListener("change", (e) => {
+      let color = e.target.value.trim();
+      if (!color.startsWith("#")) color = "#" + color;
+      if (/^#[0-9A-Fa-f]{6}$/.test(color)) {
+        if (colorPicker) colorPicker.value = color;
+        window.JobNexResumeStore.updateTemplateSettings({ primaryColor: color });
+      }
+    });
+
+    // 7. Spacing Sliders
+    const secGapSlider = document.getElementById("tpl-section-gap");
+    const secGapVal = document.getElementById("val-section-gap");
+    secGapSlider?.addEventListener("input", (e) => {
+      const val = parseInt(e.target.value, 10);
+      if (secGapVal) secGapVal.textContent = `${val} px`;
+      window.JobNexResumeStore.updateTemplateSettings({ sectionGap: val });
+    });
+
+    const itemSpaceSlider = document.getElementById("tpl-item-spacing");
+    const itemSpaceVal = document.getElementById("val-item-spacing");
+    itemSpaceSlider?.addEventListener("input", (e) => {
+      const val = parseInt(e.target.value, 10);
+      if (itemSpaceVal) itemSpaceVal.textContent = `${val} px`;
+      window.JobNexResumeStore.updateTemplateSettings({ itemSpacing: val });
+    });
+
+    const padVSlider = document.getElementById("tpl-padding-v");
+    const padVVal = document.getElementById("val-padding-v");
+    padVSlider?.addEventListener("input", (e) => {
+      const val = parseInt(e.target.value, 10);
+      if (padVVal) padVVal.textContent = `${val} px`;
+      window.JobNexResumeStore.updateTemplateSettings({ paddingTop: val, paddingBottom: val });
+    });
+
+    const padHSlider = document.getElementById("tpl-padding-h");
+    const padHVal = document.getElementById("val-padding-h");
+    padHSlider?.addEventListener("input", (e) => {
+      const val = parseInt(e.target.value, 10);
+      if (padHVal) padHVal.textContent = `${val} px`;
+      window.JobNexResumeStore.updateTemplateSettings({ paddingSide: val });
+    });
+
+    // 8. Reset to Defaults Button
+    document.getElementById("btn-reset-template-defaults")?.addEventListener("click", () => {
+      window.JobNexResumeStore.updateTemplateSettings(DEFAULT_TEMPLATE_SETTINGS);
+      syncTemplateSettingsInputs(window.JobNexResumeStore.currentResume);
+      showToast("Template Reset", "Restored default ATS typography and spacing.");
+    });
+  }
+
+  // =========================================================================
   // File Upload & 5-Stage Real Progress Tracking
   // =========================================================================
 
@@ -1871,7 +2027,78 @@
       renderContentSections(resume);
     }
 
+    // 7. Sync Phase 5 Template Settings inputs
+    syncTemplateSettingsInputs(resume);
+
     if (typeof lucide !== "undefined" && lucide.createIcons) lucide.createIcons();
+  }
+
+  function syncTemplateSettingsInputs(resume) {
+    if (!resume) return;
+    const t = resume.templateSettings || {};
+    const tplId = t.templateId || "modern";
+
+    // 1. Template cards
+    document.querySelectorAll(".template-card").forEach((card) => {
+      card.classList.toggle("is-active", card.getAttribute("data-template-id") === tplId);
+    });
+
+    // 2. Font family
+    const fontSelect = document.getElementById("tpl-font-family");
+    if (fontSelect && t.fontFamily) fontSelect.value = t.fontFamily;
+
+    // 3. Heading style
+    const headingSelect = document.getElementById("tpl-heading-style");
+    if (headingSelect && t.headingStyle) headingSelect.value = t.headingStyle;
+
+    // 4. Font size
+    const fontSizeSlider = document.getElementById("tpl-font-size");
+    const fontSizeVal = document.getElementById("val-font-size");
+    const curFontSize = t.fontSize !== undefined ? t.fontSize : 10.5;
+    if (fontSizeSlider) fontSizeSlider.value = curFontSize;
+    if (fontSizeVal) fontSizeVal.textContent = `${curFontSize} pt`;
+
+    // 5. Line height
+    const lhSlider = document.getElementById("tpl-line-height");
+    const lhVal = document.getElementById("val-line-height");
+    const curLh = t.lineHeight !== undefined ? t.lineHeight : 1.45;
+    if (lhSlider) lhSlider.value = curLh;
+    if (lhVal) lhVal.textContent = `${curLh}`;
+
+    // 6. Color Swatches & Custom Color
+    const curColor = t.primaryColor || "#2e3049";
+    document.querySelectorAll(".color-swatch-btn").forEach((swatch) => {
+      swatch.classList.toggle("is-active", swatch.getAttribute("data-color").toLowerCase() === curColor.toLowerCase());
+    });
+    const colorPicker = document.getElementById("tpl-color-picker");
+    const customColorInput = document.getElementById("tpl-custom-color-input");
+    if (colorPicker) colorPicker.value = curColor;
+    if (customColorInput) customColorInput.value = curColor;
+
+    // 7. Spacing Sliders
+    const secGapSlider = document.getElementById("tpl-section-gap");
+    const secGapVal = document.getElementById("val-section-gap");
+    const curSecGap = t.sectionGap !== undefined ? t.sectionGap : 16;
+    if (secGapSlider) secGapSlider.value = curSecGap;
+    if (secGapVal) secGapVal.textContent = `${curSecGap} px`;
+
+    const itemSpaceSlider = document.getElementById("tpl-item-spacing");
+    const itemSpaceVal = document.getElementById("val-item-spacing");
+    const curItemSpace = t.itemSpacing !== undefined ? t.itemSpacing : 10;
+    if (itemSpaceSlider) itemSpaceSlider.value = curItemSpace;
+    if (itemSpaceVal) itemSpaceVal.textContent = `${curItemSpace} px`;
+
+    const padVSlider = document.getElementById("tpl-padding-v");
+    const padVVal = document.getElementById("val-padding-v");
+    const curPadV = t.paddingTop !== undefined ? t.paddingTop : 24;
+    if (padVSlider) padVSlider.value = curPadV;
+    if (padVVal) padVVal.textContent = `${curPadV} px`;
+
+    const padHSlider = document.getElementById("tpl-padding-h");
+    const padHVal = document.getElementById("val-padding-h");
+    const curPadH = t.paddingSide !== undefined ? t.paddingSide : 28;
+    if (padHSlider) padHSlider.value = curPadH;
+    if (padHVal) padHVal.textContent = `${curPadH} px`;
   }
 
   function switchEditorTab(tabKey) {
@@ -1898,6 +2125,7 @@
     if (!sheet || !resume) return;
 
     const t = resume.templateSettings || {
+      templateId: "modern",
       fontFamily: "Plus Jakarta Sans",
       fontSize: 10.5,
       lineHeight: 1.45,
@@ -1910,6 +2138,16 @@
       headingStyle: "bold",
     };
 
+    const templateId = t.templateId || "modern";
+    const primaryColor = t.primaryColor || "#2e3049";
+
+    // Set template classes and CSS variables on preview canvas
+    sheet.className = `resume-sheet template-${templateId}`;
+    if (document.getElementById("toggle-fit-single-page")?.checked) {
+      sheet.classList.add("fit-single-page");
+    }
+    sheet.style.setProperty("--template-primary", primaryColor);
+
     // Apply templateSettings styles
     sheet.style.fontFamily = `"${t.fontFamily}", Inter, sans-serif`;
     sheet.style.fontSize = `${t.fontSize}pt`;
@@ -1917,9 +2155,19 @@
     sheet.style.padding = `${t.paddingTop}px ${t.paddingSide}px ${t.paddingBottom}px ${t.paddingSide}px`;
     sheet.style.color = "#1f2937";
 
-    const primaryColor = t.primaryColor || "#2e3049";
     const headingTransform = t.headingStyle === "uppercase" ? "uppercase" : "none";
-    const headingDecoration = t.headingStyle === "underline" ? "border-b border-slate-300 pb-1" : "";
+    let headingBorderClass = "border-b border-slate-200 pb-1";
+    let headingExtraStyle = "";
+
+    if (t.headingStyle === "underline") {
+      headingBorderClass = "border-b-2 pb-0.5";
+      headingExtraStyle = `border-color: ${primaryColor};`;
+    } else if (t.headingStyle === "accent-bar") {
+      headingBorderClass = "border-l-4 pl-2";
+      headingExtraStyle = `border-left-color: ${primaryColor}; border-bottom: none;`;
+    } else if (t.headingStyle === "uppercase") {
+      headingBorderClass = "border-b border-slate-200 pb-1 tracking-wider";
+    }
 
     let html = "";
 
@@ -1927,9 +2175,22 @@
     const p = resume.personal || {};
     const candidateName = p.name ? p.name.trim() : "";
 
-    html += `<div class="preview-header text-center" style="margin-bottom: ${t.sectionGap}px;">`;
+    let headerAlign = "text-center";
+    let headerBorder = "";
+    if (templateId === "minimalist") {
+      headerAlign = "text-left";
+    } else if (templateId === "tech-slate") {
+      headerAlign = "text-left border-l-4 pl-3";
+      headerBorder = `border-left-color: ${primaryColor};`;
+    } else if (templateId === "executive") {
+      headerAlign = "text-center pb-2.5 border-b-2";
+      headerBorder = `border-bottom-color: ${primaryColor};`;
+    }
+
+    html += `<div class="preview-header ${headerAlign}" style="margin-bottom: ${t.sectionGap}px; ${headerBorder}">`;
     if (candidateName) {
-      html += `<h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight m-0" style="color: ${primaryColor};">${escapeHtml(candidateName)}</h1>`;
+      const nameTracking = templateId === "executive" ? "tracking-wide font-serif" : "tracking-tight";
+      html += `<h1 class="text-2xl sm:text-3xl font-extrabold ${nameTracking} m-0" style="color: ${primaryColor};">${escapeHtml(candidateName)}</h1>`;
     }
 
     // Build contact elements array, omitting any empty attributes
@@ -1953,7 +2214,8 @@
     }
 
     if (contactParts.length > 0) {
-      html += `<div class="text-[9.5pt] text-slate-600 mt-2 flex flex-wrap items-center justify-center gap-x-2 gap-y-1">${contactParts.join(' <span class="text-slate-300">•</span> ')}</div>`;
+      const justifyClass = (templateId === "minimalist" || templateId === "tech-slate") ? "justify-start" : "justify-center";
+      html += `<div class="contact-links-row text-[9.5pt] text-slate-600 mt-2 flex flex-wrap items-center ${justifyClass} gap-x-2 gap-y-1">${contactParts.join(' <span class="text-slate-300">•</span> ')}</div>`;
     }
     html += `</div>`;
 
@@ -1961,7 +2223,7 @@
     if (resume.summary && resume.summary.trim()) {
       html += `
         <div class="preview-summary-section" style="margin-bottom: ${t.sectionGap}px;">
-          <h2 class="text-xs font-bold tracking-wider mb-1.5 ${headingDecoration}" style="color: ${primaryColor}; text-transform: ${headingTransform};">
+          <h2 class="text-xs font-bold tracking-wider mb-1.5 ${headingBorderClass}" style="color: ${primaryColor}; text-transform: ${headingTransform}; ${headingExtraStyle}">
             Professional Summary
           </h2>
           <p class="text-[9.5pt] text-slate-700 leading-relaxed m-0 text-justify">
@@ -1982,7 +2244,7 @@
 
       html += `<div class="preview-section" style="margin-bottom: ${t.sectionGap}px;">`;
       html += `
-        <h2 class="text-xs font-bold tracking-wider mb-2 ${headingDecoration} border-b border-slate-200 pb-1" style="color: ${primaryColor}; text-transform: ${headingTransform};">
+        <h2 class="text-xs font-bold tracking-wider mb-2 ${headingBorderClass}" style="color: ${primaryColor}; text-transform: ${headingTransform}; ${headingExtraStyle}">
           ${escapeHtml(sec.title || "Section")}
         </h2>
       `;
@@ -2487,6 +2749,9 @@
 
     // Add Section Modal Handling
     initAddSectionModal();
+
+    // Template Gallery & Styling Controls Handling
+    initTemplateControls();
 
     // Preview Toolbar: Undo / Redo
     document.getElementById("btn-preview-undo")?.addEventListener("click", () => {

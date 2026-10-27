@@ -7,10 +7,10 @@
   <meta name="description" content="Professional ATS Resume Builder with automated career extraction, real-time scoring, and zero-hallucination tailoring.">
   <link rel="icon" type="image/svg+xml" href="../assets/favicon.svg">
 
-  <!-- Google Fonts -->
+  <!-- Google Fonts: ATS Safe Families -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Merriweather:ital,wght@0,300;0,400;0,700;1,300&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Roboto:wght@300;400;500;700&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
 
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -906,9 +906,324 @@
 
         <!-- Pane 2: Customize Template (Phase 5) -->
         <div id="pane-template" class="tab-pane hidden space-y-6">
-          <div class="p-4 rounded-xl bg-slate-50 border border-slate-200">
-            <h3 class="text-xs font-bold text-slate-900 m-0">Template Gallery & Typography</h3>
-            <p class="text-[11px] text-slate-500 m-0 mt-0.5">Customize font families, line heights, and margin padding live.</p>
+          <!-- Header & Reset Controls -->
+          <div class="p-4 rounded-xl bg-brand-50/70 border border-brand-100 flex items-center justify-between">
+            <div>
+              <h3 class="text-xs font-bold text-brand-900 m-0">Template Gallery & Typography</h3>
+              <p class="text-[11px] text-brand-700 m-0 mt-0.5">Customize fonts, colors, line heights, and margin padding live.</p>
+            </div>
+            <button
+              id="btn-reset-template-defaults"
+              type="button"
+              class="px-3 py-1.5 rounded-lg border border-brand-200 bg-white hover:bg-brand-50 text-brand-700 font-bold text-xs shadow-2xs flex items-center gap-1.5 cursor-pointer transition-colors"
+              title="Reset styling to default ATS configuration"
+            >
+              <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i>
+              <span>Reset Defaults</span>
+            </button>
+          </div>
+
+          <!-- 1. 4 ATS-Safe Single-Column Templates Gallery -->
+          <div class="space-y-3">
+            <div class="flex items-center justify-between">
+              <h4 class="text-xs font-bold text-slate-800 uppercase tracking-wider m-0">ATS-Safe Templates</h4>
+              <span class="text-[10px] text-emerald-700 font-bold px-2 py-0.5 rounded-full bg-emerald-50 border border-emerald-200 flex items-center gap-1">
+                <i data-lucide="shield-check" class="w-3 h-3 text-emerald-600"></i>
+                <span>100% Single-Column ATS Safe</span>
+              </span>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3" id="template-gallery-grid">
+              <!-- Template 1: Modern Clean (Default) -->
+              <div class="template-card is-active" data-template-id="modern">
+                <div class="template-preview-mockup">
+                  <div class="w-16 h-2 rounded bg-brand-600 mx-auto"></div>
+                  <div class="w-24 h-1 rounded bg-slate-300 mx-auto mt-0.5"></div>
+                  <div class="w-full h-px bg-slate-200 my-1"></div>
+                  <div class="w-12 h-1.5 rounded bg-brand-500"></div>
+                  <div class="w-full h-1 rounded bg-slate-200"></div>
+                  <div class="w-4/5 h-1 rounded bg-slate-200"></div>
+                </div>
+                <div class="mt-2.5 flex items-center justify-between">
+                  <div>
+                    <h5 class="text-xs font-bold text-slate-900 m-0">Modern Clean</h5>
+                    <p class="text-[10px] text-slate-500 m-0">Balanced & Versatile</p>
+                  </div>
+                  <span class="text-[9px] font-bold text-brand-700 bg-brand-100 px-1.5 py-0.5 rounded">Default</span>
+                </div>
+              </div>
+
+              <!-- Template 2: Executive ATS -->
+              <div class="template-card" data-template-id="executive">
+                <div class="template-preview-mockup">
+                  <div class="w-20 h-2 rounded bg-slate-800 mx-auto"></div>
+                  <div class="w-28 h-px bg-slate-400 mx-auto my-0.5"></div>
+                  <div class="w-24 h-1 rounded bg-slate-300 mx-auto"></div>
+                  <div class="w-full h-px bg-slate-300 my-1"></div>
+                  <div class="w-14 h-1.5 rounded bg-slate-700"></div>
+                  <div class="w-full h-1 rounded bg-slate-200"></div>
+                </div>
+                <div class="mt-2.5 flex items-center justify-between">
+                  <div>
+                    <h5 class="text-xs font-bold text-slate-900 m-0">Executive ATS</h5>
+                    <p class="text-[10px] text-slate-500 m-0">Corporate & Finance</p>
+                  </div>
+                  <span class="text-[9px] font-bold text-slate-600 bg-slate-100 px-1.5 py-0.5 rounded">Formal</span>
+                </div>
+              </div>
+
+              <!-- Template 3: Minimalist -->
+              <div class="template-card" data-template-id="minimalist">
+                <div class="template-preview-mockup">
+                  <div class="w-16 h-2 rounded bg-slate-700"></div>
+                  <div class="w-24 h-1 rounded bg-slate-300 mt-0.5"></div>
+                  <div class="w-12 h-1.5 rounded bg-slate-400 mt-2"></div>
+                  <div class="w-full h-1 rounded bg-slate-200"></div>
+                  <div class="w-3/4 h-1 rounded bg-slate-200"></div>
+                </div>
+                <div class="mt-2.5 flex items-center justify-between">
+                  <div>
+                    <h5 class="text-xs font-bold text-slate-900 m-0">Minimalist</h5>
+                    <p class="text-[10px] text-slate-500 m-0">High Scan Speed</p>
+                  </div>
+                  <span class="text-[9px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded">Fast Scan</span>
+                </div>
+              </div>
+
+              <!-- Template 4: Tech Slate -->
+              <div class="template-card" data-template-id="tech-slate">
+                <div class="template-preview-mockup">
+                  <div class="flex items-start gap-1">
+                    <div class="w-1 h-6 rounded bg-brand-600 shrink-0"></div>
+                    <div class="flex-1 space-y-1">
+                      <div class="w-16 h-2 rounded bg-slate-900"></div>
+                      <div class="w-20 h-1 rounded bg-slate-400"></div>
+                    </div>
+                  </div>
+                  <div class="flex items-center gap-1 mt-1">
+                    <div class="w-0.5 h-3 rounded bg-brand-600"></div>
+                    <div class="w-14 h-1.5 rounded bg-brand-700"></div>
+                  </div>
+                  <div class="w-full h-1 rounded bg-slate-200"></div>
+                </div>
+                <div class="mt-2.5 flex items-center justify-between">
+                  <div>
+                    <h5 class="text-xs font-bold text-slate-900 m-0">Tech Slate</h5>
+                    <p class="text-[10px] text-slate-500 m-0">Engineering Focus</p>
+                  </div>
+                  <span class="text-[9px] font-bold text-indigo-700 bg-indigo-50 px-1.5 py-0.5 rounded">Tech</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 2. Typography & Fonts Card -->
+          <div class="p-4 rounded-xl bg-white border border-slate-200 shadow-2xs space-y-4">
+            <h4 class="text-xs font-bold text-slate-800 uppercase tracking-wider m-0 flex items-center gap-2">
+              <i data-lucide="type" class="w-4 h-4 text-brand-600"></i>
+              <span>Typography & Sizing</span>
+            </h4>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+              <!-- Font Family Selector -->
+              <div>
+                <label for="tpl-font-family" class="text-[11px] font-semibold text-slate-600">Font Family (ATS Compliant)</label>
+                <select
+                  id="tpl-font-family"
+                  class="w-full mt-1 px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-900 outline-none focus:border-brand-500 focus:bg-white cursor-pointer"
+                >
+                  <option value="Plus Jakarta Sans">Plus Jakarta Sans (Modern Sans)</option>
+                  <option value="Inter">Inter (Neutral Clean)</option>
+                  <option value="Roboto">Roboto (Geometric Sans)</option>
+                  <option value="Arial">Arial (Universal System)</option>
+                  <option value="Georgia">Georgia (Classic Serif)</option>
+                  <option value="Merriweather">Merriweather (Editorial Serif)</option>
+                </select>
+              </div>
+
+              <!-- Heading Style Selector -->
+              <div>
+                <label for="tpl-heading-style" class="text-[11px] font-semibold text-slate-600">Heading Style</label>
+                <select
+                  id="tpl-heading-style"
+                  class="w-full mt-1 px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-900 outline-none focus:border-brand-500 focus:bg-white cursor-pointer"
+                >
+                  <option value="bold">Bold with Divider</option>
+                  <option value="uppercase">Uppercase All-Caps</option>
+                  <option value="underline">Classic Underline</option>
+                  <option value="accent-bar">Left Accent Bar</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Font Size & Line Height Sliders -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-slate-100">
+              <div>
+                <div class="flex items-center justify-between text-[11px] font-semibold text-slate-600 mb-1">
+                  <span>Font Size</span>
+                  <span id="val-font-size" class="text-xs font-bold text-brand-700 bg-brand-50 px-2 py-0.5 rounded border border-brand-200">10.5 pt</span>
+                </div>
+                <input
+                  id="tpl-font-size"
+                  type="range"
+                  min="9.0"
+                  max="12.0"
+                  step="0.5"
+                  value="10.5"
+                  class="brand-slider"
+                />
+                <div class="flex justify-between text-[9px] text-slate-400 mt-1">
+                  <span>9.0 pt (Compact)</span>
+                  <span>10.5 pt</span>
+                  <span>12.0 pt (Large)</span>
+                </div>
+              </div>
+
+              <div>
+                <div class="flex items-center justify-between text-[11px] font-semibold text-slate-600 mb-1">
+                  <span>Line Height</span>
+                  <span id="val-line-height" class="text-xs font-bold text-brand-700 bg-brand-50 px-2 py-0.5 rounded border border-brand-200">1.45</span>
+                </div>
+                <input
+                  id="tpl-line-height"
+                  type="range"
+                  min="1.20"
+                  max="1.80"
+                  step="0.05"
+                  value="1.45"
+                  class="brand-slider"
+                />
+                <div class="flex justify-between text-[9px] text-slate-400 mt-1">
+                  <span>1.20 (Tight)</span>
+                  <span>1.45</span>
+                  <span>1.80 (Spacious)</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 3. Primary Color & Accents Card -->
+          <div class="p-4 rounded-xl bg-white border border-slate-200 shadow-2xs space-y-3">
+            <h4 class="text-xs font-bold text-slate-800 uppercase tracking-wider m-0 flex items-center gap-2">
+              <i data-lucide="palette" class="w-4 h-4 text-brand-600"></i>
+              <span>Primary Accent Color</span>
+            </h4>
+
+            <div class="flex flex-wrap items-center gap-2.5">
+              <!-- Preset Swatches -->
+              <button type="button" class="color-swatch-btn is-active" data-color="#2e3049" style="background-color: #2e3049;" title="Deep Navy/Slate"></button>
+              <button type="button" class="color-swatch-btn" data-color="#505787" style="background-color: #505787;" title="Brand Purple"></button>
+              <button type="button" class="color-swatch-btn" data-color="#1e293b" style="background-color: #1e293b;" title="Classic Charcoal"></button>
+              <button type="button" class="color-swatch-btn" data-color="#065f46" style="background-color: #065f46;" title="Forest Emerald"></button>
+              <button type="button" class="color-swatch-btn" data-color="#7f1d1d" style="background-color: #7f1d1d;" title="Executive Burgundy"></button>
+              <button type="button" class="color-swatch-btn" data-color="#1e40af" style="background-color: #1e40af;" title="Corporate Blue"></button>
+
+              <div class="h-5 w-px bg-slate-200 mx-1"></div>
+
+              <!-- Custom Color Picker -->
+              <div class="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-lg px-2 py-1">
+                <input id="tpl-color-picker" type="color" value="#2e3049" class="w-5 h-5 rounded cursor-pointer border-0 p-0 bg-transparent" />
+                <input id="tpl-custom-color-input" type="text" value="#2e3049" maxlength="7" class="w-16 text-xs font-mono font-semibold text-slate-800 bg-transparent outline-none uppercase" />
+              </div>
+            </div>
+          </div>
+
+          <!-- 4. Spacing & Page Margins Card -->
+          <div class="p-4 rounded-xl bg-white border border-slate-200 shadow-2xs space-y-4">
+            <h4 class="text-xs font-bold text-slate-800 uppercase tracking-wider m-0 flex items-center gap-2">
+              <i data-lucide="move" class="w-4 h-4 text-brand-600"></i>
+              <span>Spacing & Margins (Live A4)</span>
+            </h4>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <!-- Section Gap Slider -->
+              <div>
+                <div class="flex items-center justify-between text-[11px] font-semibold text-slate-600 mb-1">
+                  <span>Section Gap</span>
+                  <span id="val-section-gap" class="text-xs font-bold text-brand-700 bg-brand-50 px-2 py-0.5 rounded border border-brand-200">16 px</span>
+                </div>
+                <input
+                  id="tpl-section-gap"
+                  type="range"
+                  min="10"
+                  max="32"
+                  step="2"
+                  value="16"
+                  class="brand-slider"
+                />
+                <div class="flex justify-between text-[9px] text-slate-400 mt-1">
+                  <span>10 px</span>
+                  <span>16 px</span>
+                  <span>32 px</span>
+                </div>
+              </div>
+
+              <!-- Item Spacing Slider -->
+              <div>
+                <div class="flex items-center justify-between text-[11px] font-semibold text-slate-600 mb-1">
+                  <span>Item Spacing</span>
+                  <span id="val-item-spacing" class="text-xs font-bold text-brand-700 bg-brand-50 px-2 py-0.5 rounded border border-brand-200">10 px</span>
+                </div>
+                <input
+                  id="tpl-item-spacing"
+                  type="range"
+                  min="6"
+                  max="22"
+                  step="2"
+                  value="10"
+                  class="brand-slider"
+                />
+                <div class="flex justify-between text-[9px] text-slate-400 mt-1">
+                  <span>6 px</span>
+                  <span>10 px</span>
+                  <span>22 px</span>
+                </div>
+              </div>
+
+              <!-- Top & Bottom Margin -->
+              <div>
+                <div class="flex items-center justify-between text-[11px] font-semibold text-slate-600 mb-1">
+                  <span>Top / Bottom Padding</span>
+                  <span id="val-padding-v" class="text-xs font-bold text-brand-700 bg-brand-50 px-2 py-0.5 rounded border border-brand-200">24 px</span>
+                </div>
+                <input
+                  id="tpl-padding-v"
+                  type="range"
+                  min="16"
+                  max="48"
+                  step="4"
+                  value="24"
+                  class="brand-slider"
+                />
+                <div class="flex justify-between text-[9px] text-slate-400 mt-1">
+                  <span>16 px</span>
+                  <span>24 px</span>
+                  <span>48 px</span>
+                </div>
+              </div>
+
+              <!-- Side Margin -->
+              <div>
+                <div class="flex items-center justify-between text-[11px] font-semibold text-slate-600 mb-1">
+                  <span>Side Margins</span>
+                  <span id="val-padding-h" class="text-xs font-bold text-brand-700 bg-brand-50 px-2 py-0.5 rounded border border-brand-200">28 px</span>
+                </div>
+                <input
+                  id="tpl-padding-h"
+                  type="range"
+                  min="16"
+                  max="48"
+                  step="4"
+                  value="28"
+                  class="brand-slider"
+                />
+                <div class="flex justify-between text-[9px] text-slate-400 mt-1">
+                  <span>16 px</span>
+                  <span>28 px</span>
+                  <span>48 px</span>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 

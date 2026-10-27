@@ -545,3 +545,148 @@
 .val-hint.warning {
   color: #d97706;
 }
+
+/* ==========================================================================
+   Phase 5: Customize Template Gallery, Typography Controls & ATS Sliders
+   ========================================================================== */
+
+/* Template Card Selection */
+.template-card {
+  position: relative;
+  background: #ffffff;
+  border: 2px solid #e2e8f0;
+  border-radius: 0.875rem;
+  padding: 0.875rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+.template-card:hover {
+  border-color: #94a3b8;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px -2px rgba(15, 23, 42, 0.08);
+}
+
+.template-card.is-active {
+  border-color: #646ca6;
+  background-color: #f7f8fc;
+  box-shadow: 0 0 0 3px rgba(100, 108, 166, 0.2);
+}
+
+.template-preview-mockup {
+  height: 84px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.5rem;
+  padding: 0.6rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  overflow: hidden;
+}
+
+/* Color Swatch Buttons */
+.color-swatch-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 9999px;
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  position: relative;
+}
+
+.color-swatch-btn:hover {
+  transform: scale(1.12);
+}
+
+.color-swatch-btn.is-active {
+  box-shadow: 0 0 0 2px #ffffff, 0 0 0 4px #646ca6;
+}
+
+/* Range Slider Styles */
+input[type="range"].brand-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 6px;
+  background: #e2e8f0;
+  border-radius: 9999px;
+  outline: none;
+  transition: background 0.15s ease;
+}
+
+input[type="range"].brand-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #505787;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(80, 87, 135, 0.35);
+  transition: transform 0.1s ease, background-color 0.1s ease;
+}
+
+input[type="range"].brand-slider::-webkit-slider-thumb:hover {
+  transform: scale(1.15);
+  background: #646ca6;
+}
+
+input[type="range"].brand-slider::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #505787;
+  cursor: pointer;
+  border: none;
+  box-shadow: 0 2px 6px rgba(80, 87, 135, 0.35);
+}
+
+/* Template-Specific Sheet Layouts */
+/* 1. Modern Clean (Default) */
+.resume-sheet.template-modern .preview-header {
+  text-align: center;
+}
+
+/* 2. Executive ATS */
+.resume-sheet.template-executive .preview-header {
+  text-align: center;
+  border-bottom: 2px solid #334155;
+  padding-bottom: 12px;
+}
+.resume-sheet.template-executive .preview-section h2 {
+  letter-spacing: 0.08em;
+  border-bottom: 1.5px solid #64748b;
+  padding-bottom: 2px;
+}
+
+/* 3. Minimalist */
+.resume-sheet.template-minimalist .preview-header {
+  text-align: left;
+}
+.resume-sheet.template-minimalist .preview-header .contact-links-row {
+  justify-content: flex-start !important;
+}
+.resume-sheet.template-minimalist .preview-section h2 {
+  border-bottom: none !important;
+  font-weight: 700;
+  color: #64748b !important;
+  letter-spacing: 0.05em;
+}
+
+/* 4. Tech Slate */
+.resume-sheet.template-tech-slate .preview-header {
+  text-align: left;
+  border-left: 4px solid var(--template-primary, #505787);
+  padding-left: 12px;
+}
+.resume-sheet.template-tech-slate .preview-header .contact-links-row {
+  justify-content: flex-start !important;
+}
+.resume-sheet.template-tech-slate .preview-section h2 {
+  border-left: 3px solid var(--template-primary, #505787);
+  padding-left: 8px;
+  border-bottom: none !important;
+}
