@@ -112,9 +112,9 @@ document.addEventListener("DOMContentLoaded", () => {
       : { email, password: password || "password123" };
 
     const urls = [
-      endpoint,
-      `http://127.0.0.1:3000${endpoint}`,
       `http://127.0.0.1:8000${endpoint}`,
+      `http://127.0.0.1:3000${endpoint}`,
+      endpoint,
     ];
 
     for (const url of urls) {
@@ -148,6 +148,14 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     const backendUser = await syncWithBackendAuth(email, password, name, chosenRole, isRegister);
+
+    if (!backendUser) {
+      if (btnSubmitText) {
+        btnSubmitText.textContent = isRegister ? "Create Free Account" : "Sign In to JobNex";
+      }
+      showError("Backend server is not reachable on port 8000. Start it using 'python run.py' to store data in MySQL.");
+      return;
+    }
 
     if (window.JobNexAuth) {
       const displayName = backendUser?.user?.full_name || name;

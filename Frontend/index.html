@@ -961,20 +961,29 @@
       });
 
       // Form Submit
-      form.addEventListener("submit", (e) => {
+      form.addEventListener("submit", async (e) => {
         e.preventDefault();
         errorBanner.style.display = "none";
 
         const email = emailInput.value.trim();
         const pass = passInput.value;
+        const enteredName = document.getElementById("input-fullname") ? document.getElementById("input-fullname").value.trim() : "";
 
-        // Fail Trigger check: "wrong-password"
-        if (pass === "wrong-password") {
+        if (!email || !email.includes("@")) {
+          showFormError("Please enter a valid email address.");
+          return;
+        }
+
+        if (!pass || pass.length < 6) {
+          showFormError("Password must be at least 6 characters.");
+          return;
+        }
+
+        function showFormError(msg) {
           playSound("error");
           errorBanner.style.display = "block";
-          errorText.textContent = "Incorrect email or password. Check both and try again.";
+          errorText.textContent = msg;
 
-          // Card shake and red vignette shockwave
           card.classList.remove("card-shake");
           failFx.classList.remove("failfx-on");
           void card.offsetWidth;
@@ -986,31 +995,94 @@
           }, 1800);
 
           if (triggerShot) triggerShot("fail", 2400);
+        }
+
+        if (pass === "wrong-password") {
+          showFormError("Incorrect email or password. Check both and try again.");
+          return;
+        }
+
+        submitBtn.disabled = true;
+        submitBtn.textContent = mode === "signup" ? "Saving to MySQL..." : "Checking MySQL...";
+
+        const isRegister = (mode === "signup");
+        const endpoint = isRegister ? "/auth/register" : "/auth/login";
+        let finalName = enteredName;
+        if (!finalName && typeof email === "string" && email.includes("@")) {
+          const raw = email.split("@")[0];
+          finalName = raw.split(/[._-]/).map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
+        }
+
+        const payload = isRegister
+          ? { email: email, password: pass, full_name: finalName }
+          : { email: email, password: pass };
+
+        const targetUrls = [
+          `http://127.0.0.1:8000${endpoint}`,
+          `http://127.0.0.1:3000${endpoint}`,
+          endpoint
+        ];
+
+        let successData = null;
+        let lastErrorMsg = "";
+
+        for (const url of targetUrls) {
+          try {
+            const res = await fetch(url, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(payload)
+            });
+
+            if (res.ok) {
+              successData = await res.json();
+              break;
+            } else {
+              const errBody = await res.json().catch(() => ({}));
+              if (res.status === 409) {
+                lastErrorMsg = "This email is already registered in MySQL. Click 'Login' below.";
+                break;
+              } else if (res.status === 401 || res.status === 403) {
+                lastErrorMsg = "Incorrect email or password. Please verify and try again.";
+                break;
+              } else {
+                lastErrorMsg = errBody.detail || errBody.message || `Server returned error (${res.status})`;
+              }
+            }
+          } catch (netErr) {
+            lastErrorMsg = "Backend server is not running on port 8000. Start it with 'python run.py' to store data in MySQL.";
+          }
+        }
+
+        if (!successData) {
+          submitBtn.disabled = false;
+          submitBtn.textContent = isRegister ? "Create account" : "Login";
+          showFormError(lastErrorMsg);
           return;
         }
 
         // Success flow
         playSound("success");
-        toast.style.display = "block";
-        submitBtn.disabled = true;
-        submitBtn.textContent = "Redirecting...";
+        if (successData.access_token) {
+          localStorage.setItem("jobnex_access_token", successData.access_token);
+        }
 
-        try {
-          const enteredName = document.getElementById("input-fullname") ? document.getElementById("input-fullname").value.trim() : "";
-          let finalName = enteredName;
-          if (!finalName && typeof email === "string" && email.includes("@")) {
-            const raw = email.split("@")[0];
-            finalName = raw.split(/[._-]/).map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
-          }
-          const userObj = {
-            id: "u-" + Date.now(),
-            name: finalName || "Candidate",
-            email: email || "",
-            role: "JOB_SEEKER"
-          };
-          localStorage.setItem("jobnex_user", JSON.stringify(userObj));
-          localStorage.setItem("jobnex_is_logged_in", "true");
-        } catch (e) {}
+        const userRecord = successData.user || {};
+        const displayName = userRecord.full_name || finalName || "Candidate";
+        const userObj = {
+          id: String(userRecord.id || `u-${Date.now()}`),
+          name: displayName,
+          email: userRecord.email || email,
+          role: "JOB_SEEKER"
+        };
+        localStorage.setItem("jobnex_user", JSON.stringify(userObj));
+        localStorage.setItem("jobnex_is_logged_in", "true");
+
+        toast.textContent = isRegister
+          ? `Account saved in MySQL users table! Welcome, ${displayName}!`
+          : `Signed in as ${displayName}! Redirecting…`;
+        toast.style.display = "block";
+        submitBtn.textContent = "Redirecting...";
 
         let navigated = false;
         const navigateToNext = () => {
