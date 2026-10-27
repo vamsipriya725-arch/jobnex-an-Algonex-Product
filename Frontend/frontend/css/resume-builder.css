@@ -396,3 +396,152 @@
     display: none !important;
   }
 }
+
+/* ==========================================================================
+   Phase 4: Collapsible Sections, Drag-and-Drop, ATS Badges & Validation Hints
+   ========================================================================== */
+
+/* Section Accordion Cards */
+.section-accordion-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 1rem;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  overflow: hidden;
+}
+
+.section-accordion-card:hover {
+  border-color: #cbd5e1;
+}
+
+.section-accordion-card.is-collapsed .section-accordion-body {
+  display: none;
+}
+
+.section-accordion-header {
+  padding: 0.85rem 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  background-color: #ffffff;
+  cursor: pointer;
+  user-select: none;
+}
+
+.section-accordion-header:hover {
+  background-color: #f8fafc;
+}
+
+/* Drag & Drop Visuals */
+.drag-handle {
+  cursor: grab;
+  color: #94a3b8;
+  padding: 4px;
+  border-radius: 4px;
+  transition: color 0.15s ease, background-color 0.15s ease;
+}
+
+.drag-handle:hover {
+  color: #475569;
+  background-color: #f1f5f9;
+}
+
+.drag-handle:active {
+  cursor: grabbing;
+}
+
+.is-dragging {
+  opacity: 0.35 !important;
+  border: 2px dashed #646ca6 !important;
+  background-color: #f5f6fc !important;
+}
+
+.drag-over-top {
+  border-top: 3px solid #646ca6 !important;
+}
+
+.drag-over-bottom {
+  border-bottom: 3px solid #646ca6 !important;
+}
+
+/* Section Item Cards */
+.section-item-card {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.75rem;
+  padding: 1rem;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.section-item-card:hover {
+  background: #ffffff;
+  border-color: #cbd5e1;
+  box-shadow: 0 2px 8px -2px rgba(15, 23, 42, 0.06);
+}
+
+.section-item-card.is-hidden-item {
+  opacity: 0.55;
+  background: #f1f5f9;
+}
+
+/* Bullet Row Styling */
+.bullet-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  background: #ffffff;
+  padding: 0.4rem 0.5rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.5rem;
+  transition: border-color 0.15s ease;
+}
+
+.bullet-row:focus-within {
+  border-color: #646ca6;
+  box-shadow: 0 0 0 2px rgba(100, 108, 166, 0.15);
+}
+
+/* Action Verb Chip */
+.action-verb-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 9.5px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background-color: #ecfdf5;
+  color: #065f46;
+  border: 1px solid #a7f3d0;
+}
+
+.action-verb-badge.weak {
+  background-color: #fffbeb;
+  color: #92400e;
+  border-color: #fde68a;
+}
+
+/* Validation Hint Indicators */
+.val-hint {
+  font-size: 10.5px;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-top: 0.25rem;
+  line-height: 1.25;
+}
+
+.val-hint.valid {
+  color: #059669;
+}
+
+.val-hint.invalid {
+  color: #e11d48;
+}
+
+.val-hint.warning {
+  color: #d97706;
+}

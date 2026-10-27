@@ -442,6 +442,78 @@
     openModal(DOM.modalDelete);
   }
 
+  function initAddSectionModal() {
+    const modal = document.getElementById("modal-add-section");
+    if (!modal) return;
+
+    let selectedType = null;
+    let selectedDefaultTitle = "";
+
+    const btnOpen = document.getElementById("btn-open-add-section-modal");
+    const btnBottom = document.getElementById("btn-bottom-add-section");
+    const btnClose = document.getElementById("btn-close-add-section-modal");
+    const btnCancel = document.getElementById("btn-add-section-cancel");
+    const btnConfirm = document.getElementById("btn-add-section-confirm");
+    const customTitleWrapper = document.getElementById("add-section-custom-title-wrapper");
+    const customTitleInput = document.getElementById("add-section-custom-title-input");
+
+    function openAddModal() {
+      selectedType = null;
+      selectedDefaultTitle = "";
+      if (btnConfirm) btnConfirm.disabled = true;
+      if (customTitleWrapper) customTitleWrapper.classList.add("hidden");
+      if (customTitleInput) customTitleInput.value = "";
+
+      modal.querySelectorAll(".add-section-option-btn").forEach((b) => {
+        b.classList.remove("border-brand-500", "bg-brand-50/50", "ring-2", "ring-brand-500/20");
+      });
+
+      openModal(modal);
+    }
+
+    btnOpen?.addEventListener("click", openAddModal);
+    btnBottom?.addEventListener("click", openAddModal);
+
+    btnClose?.addEventListener("click", () => closeModal(modal));
+    btnCancel?.addEventListener("click", () => closeModal(modal));
+
+    modal.querySelectorAll(".add-section-option-btn").forEach((optBtn) => {
+      optBtn.addEventListener("click", () => {
+        modal.querySelectorAll(".add-section-option-btn").forEach((b) => {
+          b.classList.remove("border-brand-500", "bg-brand-50/50", "ring-2", "ring-brand-500/20");
+        });
+        optBtn.classList.add("border-brand-500", "bg-brand-50/50", "ring-2", "ring-brand-500/20");
+
+        selectedType = optBtn.getAttribute("data-sec-type");
+        selectedDefaultTitle = optBtn.getAttribute("data-default-title") || "New Section";
+
+        if (selectedType === "custom") {
+          customTitleWrapper?.classList.remove("hidden");
+          if (customTitleInput) {
+            customTitleInput.value = selectedDefaultTitle;
+            customTitleInput.focus();
+          }
+        } else {
+          customTitleWrapper?.classList.add("hidden");
+        }
+
+        if (btnConfirm) btnConfirm.disabled = false;
+      });
+    });
+
+    btnConfirm?.addEventListener("click", () => {
+      if (!selectedType) return;
+      let finalTitle = selectedDefaultTitle;
+      if (selectedType === "custom" && customTitleInput && customTitleInput.value.trim()) {
+        finalTitle = customTitleInput.value.trim();
+      }
+
+      window.JobNexResumeStore.addSection(selectedType, finalTitle);
+      closeModal(modal);
+      showToast("Section Added", `Added "${finalTitle}" section.`);
+    });
+  }
+
   // =========================================================================
   // File Upload & 5-Stage Real Progress Tracking
   // =========================================================================
@@ -703,14 +775,1056 @@
     loadDashboard();
   }
 
+  // =========================================================================
+  // Phase 4: Action Verb Engine, Section Validators & Dynamic Editors
+  // =========================================================================
+
+  let isEditingInline = false;
+  const collapsedSections = new Set();
+
+  const STRONG_ACTION_VERBS = new Set([
+    "accelerated", "achieved", "administered", "advanced", "advised", "advocated", "aligned", "allocated",
+    "analyzed", "appraised", "architected", "audited", "automated", "boosted", "built", "budgeted",
+    "calculated", "centralized", "championed", "collaborated", "compiled", "composed", "conceptualized",
+    "conducted", "consolidated", "constructed", "converted", "coordinated", "counseled", "created",
+    "customized", "debugged", "decreased", "defined", "delegated", "delivered", "demonstrated", "deployed",
+    "designed", "developed", "devised", "diagnosed", "directed", "discovered", "dispatched", "diversified",
+    "documented", "doubled", "drafted", "drove", "earned", "eliminated", "enabled", "engineered",
+    "enhanced", "enlarged", "established", "estimated", "evaluated", "exceeded", "executed", "expanded",
+    "expedited", "facilitated", "forecasted", "formulated", "founded", "generated", "governed", "guided",
+    "halted", "handled", "headed", "hired", "identified", "implemented", "improved", "increased",
+    "indexed", "influenced", "initiated", "innovated", "inspected", "installed", "instituted", "instructed",
+    "integrated", "introduced", "invented", "investigated", "launched", "lead", "led", "leveraged",
+    "maintained", "managed", "mapped", "marketed", "maximized", "measured", "mediated", "mentored",
+    "migrated", "minimized", "modernized", "monitored", "motivated", "negotiated", "optimized", "orchestrated",
+    "organized", "originated", "outperformed", "overhauled", "oversaw", "partnered", "performed", "pioneered",
+    "planned", "prepared", "presented", "produced", "programmed", "promoted", "proposed", "published",
+    "quantified", "re-engineered", "rebuilt", "received", "recommended", "reconciled", "recruited", "redesigned",
+    "reduced", "refactored", "refined", "reformed", "regulated", "rehabilitated", "remodeled", "reorganized",
+    "repaired", "replaced", "reported", "researched", "resolved", "restructured", "revamped", "reviewed",
+    "revitalized", "rewarded", "routed", "saved", "scaled", "scheduled", "screened", "secured",
+    "selected", "separated", "served", "shaped", "simplified", "solved", "spearheaded", "standardized",
+    "steered", "streamlined", "strengthened", "structured", "supervised", "surpassed", "synthesized", "systematized",
+    "targeted", "taught", "tested", "tracked", "trained", "transformed", "translated", "tripled",
+    "uncovered", "unified", "upgraded", "utilized", "validated", "verified", "won", "yielded"
+  ]);
+
+  const WEAK_VERB_PHRASES = [
+    "responsible for", "duties included", "helped with", "assisted with", "worked on", "handled",
+    "participated in", "served as", "was tasked with", "contributed to", "involved in", "attempted to"
+  ];
+
+  function analyzeBulletActionVerb(bulletText) {
+    if (!bulletText || typeof bulletText !== "string") {
+      return { status: "empty", label: "" };
+    }
+    const trimmed = bulletText.trim().toLowerCase();
+    if (!trimmed) return { status: "empty", label: "" };
+
+    for (const weak of WEAK_VERB_PHRASES) {
+      if (trimmed.startsWith(weak)) {
+        return {
+          status: "weak",
+          verb: weak,
+          label: `Weak phrasing: "${weak}" — use Spearheaded, Engineered, etc.`,
+        };
+      }
+    }
+
+    const firstWordMatch = trimmed.match(/^([a-z\-]+)/i);
+    const firstWord = firstWordMatch ? firstWordMatch[1].toLowerCase() : "";
+
+    if (STRONG_ACTION_VERBS.has(firstWord)) {
+      return {
+        status: "strong",
+        verb: firstWord,
+        label: `Strong Action Verb: ${firstWord.charAt(0).toUpperCase() + firstWord.slice(1)}`,
+      };
+    }
+
+    return {
+      status: "neutral",
+      verb: firstWord,
+      label: "Tip: Start bullets with a strong action verb",
+    };
+  }
+
+  function validateDateOrder(datesStr) {
+    if (!datesStr || typeof datesStr !== "string") return { valid: true };
+    const years = datesStr.match(/\b(19\d\d|20\d\d)\b/g);
+    if (years && years.length >= 2) {
+      const startYear = parseInt(years[0], 10);
+      const endYear = parseInt(years[1], 10);
+      if (startYear > endYear) {
+        return {
+          valid: false,
+          message: `Start year (${startYear}) is after end year (${endYear})`,
+        };
+      }
+    }
+    return { valid: true };
+  }
+
+  function analyzeSectionATSIssues(section) {
+    const issues = [];
+    if (!section) return { count: 0, issues };
+
+    const items = section.items || [];
+    if (items.length === 0) {
+      issues.push("Section has no entries");
+      return { count: issues.length, issues };
+    }
+
+    const type = (section.type || "").toLowerCase();
+    const isExperienceOrProject = type === "work" || type === "experience" || type === "projects" || type === "project";
+
+    items.forEach((item, idx) => {
+      const itemLabel = item.title || item.organization || `Item #${idx + 1}`;
+      if (!item.title && !item.organization) {
+        issues.push(`${itemLabel}: Missing role title or organization`);
+      }
+
+      if (isExperienceOrProject) {
+        if (!item.dates || !item.dates.trim()) {
+          issues.push(`${itemLabel}: Missing timeframe/dates`);
+        }
+        const dateCheck = validateDateOrder(item.dates);
+        if (!dateCheck.valid) {
+          issues.push(`${itemLabel}: ${dateCheck.message}`);
+        }
+        const bullets = (item.bullets || []).filter((b) => b && b.trim());
+        if (bullets.length === 0) {
+          issues.push(`${itemLabel}: Add 2-4 quantified achievement bullets`);
+        } else if (bullets.length < 2) {
+          issues.push(`${itemLabel}: 2+ bullets recommended for ATS depth`);
+        }
+
+        bullets.forEach((b) => {
+          const vb = analyzeBulletActionVerb(b);
+          if (vb.status === "weak") {
+            issues.push(`${itemLabel}: Uses weak phrase "${vb.verb}"`);
+          }
+        });
+      }
+    });
+
+    return { count: issues.length, issues };
+  }
+
+  function updateContactValidation(personal) {
+    const p = personal || {};
+    const hintName = document.getElementById("hint-name");
+    const hintEmail = document.getElementById("hint-email");
+    const hintPhone = document.getElementById("hint-phone");
+    const badgePersonal = document.getElementById("badge-ats-personal");
+
+    let issuesCount = 0;
+
+    // Full name
+    if (hintName) {
+      if (!p.name || !p.name.trim()) {
+        hintName.className = "val-hint invalid";
+        hintName.innerHTML = '<i data-lucide="alert-circle" class="w-3 h-3"></i> Full name is required for ATS matching';
+        issuesCount++;
+      } else {
+        hintName.className = "val-hint valid";
+        hintName.innerHTML = '<i data-lucide="check" class="w-3 h-3"></i> Complete';
+      }
+    }
+
+    // Email
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (hintEmail) {
+      if (!p.email || !p.email.trim()) {
+        hintEmail.className = "val-hint invalid";
+        hintEmail.innerHTML = '<i data-lucide="alert-circle" class="w-3 h-3"></i> Valid email address is required';
+        issuesCount++;
+      } else if (!emailRegex.test(p.email.trim())) {
+        hintEmail.className = "val-hint invalid";
+        hintEmail.innerHTML = '<i data-lucide="alert-circle" class="w-3 h-3"></i> Invalid email format';
+        issuesCount++;
+      } else {
+        hintEmail.className = "val-hint valid";
+        hintEmail.innerHTML = '<i data-lucide="check" class="w-3 h-3"></i> Valid format';
+      }
+    }
+
+    // Phone
+    const digitsOnly = (p.phone || "").replace(/\D/g, "");
+    if (hintPhone) {
+      if (!p.phone || !p.phone.trim()) {
+        hintPhone.className = "val-hint warning";
+        hintPhone.innerHTML = '<i data-lucide="alert-circle" class="w-3 h-3"></i> Phone number recommended';
+      } else if (digitsOnly.length < 7) {
+        hintPhone.className = "val-hint invalid";
+        hintPhone.innerHTML = '<i data-lucide="alert-circle" class="w-3 h-3"></i> Phone must contain at least 7 digits';
+        issuesCount++;
+      } else {
+        hintPhone.className = "val-hint valid";
+        hintPhone.innerHTML = '<i data-lucide="check" class="w-3 h-3"></i> Valid phone';
+      }
+    }
+
+    if (badgePersonal) {
+      if (issuesCount === 0) {
+        badgePersonal.className = "text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200";
+        badgePersonal.textContent = "Optimal";
+      } else {
+        badgePersonal.className = "text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-200";
+        badgePersonal.textContent = `${issuesCount} ${issuesCount === 1 ? "issue" : "issues"}`;
+      }
+    }
+  }
+
+  function updateSummaryValidation(summaryText) {
+    const text = summaryText || "";
+    const words = text.trim() ? text.trim().split(/\s+/).filter(Boolean).length : 0;
+    const hintSummaryWords = document.getElementById("hint-summary-words");
+    const badgeSummary = document.getElementById("badge-ats-summary");
+
+    const pronounRegex = /\b(I|me|my|mine|we|our|ours)\b/i;
+    const hasPronouns = pronounRegex.test(text);
+
+    if (hintSummaryWords) {
+      let msg = `Words: ${words} • Target: 40–100 words`;
+      if (hasPronouns) {
+        msg += ` • <span class="text-rose-600 font-semibold">Avoid 1st-person pronouns ("I", "my")</span>`;
+      }
+      hintSummaryWords.innerHTML = msg;
+    }
+
+    if (badgeSummary) {
+      if (words >= 40 && words <= 100 && !hasPronouns) {
+        badgeSummary.className = "text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200";
+        badgeSummary.textContent = `Optimal (${words} words)`;
+      } else if (words === 0) {
+        badgeSummary.className = "text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 border border-slate-200";
+        badgeSummary.textContent = "Empty";
+      } else {
+        badgeSummary.className = "text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-200";
+        badgeSummary.textContent = `${words} words${hasPronouns ? " • Pronoun warning" : ""}`;
+      }
+    }
+  }
+
+  function renderPersonalLinks(links) {
+    const container = document.getElementById("personal-links-container");
+    if (!container) return;
+
+    if (!links || links.length === 0) {
+      container.innerHTML = `
+        <p class="text-[11px] text-slate-400 italic m-0">No profile links added. Click "+ Add Link" to attach LinkedIn, GitHub, or Portfolio.</p>
+      `;
+      return;
+    }
+
+    let html = "";
+    links.forEach((l, idx) => {
+      html += `
+        <div class="flex items-center gap-2" data-link-index="${idx}">
+          <div class="w-28 shrink-0">
+            <input
+              type="text"
+              class="inp-link-label w-full px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-700 outline-none focus:border-brand-500 focus:bg-white"
+              value="${escapeHtml(l.label || "Portfolio")}"
+              placeholder="e.g. LinkedIn"
+              data-link-index="${idx}"
+            />
+          </div>
+          <div class="flex-1">
+            <input
+              type="url"
+              class="inp-link-url w-full px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-900 outline-none focus:border-brand-500 focus:bg-white"
+              value="${escapeHtml(l.url || "")}"
+              placeholder="https://..."
+              data-link-index="${idx}"
+            />
+          </div>
+          <button
+            type="button"
+            class="btn-remove-personal-link p-1.5 text-slate-400 hover:text-rose-600 cursor-pointer rounded shrink-0"
+            data-link-index="${idx}"
+            title="Remove link"
+          >
+            <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+          </button>
+        </div>
+      `;
+    });
+
+    container.innerHTML = html;
+    if (typeof lucide !== "undefined" && lucide.createIcons) lucide.createIcons();
+
+    // Bind link events
+    container.querySelectorAll(".inp-link-label").forEach((inp) => {
+      inp.addEventListener("focus", () => { isEditingInline = true; });
+      inp.addEventListener("blur", () => { isEditingInline = false; });
+      inp.addEventListener("change", (e) => {
+        const idx = parseInt(e.target.dataset.linkIndex, 10);
+        window.JobNexResumeStore.updatePersonalLink(idx, { label: e.target.value.trim() });
+      });
+    });
+
+    container.querySelectorAll(".inp-link-url").forEach((inp) => {
+      inp.addEventListener("focus", () => { isEditingInline = true; });
+      inp.addEventListener("blur", () => { isEditingInline = false; });
+      inp.addEventListener("change", (e) => {
+        const idx = parseInt(e.target.dataset.linkIndex, 10);
+        window.JobNexResumeStore.updatePersonalLink(idx, { url: e.target.value.trim() });
+      });
+    });
+
+    container.querySelectorAll(".btn-remove-personal-link").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const idx = parseInt(btn.dataset.linkIndex, 10);
+        window.JobNexResumeStore.removePersonalLink(idx);
+      });
+    });
+  }
+
+  function getSectionIcon(type) {
+    const t = (type || "").toLowerCase();
+    if (t === "work" || t === "experience") return "briefcase";
+    if (t === "education") return "graduation-cap";
+    if (t === "projects" || t === "project") return "folder-git-2";
+    if (t === "skills" || t === "technical skills") return "code-2";
+    if (t === "certifications" || t === "licenses") return "award";
+    return "layers";
+  }
+
+  function getItemFieldLabels(type) {
+    const t = (type || "").toLowerCase();
+    if (t === "education") {
+      return {
+        titleLabel: "Degree / Program",
+        titlePlaceholder: "e.g. B.S. in Computer Science",
+        orgLabel: "University / Institution",
+        orgPlaceholder: "e.g. Stanford University",
+        datesPlaceholder: "e.g. 2019 – 2023",
+        addBtnLabel: "+ Add Degree / Education",
+      };
+    }
+    if (t === "projects" || t === "project") {
+      return {
+        titleLabel: "Project Title",
+        titlePlaceholder: "e.g. Cloud Scaler Architecture",
+        orgLabel: "Client / Role / Context",
+        orgPlaceholder: "e.g. Open-Source / Lead Developer",
+        datesPlaceholder: "e.g. 2023",
+        addBtnLabel: "+ Add Project",
+      };
+    }
+    if (t === "skills" || t === "technical skills") {
+      return {
+        titleLabel: "Skill Category",
+        titlePlaceholder: "e.g. Languages & Frameworks",
+        orgLabel: "Proficiency / Context (Optional)",
+        orgPlaceholder: "e.g. Advanced / Production",
+        datesPlaceholder: "e.g. 2020 – Present",
+        addBtnLabel: "+ Add Skill Category",
+      };
+    }
+    if (t === "certifications") {
+      return {
+        titleLabel: "Certification Name",
+        titlePlaceholder: "e.g. AWS Certified Solutions Architect",
+        orgLabel: "Issuing Organization",
+        orgPlaceholder: "e.g. Amazon Web Services",
+        datesPlaceholder: "e.g. Issued May 2023",
+        addBtnLabel: "+ Add Certification",
+      };
+    }
+    return {
+      titleLabel: "Job Title",
+      titlePlaceholder: "e.g. Senior Software Engineer",
+      orgLabel: "Company / Employer",
+      orgPlaceholder: "e.g. Stripe, Inc.",
+      datesPlaceholder: "e.g. Jan 2021 – Present",
+      addBtnLabel: "+ Add Position",
+    };
+  }
+
+  function renderBulletRowHtml(sectionId, itemId, bulletText, bulletIndex) {
+    const verbAnalysis = analyzeBulletActionVerb(bulletText);
+
+    let verbBadgeHtml = "";
+    if (verbAnalysis.status === "strong") {
+      verbBadgeHtml = `
+        <span class="action-verb-badge">
+          <i data-lucide="check" class="w-2.5 h-2.5"></i>
+          <span>${escapeHtml(verbAnalysis.label)}</span>
+        </span>
+      `;
+    } else if (verbAnalysis.status === "weak") {
+      verbBadgeHtml = `
+        <span class="action-verb-badge weak" title="${escapeHtml(verbAnalysis.label)}">
+          <i data-lucide="alert-triangle" class="w-2.5 h-2.5"></i>
+          <span>${escapeHtml(verbAnalysis.label)}</span>
+        </span>
+      `;
+    } else if (bulletText && bulletText.trim().length > 0) {
+      verbBadgeHtml = `<span class="text-[9.5px] text-slate-400 italic">${escapeHtml(verbAnalysis.label)}</span>`;
+    }
+
+    return `
+      <div class="space-y-1" data-bullet-idx="${bulletIndex}">
+        <div class="bullet-row" data-section-id="${sectionId}" data-item-id="${itemId}" data-bullet-idx="${bulletIndex}">
+          <div class="drag-handle bullet-drag-handle" draggable="true" title="Drag to reorder bullet" data-section-id="${sectionId}" data-item-id="${itemId}" data-bullet-idx="${bulletIndex}">
+            <i data-lucide="grip-vertical" class="w-3.5 h-3.5"></i>
+          </div>
+          <textarea
+            rows="2"
+            class="bullet-textarea flex-1 text-xs text-slate-900 bg-transparent border-0 outline-none resize-y leading-relaxed placeholder:text-slate-400"
+            placeholder="e.g. Engineered distributed event streaming pipeline using Kafka, reducing message latency by 45%..."
+            data-section-id="${sectionId}"
+            data-item-id="${itemId}"
+            data-bullet-idx="${bulletIndex}"
+          >${escapeHtml(bulletText || "")}</textarea>
+          <button
+            type="button"
+            class="btn-remove-bullet p-1 text-slate-400 hover:text-rose-600 cursor-pointer rounded shrink-0"
+            data-section-id="${sectionId}"
+            data-item-id="${itemId}"
+            data-bullet-idx="${bulletIndex}"
+            title="Remove bullet"
+          >
+            <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+          </button>
+        </div>
+        ${verbBadgeHtml ? `<div class="pl-6">${verbBadgeHtml}</div>` : ""}
+      </div>
+    `;
+  }
+
+  function renderSectionItemHtml(sec, itm, iIdx, fieldLabels) {
+    const isHidden = !!itm.hidden;
+    const dateCheck = validateDateOrder(itm.dates);
+    const bullets = itm.bullets || [];
+    const technologies = itm.technologies || [];
+
+    return `
+      <div class="section-item-card ${isHidden ? "is-hidden-item" : ""}" data-section-id="${sec.id}" data-item-id="${itm.id}" data-item-index="${iIdx}">
+        <!-- Item Top Bar -->
+        <div class="flex items-center justify-between pb-2 mb-3 border-b border-slate-200/80">
+          <div class="flex items-center gap-2 flex-1 min-w-0">
+            <div class="drag-handle item-drag-handle" draggable="true" title="Drag to reorder entry" data-section-id="${sec.id}" data-item-index="${iIdx}">
+              <i data-lucide="grip-vertical" class="w-3.5 h-3.5"></i>
+            </div>
+            <span class="text-xs font-bold text-slate-800 truncate">
+              ${escapeHtml(itm.title || itm.organization || `Entry #${iIdx + 1}`)}
+            </span>
+          </div>
+
+          <div class="flex items-center gap-1 shrink-0">
+            <!-- Item Visibility Toggle -->
+            <button
+              type="button"
+              class="btn-toggle-item-vis p-1 text-slate-400 hover:text-slate-700 cursor-pointer rounded"
+              data-section-id="${sec.id}"
+              data-item-id="${itm.id}"
+              title="${isHidden ? "Show entry on resume" : "Hide entry from resume"}"
+            >
+              <i data-lucide="${isHidden ? "eye-off" : "eye"}" class="w-3.5 h-3.5 ${isHidden ? "text-rose-500" : ""}"></i>
+            </button>
+
+            <!-- Item Delete -->
+            <button
+              type="button"
+              class="btn-delete-item p-1 text-slate-400 hover:text-rose-600 cursor-pointer rounded"
+              data-section-id="${sec.id}"
+              data-item-id="${itm.id}"
+              title="Delete this entry"
+            >
+              <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- 2-Col Fields Grid -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+          <div>
+            <label class="text-[10.5px] font-semibold text-slate-600">${fieldLabels.titleLabel}</label>
+            <input
+              type="text"
+              class="item-field-input w-full mt-0.5 px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg text-xs text-slate-900 outline-none focus:border-brand-500"
+              placeholder="${fieldLabels.titlePlaceholder}"
+              value="${escapeHtml(itm.title || "")}"
+              data-section-id="${sec.id}"
+              data-item-id="${itm.id}"
+              data-field="title"
+            />
+          </div>
+          <div>
+            <label class="text-[10.5px] font-semibold text-slate-600">${fieldLabels.orgLabel}</label>
+            <input
+              type="text"
+              class="item-field-input w-full mt-0.5 px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg text-xs text-slate-900 outline-none focus:border-brand-500"
+              placeholder="${fieldLabels.orgPlaceholder}"
+              value="${escapeHtml(itm.organization || "")}"
+              data-section-id="${sec.id}"
+              data-item-id="${itm.id}"
+              data-field="organization"
+            />
+          </div>
+          <div>
+            <label class="text-[10.5px] font-semibold text-slate-600">Dates / Timeframe</label>
+            <input
+              type="text"
+              class="item-field-input w-full mt-0.5 px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg text-xs text-slate-900 outline-none focus:border-brand-500"
+              placeholder="${fieldLabels.datesPlaceholder}"
+              value="${escapeHtml(itm.dates || "")}"
+              data-section-id="${sec.id}"
+              data-item-id="${itm.id}"
+              data-field="dates"
+            />
+            ${
+              !dateCheck.valid
+                ? `<p class="val-hint invalid"><i data-lucide="alert-circle" class="w-3 h-3"></i> ${escapeHtml(dateCheck.message)}</p>`
+                : ""
+            }
+          </div>
+          <div>
+            <label class="text-[10.5px] font-semibold text-slate-600">Location (City, State / Remote)</label>
+            <input
+              type="text"
+              class="item-field-input w-full mt-0.5 px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg text-xs text-slate-900 outline-none focus:border-brand-500"
+              placeholder="e.g. San Francisco, CA"
+              value="${escapeHtml(itm.location || "")}"
+              data-section-id="${sec.id}"
+              data-item-id="${itm.id}"
+              data-field="location"
+            />
+          </div>
+        </div>
+
+        <!-- Bullets Section -->
+        <div class="mt-3 pt-3 border-t border-slate-200/80 space-y-2">
+          <div class="flex items-center justify-between">
+            <span class="text-[10.5px] font-bold text-slate-700">Bullet Points (Action verbs & metrics)</span>
+            <button
+              type="button"
+              class="btn-add-bullet text-[11px] font-bold text-brand-600 hover:text-brand-800 flex items-center gap-1 cursor-pointer"
+              data-section-id="${sec.id}"
+              data-item-id="${itm.id}"
+            >
+              <i data-lucide="plus" class="w-3 h-3"></i>
+              <span>Add Bullet</span>
+            </button>
+          </div>
+
+          <div class="bullets-container space-y-2" data-section-id="${sec.id}" data-item-id="${itm.id}">
+            ${
+              bullets.length === 0
+                ? `<p class="text-[10.5px] text-slate-400 italic m-0">No bullets added yet. Click "+ Add Bullet" to describe your achievements.</p>`
+                : bullets.map((b, bIdx) => renderBulletRowHtml(sec.id, itm.id, b, bIdx)).join("")
+            }
+          </div>
+        </div>
+
+        <!-- Key Skills / Technologies Chips Section -->
+        <div class="mt-3 pt-2 border-t border-slate-200/80">
+          <label class="text-[10.5px] font-bold text-slate-700">Technologies & Key Skills</label>
+          <div class="tech-chips-wrapper flex flex-wrap items-center gap-1.5 mt-1.5 p-2 bg-white border border-slate-200 rounded-lg">
+            ${technologies
+              .map(
+                (tech) => `
+                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-brand-50 text-brand-800 text-[11px] font-medium border border-brand-200">
+                  <span>${escapeHtml(tech)}</span>
+                  <button
+                    type="button"
+                    class="btn-remove-tech text-slate-400 hover:text-rose-600 cursor-pointer p-0.5"
+                    data-section-id="${sec.id}"
+                    data-item-id="${itm.id}"
+                    data-tech="${escapeHtml(tech)}"
+                    title="Remove skill"
+                  >
+                    <i data-lucide="x" class="w-3 h-3"></i>
+                  </button>
+                </span>
+              `
+              )
+              .join("")}
+            <input
+              type="text"
+              class="inp-add-tech text-xs bg-slate-50 border border-transparent rounded px-2 py-0.5 outline-none focus:border-brand-500 focus:bg-white placeholder:text-slate-400 flex-1 min-w-[140px]"
+              placeholder="+ Type skill & press Enter"
+              data-section-id="${sec.id}"
+              data-item-id="${itm.id}"
+            />
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  function renderContentSections(resume) {
+    const container = document.getElementById("content-sections-container");
+    if (!container || !resume) return;
+
+    const sections = resume.sections || [];
+    if (sections.length === 0) {
+      container.innerHTML = `
+        <div class="py-8 px-4 text-center rounded-xl bg-slate-50 border border-dashed border-slate-200">
+          <p class="text-xs font-semibold text-slate-500 m-0">No custom sections added yet</p>
+          <p class="text-[11px] text-slate-400 m-0 mt-0.5">Click "Add Section" above or below to insert Work Experience, Education, Skills, and more.</p>
+        </div>
+      `;
+      return;
+    }
+
+    let html = "";
+    sections.forEach((sec, sIdx) => {
+      const isCollapsed = collapsedSections.has(sec.id);
+      const icon = getSectionIcon(sec.type);
+      const items = sec.items || [];
+      const atsAnalysis = analyzeSectionATSIssues(sec);
+      const fieldLabels = getItemFieldLabels(sec.type);
+
+      html += `
+        <div class="section-accordion-card ${isCollapsed ? "is-collapsed" : ""}" data-section-id="${sec.id}" data-section-index="${sIdx}">
+          <!-- Header -->
+          <div class="section-accordion-header" data-section-id="${sec.id}">
+            <div class="flex items-center gap-2 flex-1 min-w-0">
+              <div class="drag-handle section-drag-handle" draggable="true" title="Drag to reorder section" data-section-index="${sIdx}">
+                <i data-lucide="grip-vertical" class="w-4 h-4"></i>
+              </div>
+              <div class="w-7 h-7 rounded-lg bg-slate-100 text-slate-700 flex items-center justify-center shrink-0">
+                <i data-lucide="${icon}" class="w-3.5 h-3.5"></i>
+              </div>
+              <input
+                type="text"
+                class="section-title-input font-bold text-xs text-slate-900 bg-transparent hover:bg-slate-50 focus:bg-white border-b border-transparent hover:border-slate-300 focus:border-brand-500 px-1 py-0.5 rounded outline-none w-full max-w-[220px] truncate"
+                value="${escapeHtml(sec.title || "Untitled Section")}"
+                data-section-id="${sec.id}"
+                title="Click to edit section title"
+              />
+              <span class="text-[10px] text-slate-500 font-semibold px-2 py-0.5 rounded-full bg-slate-100 shrink-0">
+                ${items.length} ${items.length === 1 ? "entry" : "entries"}
+              </span>
+            </div>
+
+            <div class="flex items-center gap-1.5 shrink-0">
+              <!-- ATS Issue badge -->
+              ${
+                atsAnalysis.count === 0
+                  ? `<span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200">Optimal</span>`
+                  : `<span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-200" title="${escapeHtml(atsAnalysis.issues.join("; "))}">${atsAnalysis.count} ${atsAnalysis.count === 1 ? "issue" : "issues"}</span>`
+              }
+
+              <!-- Visibility toggle -->
+              <button
+                type="button"
+                class="btn-toggle-sec-vis p-1 text-slate-400 hover:text-slate-700 cursor-pointer rounded"
+                data-section-id="${sec.id}"
+                title="${sec.hidden ? "Show section on resume" : "Hide section from resume"}"
+              >
+                <i data-lucide="${sec.hidden ? "eye-off" : "eye"}" class="w-4 h-4 ${sec.hidden ? "text-rose-500" : ""}"></i>
+              </button>
+
+              <!-- Delete section -->
+              <button
+                type="button"
+                class="btn-delete-sec p-1 text-slate-400 hover:text-rose-600 cursor-pointer rounded"
+                data-section-id="${sec.id}"
+                title="Delete this section"
+              >
+                <i data-lucide="trash-2" class="w-4 h-4"></i>
+              </button>
+
+              <!-- Collapse toggle chevron -->
+              <button
+                type="button"
+                class="btn-toggle-sec-accordion p-1 text-slate-400 hover:text-slate-700 cursor-pointer rounded"
+                data-section-id="${sec.id}"
+                title="Collapse or expand section"
+              >
+                <i data-lucide="chevron-down" class="w-4 h-4 transition-transform ${isCollapsed ? "-rotate-90" : ""}"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- Body -->
+          <div class="section-accordion-body p-4 border-t border-slate-100 space-y-4" style="${isCollapsed ? "display: none;" : ""}">
+            <!-- Items Container -->
+            <div class="section-items-container space-y-3" data-section-id="${sec.id}">
+              ${
+                items.length === 0
+                  ? `<p class="text-[11px] text-slate-400 italic text-center py-2 m-0">No entries yet in this section.</p>`
+                  : items.map((itm, iIdx) => renderSectionItemHtml(sec, itm, iIdx, fieldLabels)).join("")
+              }
+            </div>
+
+            <!-- Add Item Button -->
+            <div class="pt-2">
+              <button
+                type="button"
+                class="btn-add-section-item w-full py-2 px-3 rounded-lg border border-dashed border-slate-300 hover:border-brand-500 hover:bg-brand-50/40 text-brand-700 font-bold text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                data-section-id="${sec.id}"
+              >
+                <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+                <span>${fieldLabels.addBtnLabel}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      `;
+    });
+
+    container.innerHTML = html;
+    if (typeof lucide !== "undefined" && lucide.createIcons) lucide.createIcons();
+    bindSectionInteractions();
+  }
+
+  function bindSectionInteractions() {
+    const container = document.getElementById("content-sections-container");
+    if (!container) return;
+
+    // 1. Accordion collapse toggles
+    container.querySelectorAll(".btn-toggle-sec-accordion").forEach((btn) => {
+      btn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        const secId = btn.dataset.sectionId;
+        const card = btn.closest(".section-accordion-card");
+        const body = card?.querySelector(".section-accordion-body");
+        const chevron = btn.querySelector("svg, i");
+        if (card && body) {
+          const isCollapsed = card.classList.toggle("is-collapsed");
+          body.style.display = isCollapsed ? "none" : "";
+          if (chevron) chevron.classList.toggle("-rotate-90", isCollapsed);
+          if (isCollapsed) collapsedSections.add(secId);
+          else collapsedSections.delete(secId);
+        }
+      });
+    });
+
+    // Header click (excluding inputs/buttons) toggles accordion
+    container.querySelectorAll(".section-accordion-header").forEach((hdr) => {
+      hdr.addEventListener("click", (e) => {
+        if (e.target.closest("input") || e.target.closest("button") || e.target.closest(".drag-handle")) return;
+        const btn = hdr.querySelector(".btn-toggle-sec-accordion");
+        if (btn) btn.click();
+      });
+    });
+
+    // 2. Section Title Rename
+    container.querySelectorAll(".section-title-input").forEach((inp) => {
+      inp.addEventListener("focus", () => { isEditingInline = true; });
+      inp.addEventListener("blur", () => { isEditingInline = false; });
+      inp.addEventListener("change", (e) => {
+        const secId = e.target.dataset.sectionId;
+        const newTitle = e.target.value.trim() || "Untitled Section";
+        window.JobNexResumeStore.updateSectionTitle(secId, newTitle);
+      });
+    });
+
+    // 3. Section Visibility Toggle
+    container.querySelectorAll(".btn-toggle-sec-vis").forEach((btn) => {
+      btn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        const secId = btn.dataset.sectionId;
+        window.JobNexResumeStore.toggleSectionVisibility(secId);
+      });
+    });
+
+    // 4. Section Delete
+    container.querySelectorAll(".btn-delete-sec").forEach((btn) => {
+      btn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        const secId = btn.dataset.sectionId;
+        window.JobNexResumeStore.removeSection(secId);
+      });
+    });
+
+    // 5. Add Item Button
+    container.querySelectorAll(".btn-add-section-item").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const secId = btn.dataset.sectionId;
+        window.JobNexResumeStore.addItem(secId);
+      });
+    });
+
+    // 6. Item Field Inputs
+    container.querySelectorAll(".item-field-input").forEach((inp) => {
+      inp.addEventListener("focus", () => { isEditingInline = true; });
+      inp.addEventListener("blur", () => { isEditingInline = false; });
+      inp.addEventListener("input", (e) => {
+        const secId = e.target.dataset.sectionId;
+        const itemId = e.target.dataset.itemId;
+        const field = e.target.dataset.field;
+        window.JobNexResumeStore.updateItem(secId, itemId, { [field]: e.target.value });
+      });
+    });
+
+    // 7. Item Visibility Toggle & Delete
+    container.querySelectorAll(".btn-toggle-item-vis").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const secId = btn.dataset.sectionId;
+        const itemId = btn.dataset.itemId;
+        window.JobNexResumeStore.toggleItemVisibility(secId, itemId);
+      });
+    });
+
+    container.querySelectorAll(".btn-delete-item").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const secId = btn.dataset.sectionId;
+        const itemId = btn.dataset.itemId;
+        window.JobNexResumeStore.removeItem(secId, itemId);
+      });
+    });
+
+    // 8. Bullets: Add, Edit, Remove
+    container.querySelectorAll(".btn-add-bullet").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const secId = btn.dataset.sectionId;
+        const itemId = btn.dataset.itemId;
+        window.JobNexResumeStore.addBullet(secId, itemId, "");
+      });
+    });
+
+    container.querySelectorAll(".bullet-textarea").forEach((txt) => {
+      txt.addEventListener("focus", () => { isEditingInline = true; });
+      txt.addEventListener("blur", () => { isEditingInline = false; });
+      txt.addEventListener("input", (e) => {
+        const secId = e.target.dataset.sectionId;
+        const itemId = e.target.dataset.itemId;
+        const bIdx = parseInt(e.target.dataset.bulletIdx, 10);
+        window.JobNexResumeStore.updateBullet(secId, itemId, bIdx, e.target.value);
+      });
+    });
+
+    container.querySelectorAll(".btn-remove-bullet").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const secId = btn.dataset.sectionId;
+        const itemId = btn.dataset.itemId;
+        const bIdx = parseInt(btn.dataset.bulletIdx, 10);
+        window.JobNexResumeStore.removeBullet(secId, itemId, bIdx);
+      });
+    });
+
+    // 9. Technologies: Add chip & Remove chip
+    container.querySelectorAll(".inp-add-tech").forEach((inp) => {
+      inp.addEventListener("focus", () => { isEditingInline = true; });
+      inp.addEventListener("blur", () => { isEditingInline = false; });
+      inp.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" || e.key === ",") {
+          e.preventDefault();
+          const val = inp.value.trim().replace(/^,+|,+$/g, "");
+          if (!val) return;
+          const secId = inp.dataset.sectionId;
+          const itemId = inp.dataset.itemId;
+          const resume = window.JobNexResumeStore.currentResume;
+          const sec = (resume.sections || []).find((s) => s.id === secId);
+          const itm = sec ? (sec.items || []).find((i) => i.id === itemId) : null;
+          const currentTechs = itm && Array.isArray(itm.technologies) ? [...itm.technologies] : [];
+          if (!currentTechs.includes(val)) {
+            currentTechs.push(val);
+            window.JobNexResumeStore.updateItemTechnologies(secId, itemId, currentTechs);
+          }
+          inp.value = "";
+        }
+      });
+    });
+
+    container.querySelectorAll(".btn-remove-tech").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const secId = btn.dataset.sectionId;
+        const itemId = btn.dataset.itemId;
+        const techToRemove = btn.dataset.tech;
+        const resume = window.JobNexResumeStore.currentResume;
+        const sec = (resume.sections || []).find((s) => s.id === secId);
+        const itm = sec ? (sec.items || []).find((i) => i.id === itemId) : null;
+        if (itm && Array.isArray(itm.technologies)) {
+          const updated = itm.technologies.filter((t) => t !== techToRemove);
+          window.JobNexResumeStore.updateItemTechnologies(secId, itemId, updated);
+        }
+      });
+    });
+
+    // 10. Bind HTML5 Drag & Drop for Sections, Items, and Bullets
+    initDragAndDropInteractions(container);
+  }
+
+  function initDragAndDropInteractions(container) {
+    // A. Section Drag and Drop
+    container.querySelectorAll(".section-drag-handle").forEach((handle) => {
+      handle.addEventListener("dragstart", (e) => {
+        const fromIndex = parseInt(handle.dataset.sectionIndex, 10);
+        e.dataTransfer.setData("application/json", JSON.stringify({ type: "section", fromIndex }));
+        e.dataTransfer.effectAllowed = "move";
+        handle.closest(".section-accordion-card")?.classList.add("is-dragging");
+      });
+
+      handle.addEventListener("dragend", () => {
+        container.querySelectorAll(".section-accordion-card").forEach((c) => {
+          c.classList.remove("is-dragging", "drag-over-top", "drag-over-bottom");
+        });
+      });
+    });
+
+    container.querySelectorAll(".section-accordion-card").forEach((card) => {
+      card.addEventListener("dragover", (e) => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = "move";
+        const rect = card.getBoundingClientRect();
+        const midY = rect.top + rect.height / 2;
+        if (e.clientY < midY) {
+          card.classList.add("drag-over-top");
+          card.classList.remove("drag-over-bottom");
+        } else {
+          card.classList.add("drag-over-bottom");
+          card.classList.remove("drag-over-top");
+        }
+      });
+
+      card.addEventListener("dragleave", () => {
+        card.classList.remove("drag-over-top", "drag-over-bottom");
+      });
+
+      card.addEventListener("drop", (e) => {
+        e.preventDefault();
+        card.classList.remove("drag-over-top", "drag-over-bottom");
+        try {
+          const data = JSON.parse(e.dataTransfer.getData("application/json") || "{}");
+          if (data.type === "section") {
+            const fromIndex = data.fromIndex;
+            let toIndex = parseInt(card.dataset.sectionIndex, 10);
+            const rect = card.getBoundingClientRect();
+            if (e.clientY >= rect.top + rect.height / 2 && toIndex < fromIndex) {
+              toIndex++;
+            }
+            if (fromIndex !== toIndex) {
+              window.JobNexResumeStore.reorderSections(fromIndex, toIndex);
+            }
+          }
+        } catch (err) {
+          // ignore invalid drag data
+        }
+      });
+    });
+
+    // B. Item Drag and Drop
+    container.querySelectorAll(".item-drag-handle").forEach((handle) => {
+      handle.addEventListener("dragstart", (e) => {
+        e.stopPropagation();
+        const secId = handle.dataset.sectionId;
+        const fromIndex = parseInt(handle.dataset.itemIndex, 10);
+        e.dataTransfer.setData("application/json", JSON.stringify({ type: "item", secId, fromIndex }));
+        e.dataTransfer.effectAllowed = "move";
+        handle.closest(".section-item-card")?.classList.add("is-dragging");
+      });
+
+      handle.addEventListener("dragend", () => {
+        container.querySelectorAll(".section-item-card").forEach((c) => {
+          c.classList.remove("is-dragging", "drag-over-top", "drag-over-bottom");
+        });
+      });
+    });
+
+    container.querySelectorAll(".section-item-card").forEach((itemCard) => {
+      itemCard.addEventListener("dragover", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        e.dataTransfer.dropEffect = "move";
+        const rect = itemCard.getBoundingClientRect();
+        if (e.clientY < rect.top + rect.height / 2) {
+          itemCard.classList.add("drag-over-top");
+          itemCard.classList.remove("drag-over-bottom");
+        } else {
+          itemCard.classList.add("drag-over-bottom");
+          itemCard.classList.remove("drag-over-top");
+        }
+      });
+
+      itemCard.addEventListener("dragleave", (e) => {
+        e.stopPropagation();
+        itemCard.classList.remove("drag-over-top", "drag-over-bottom");
+      });
+
+      itemCard.addEventListener("drop", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        itemCard.classList.remove("drag-over-top", "drag-over-bottom");
+        try {
+          const data = JSON.parse(e.dataTransfer.getData("application/json") || "{}");
+          if (data.type === "item" && data.secId === itemCard.dataset.sectionId) {
+            const fromIndex = data.fromIndex;
+            let toIndex = parseInt(itemCard.dataset.itemIndex, 10);
+            if (fromIndex !== toIndex) {
+              window.JobNexResumeStore.reorderItems(data.secId, fromIndex, toIndex);
+            }
+          }
+        } catch (err) {
+          // ignore
+        }
+      });
+    });
+
+    // C. Bullet Drag and Drop
+    container.querySelectorAll(".bullet-drag-handle").forEach((handle) => {
+      handle.addEventListener("dragstart", (e) => {
+        e.stopPropagation();
+        const secId = handle.dataset.sectionId;
+        const itemId = handle.dataset.itemId;
+        const fromIndex = parseInt(handle.dataset.bulletIdx, 10);
+        e.dataTransfer.setData("application/json", JSON.stringify({ type: "bullet", secId, itemId, fromIndex }));
+        e.dataTransfer.effectAllowed = "move";
+        handle.closest(".bullet-row")?.classList.add("is-dragging");
+      });
+
+      handle.addEventListener("dragend", () => {
+        container.querySelectorAll(".bullet-row").forEach((r) => {
+          r.classList.remove("is-dragging", "drag-over-top", "drag-over-bottom");
+        });
+      });
+    });
+
+    container.querySelectorAll(".bullet-row").forEach((bulletRow) => {
+      bulletRow.addEventListener("dragover", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        e.dataTransfer.dropEffect = "move";
+        bulletRow.classList.add("drag-over-top");
+      });
+
+      bulletRow.addEventListener("dragleave", (e) => {
+        e.stopPropagation();
+        bulletRow.classList.remove("drag-over-top");
+      });
+
+      bulletRow.addEventListener("drop", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        bulletRow.classList.remove("drag-over-top");
+        try {
+          const data = JSON.parse(e.dataTransfer.getData("application/json") || "{}");
+          if (
+            data.type === "bullet" &&
+            data.secId === bulletRow.dataset.sectionId &&
+            data.itemId === bulletRow.dataset.itemId
+          ) {
+            const fromIndex = data.fromIndex;
+            const toIndex = parseInt(bulletRow.dataset.bulletIdx, 10);
+            if (fromIndex !== toIndex) {
+              window.JobNexResumeStore.reorderBullets(data.secId, data.itemId, fromIndex, toIndex);
+            }
+          }
+        } catch (err) {
+          // ignore
+        }
+      });
+    });
+  }
+
   function populateEditorInputs(resume) {
     if (!resume) return;
 
-    // Header title
+    // 1. Header title
     const titleInput = document.getElementById("editor-resume-title-input");
-    if (titleInput) titleInput.value = resume.name || "Untitled Resume";
+    if (titleInput && document.activeElement !== titleInput) {
+      titleInput.value = resume.name || "Untitled Resume";
+    }
 
-    // Active status button
+    // 2. Active status button
     const activeBtn = document.getElementById("btn-toggle-active-status");
     if (activeBtn) {
       if (resume.is_active) {
@@ -722,7 +1836,7 @@
       }
     }
 
-    // Sidebar ATS badge
+    // 3. Sidebar ATS badge
     const atsBadge = document.getElementById("sidebar-ats-badge");
     if (atsBadge) {
       atsBadge.textContent = `${resume.readiness_score || 0}%`;
@@ -733,7 +1847,7 @@
       else atsBadge.className = "absolute -top-1 -right-1 px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-rose-500 text-white";
     }
 
-    // Personal info inputs
+    // 4. Personal Info Inputs (Preserve focus if currently active)
     const p = resume.personal || {};
     const nameInp = document.getElementById("inp-personal-name");
     const emailInp = document.getElementById("inp-personal-email");
@@ -741,11 +1855,21 @@
     const locInp = document.getElementById("inp-personal-location");
     const sumInp = document.getElementById("inp-personal-summary");
 
-    if (nameInp) nameInp.value = p.name || "";
-    if (emailInp) emailInp.value = p.email || "";
-    if (phoneInp) phoneInp.value = p.phone || "";
-    if (locInp) locInp.value = p.location || "";
-    if (sumInp) sumInp.value = resume.summary || "";
+    if (nameInp && document.activeElement !== nameInp) nameInp.value = p.name || "";
+    if (emailInp && document.activeElement !== emailInp) emailInp.value = p.email || "";
+    if (phoneInp && document.activeElement !== phoneInp) phoneInp.value = p.phone || "";
+    if (locInp && document.activeElement !== locInp) locInp.value = p.location || "";
+    if (sumInp && document.activeElement !== sumInp) sumInp.value = resume.summary || "";
+
+    // 5. Update validation hints & status
+    updateContactValidation(p);
+    updateSummaryValidation(resume.summary || "");
+
+    // 6. Only rebuild dynamic sections and links DOM if user is not actively typing inside them
+    if (!isEditingInline) {
+      renderPersonalLinks(p.links || []);
+      renderContentSections(resume);
+    }
 
     if (typeof lucide !== "undefined" && lucide.createIcons) lucide.createIcons();
   }
@@ -1293,22 +2417,76 @@
       }
     });
 
-    // Two-Way Sync for Personal Info Inputs
-    document.getElementById("inp-personal-name")?.addEventListener("input", (e) => {
-      window.JobNexResumeStore.updatePersonalInfo("name", e.target.value);
+    // Two-Way Sync for Personal Info Inputs with inline editing guards
+    const personalInputs = [
+      { id: "inp-personal-name", field: "name" },
+      { id: "inp-personal-email", field: "email" },
+      { id: "inp-personal-phone", field: "phone" },
+      { id: "inp-personal-location", field: "location" },
+    ];
+    personalInputs.forEach(({ id, field }) => {
+      const el = document.getElementById(id);
+      if (el) {
+        el.addEventListener("focus", () => { isEditingInline = true; });
+        el.addEventListener("blur", () => {
+          isEditingInline = false;
+          if (window.JobNexResumeStore.currentResume) {
+            populateEditorInputs(window.JobNexResumeStore.currentResume);
+          }
+        });
+        el.addEventListener("input", (e) => {
+          window.JobNexResumeStore.updatePersonalInfo(field, e.target.value);
+        });
+      }
     });
-    document.getElementById("inp-personal-email")?.addEventListener("input", (e) => {
-      window.JobNexResumeStore.updatePersonalInfo("email", e.target.value);
+
+    const sumInp = document.getElementById("inp-personal-summary");
+    if (sumInp) {
+      sumInp.addEventListener("focus", () => { isEditingInline = true; });
+      sumInp.addEventListener("blur", () => {
+        isEditingInline = false;
+        if (window.JobNexResumeStore.currentResume) {
+          populateEditorInputs(window.JobNexResumeStore.currentResume);
+        }
+      });
+      sumInp.addEventListener("input", (e) => {
+        window.JobNexResumeStore.updateSummary(e.target.value);
+      });
+    }
+
+    // Add Personal Link
+    document.getElementById("btn-add-personal-link")?.addEventListener("click", () => {
+      window.JobNexResumeStore.addPersonalLink("", "Portfolio");
     });
-    document.getElementById("inp-personal-phone")?.addEventListener("input", (e) => {
-      window.JobNexResumeStore.updatePersonalInfo("phone", e.target.value);
+
+    // Accordion toggles for built-in sections (Personal Info & Summary)
+    document.querySelectorAll(".btn-toggle-accordion").forEach((btn) => {
+      btn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        const targetId = btn.getAttribute("data-target");
+        const body = document.getElementById(targetId);
+        if (body) {
+          const isHidden = body.classList.toggle("hidden");
+          const chevron = btn.querySelector("svg, i");
+          if (chevron) {
+            chevron.classList.toggle("-rotate-90", isHidden);
+          }
+        }
+      });
     });
-    document.getElementById("inp-personal-location")?.addEventListener("input", (e) => {
-      window.JobNexResumeStore.updatePersonalInfo("location", e.target.value);
+
+    // Header clicks (except inputs/buttons) for built-in cards
+    ["header-sec-personal", "header-sec-summary"].forEach((hdrId) => {
+      const hdr = document.getElementById(hdrId);
+      hdr?.addEventListener("click", (e) => {
+        if (e.target.closest("button") || e.target.closest("input") || e.target.closest("textarea")) return;
+        const btn = hdr.querySelector(".btn-toggle-accordion");
+        if (btn) btn.click();
+      });
     });
-    document.getElementById("inp-personal-summary")?.addEventListener("input", (e) => {
-      window.JobNexResumeStore.updateSummary(e.target.value);
-    });
+
+    // Add Section Modal Handling
+    initAddSectionModal();
 
     // Preview Toolbar: Undo / Redo
     document.getElementById("btn-preview-undo")?.addEventListener("click", () => {

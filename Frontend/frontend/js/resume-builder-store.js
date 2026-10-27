@@ -418,6 +418,30 @@
       });
     }
 
+    addPersonalLink(url = "", label = "Portfolio") {
+      this.updateCurrentResume((resume) => {
+        if (!resume.personal) resume.personal = {};
+        if (!resume.personal.links) resume.personal.links = [];
+        resume.personal.links.push({ url, label });
+      });
+    }
+
+    updatePersonalLink(index, linkData) {
+      this.updateCurrentResume((resume) => {
+        if (resume.personal && resume.personal.links && resume.personal.links[index]) {
+          Object.assign(resume.personal.links[index], linkData);
+        }
+      });
+    }
+
+    removePersonalLink(index) {
+      this.updateCurrentResume((resume) => {
+        if (resume.personal && resume.personal.links) {
+          resume.personal.links.splice(index, 1);
+        }
+      });
+    }
+
     addSection(type = "custom", title = "New Section") {
       const sectionId = `sec-${type}-${Date.now().toString(36)}`;
       this.updateCurrentResume((resume) => {
@@ -431,6 +455,13 @@
         });
       });
       return sectionId;
+    }
+
+    updateSectionTitle(sectionId, title) {
+      this.updateCurrentResume((resume) => {
+        const sec = (resume.sections || []).find((s) => s.id === sectionId);
+        if (sec) sec.title = title;
+      });
     }
 
     removeSection(sectionId) {
@@ -485,6 +516,18 @@
           const item = sec.items.find((i) => i.id === itemId);
           if (item) {
             Object.assign(item, itemData);
+          }
+        }
+      });
+    }
+
+    updateItemTechnologies(sectionId, itemId, technologies) {
+      this.updateCurrentResume((resume) => {
+        const sec = (resume.sections || []).find((s) => s.id === sectionId);
+        if (sec && sec.items) {
+          const item = sec.items.find((i) => i.id === itemId);
+          if (item) {
+            item.technologies = Array.isArray(technologies) ? technologies : [];
           }
         }
       });
