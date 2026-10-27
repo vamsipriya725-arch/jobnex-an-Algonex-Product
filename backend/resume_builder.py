@@ -12,11 +12,16 @@ import os
 import re
 import uuid
 from datetime import datetime, timezone
+import io
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
+import docx
+from docx.shared import Inches, Pt, RGBColor
+from docx.enum.text import WD_ALIGN_PARAGRAPH
 import jwt
 from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request, status, UploadFile, File
+from fastapi.responses import Response, PlainTextResponse
 from pydantic import BaseModel, Field, field_validator
 
 from database import get_connection
@@ -780,6 +785,411 @@ def delete_resume(
     finally:
         cursor.close()
         conn.close()
+
+
+# ============================================================================
+# 3.4. Phase 8: Export Helpers & Endpoints (DOCX & Plain Text ATS Formats)
+# ============================================================================
+
+def get_export_filename(resume: ResumeData, requested_name: Optional[str], ext: str) -> str:
+    """
+    Computes a clean, standardized export filename without illegal characters.
+    Example: Elena_Rostova_Resume.docx
+    """
+    ext = ext if ext.startswith(".") else f".{ext}"
+    if requested_name:
+        clean = re.sub(r"[^\w\s-]", "", requested_name).strip()
+        clean = re.sub(r"[\s_]+", "_", clean)
+        if clean:
+            return f"{clean}{ext}"
+
+    raw_name = ""
+    if resume.personal and resume.personal.name:
+        raw_name = resume.personal.name.strip()
+    if not raw_name and resume.name:
+        raw_name = resume.name.strip()
+
+    clean = re.sub(r"[^\w\s-]", "", raw_name).strip()
+    clean = re.sub(r"[\s_]+", "_", clean)
+    if not clean or clean.lower() in ("untitled_resume", "untitled", "resume"):
+        clean = "JobNex_Resume"
+    else:
+        if not clean.lower().endswith("resume"):
+            clean = f"{clean}_Resume"
+    return f"{clean}{ext}"
+
+
+def generate_ats_word_document(resume: ResumeData) -> io.BytesIO:
+    """
+    Renders ResumeData to a 100% ATS-compliant single-column Microsoft Word (.docx) document.
+    Safety & Compliance:
+      - Standard 0.75-inch margins
+      - Clean single-column layout without tables, floating shapes, or nested text boxes
+      - Standard typography (Calibri/Arial/Georgia)
+      - Bold uppercase section titles with appropriate hierarchy
+      - Standard bullet points
+    """
+    doc = docx.Document()
+
+    # 1. Page Margins: 0.75 in
+    for sec in doc.sections:
+        sec.top_margin = Inches(0.75)
+        sec.bottom_margin = Inches(0.75)
+        sec.left_margin = Inches(0.75)
+        sec.right_margin = Inches(0.75)
+
+    # 2. Typography styling
+    font_name = "Calibri"
+    if resume.templateSettings and resume.templateSettings.fontFamily:
+        fam = resume.templateSettings.fontFamily.lower()
+        if "georgia" in fam:
+            font_name = "Georgia"
+        elif "arial" in fam:
+            font_name = "Arial"
+        elif "times" in fam:
+            font_name = "Times New Roman"
+
+    normal_style = doc.styles["Normal"]
+    normal_style.font.name = font_name
+    normal_style.font.size = Pt(10)
+    normal_style.font.color.rgb = RGBColor(31, 41, 55)
+
+    def add_section_header(title: str):
+        p = doc.add_paragraph()
+        p.paragraph_format.space_before = Pt(11)
+        p.paragraph_format.space_after = Pt(2.5)
+        p.paragraph_format.keep_with_next = True
+        run = p.add_run(title.upper())
+        run.bold = True
+        run.font.name = font_name
+        run.font.size = Pt(11.5)
+        run.font.color.rgb = RGBColor(15, 23, 42)
+
+    # 3. Header: Candidate Name & Contact Info
+    p_info = resume.personal or PersonalInfo()
+    name_str = (p_info.name or resume.name or "Candidate").strip()
+
+    name_p = doc.add_paragraph()
+    name_p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    name_p.paragraph_format.space_before = Pt(0)
+    name_p.paragraph_format.space_after = Pt(2)
+    name_run = name_p.add_run(name_str)
+    name_run.bold = True
+    name_run.font.name = font_name
+    name_run.font.size = Pt(18)
+    name_run.font.color.rgb = RGBColor(15, 23, 42)
+
+    contact_parts = []
+    if p_info.email:
+        contact_parts.append(p_info.email)
+    if p_info.phone:
+        contact_parts.append(p_info.phone)
+    if p_info.location:
+        contact_parts.append(p_info.location)
+    if p_info.links:
+        for link in p_info.links:
+            if link.url:
+                cleaned_url = link.url.replace("https://", "").replace("http://", "").rstrip("/")
+                contact_parts.append(cleaned_url)
+
+    if contact_parts:
+        contact_p = doc.add_paragraph()
+        contact_p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        contact_p.paragraph_format.space_before = Pt(0)
+        contact_p.paragraph_format.space_after = Pt(8)
+        c_run = contact_p.add_run("  |  ".join(contact_parts))
+        c_run.font.name = font_name
+        c_run.font.size = Pt(9.5)
+        c_run.font.color.rgb = RGBColor(71, 85, 105)
+
+    # 4. Professional Summary
+    if resume.summary and resume.summary.strip():
+        add_section_header("Professional Summary")
+        sum_p = doc.add_paragraph()
+        sum_p.paragraph_format.space_before = Pt(0)
+        sum_p.paragraph_format.space_after = Pt(6)
+        sum_p.paragraph_format.line_spacing = 1.15
+        s_run = sum_p.add_run(resume.summary.strip())
+        s_run.font.name = font_name
+        s_run.font.size = Pt(10)
+        s_run.font.color.rgb = RGBColor(31, 41, 55)
+
+    # 5. Dynamic Sections
+    for sec in resume.sections or []:
+        if sec.hidden:
+            continue
+        visible_items = [it for it in (sec.items or []) if not it.hidden]
+        if not visible_items:
+            continue
+
+        add_section_header(sec.title or "Section")
+
+        if sec.type == "skills":
+            for it in visible_items:
+                sk_p = doc.add_paragraph()
+                sk_p.paragraph_format.space_before = Pt(1)
+                sk_p.paragraph_format.space_after = Pt(2)
+                if it.title and (it.technologies or it.bullets):
+                    t_run = sk_p.add_run(f"{it.title}: ")
+                    t_run.bold = True
+                    t_run.font.name = font_name
+                    t_run.font.size = Pt(10)
+                    skills_list = it.technologies if it.technologies else it.bullets
+                    v_run = sk_p.add_run(", ".join(skills_list))
+                    v_run.font.name = font_name
+                    v_run.font.size = Pt(10)
+                elif it.title:
+                    t_run = sk_p.add_run(f"• {it.title}")
+                    t_run.font.name = font_name
+                    t_run.font.size = Pt(10)
+        else:
+            for it in visible_items:
+                it_p = doc.add_paragraph()
+                it_p.paragraph_format.space_before = Pt(5)
+                it_p.paragraph_format.space_after = Pt(2)
+                it_p.paragraph_format.keep_with_next = True
+
+                if it.title:
+                    run_title = it_p.add_run(it.title)
+                    run_title.bold = True
+                    run_title.font.name = font_name
+                    run_title.font.size = Pt(10.5)
+
+                meta_chunks = []
+                if it.organization:
+                    meta_chunks.append(it.organization)
+                if it.location:
+                    meta_chunks.append(it.location)
+                if it.dates:
+                    meta_chunks.append(it.dates)
+
+                if meta_chunks:
+                    separator = " — " if it.title else ""
+                    run_meta = it_p.add_run(separator + "  |  ".join(meta_chunks))
+                    run_meta.font.name = font_name
+                    run_meta.font.size = Pt(9.5)
+                    run_meta.font.color.rgb = RGBColor(71, 85, 105)
+
+                for b_text in it.bullets or []:
+                    b_clean = b_text.strip().lstrip("•-* ").strip()
+                    if not b_clean:
+                        continue
+                    b_p = doc.add_paragraph(style="List Bullet")
+                    b_p.paragraph_format.space_before = Pt(0)
+                    b_p.paragraph_format.space_after = Pt(2)
+                    b_p.paragraph_format.line_spacing = 1.15
+                    b_run = b_p.add_run(b_clean)
+                    b_run.font.name = font_name
+                    b_run.font.size = Pt(10)
+                    b_run.font.color.rgb = RGBColor(31, 41, 55)
+
+                if it.technologies:
+                    tech_p = doc.add_paragraph()
+                    tech_p.paragraph_format.space_before = Pt(0)
+                    tech_p.paragraph_format.space_after = Pt(3)
+                    lbl_run = tech_p.add_run("Technologies: ")
+                    lbl_run.bold = True
+                    lbl_run.italic = True
+                    lbl_run.font.name = font_name
+                    lbl_run.font.size = Pt(9)
+                    lbl_run.font.color.rgb = RGBColor(100, 108, 166)
+                    val_run = tech_p.add_run(", ".join(it.technologies))
+                    val_run.italic = True
+                    val_run.font.name = font_name
+                    val_run.font.size = Pt(9)
+                    val_run.font.color.rgb = RGBColor(71, 85, 105)
+
+    bio = io.BytesIO()
+    doc.save(bio)
+    bio.seek(0)
+    return bio
+
+
+def generate_clean_plain_text(resume: ResumeData) -> str:
+    """
+    Renders ResumeData to clean ATS plaintext format with standard uppercase headers.
+    """
+    lines = []
+    p = resume.personal or PersonalInfo()
+    name_str = (p.name or resume.name or "Candidate").strip()
+    lines.append(name_str.upper())
+
+    contact_parts = []
+    if p.email:
+        contact_parts.append(p.email)
+    if p.phone:
+        contact_parts.append(p.phone)
+    if p.location:
+        contact_parts.append(p.location)
+    if p.links:
+        for link in p.links:
+            if link.url:
+                contact_parts.append(link.url)
+    if contact_parts:
+        lines.append(" | ".join(contact_parts))
+
+    lines.append("=" * 72)
+    lines.append("")
+
+    if resume.summary and resume.summary.strip():
+        lines.append("PROFESSIONAL SUMMARY")
+        lines.append("-" * 40)
+        lines.append(resume.summary.strip())
+        lines.append("")
+
+    for sec in resume.sections or []:
+        if sec.hidden:
+            continue
+        visible_items = [it for it in (sec.items or []) if not it.hidden]
+        if not visible_items:
+            continue
+
+        lines.append(sec.title.upper())
+        lines.append("-" * 40)
+
+        if sec.type == "skills":
+            for it in visible_items:
+                if it.title and (it.technologies or it.bullets):
+                    skills_list = it.technologies if it.technologies else it.bullets
+                    lines.append(f"{it.title}: {', '.join(skills_list)}")
+                elif it.title:
+                    lines.append(f"* {it.title}")
+            lines.append("")
+        else:
+            for it in visible_items:
+                header_parts = []
+                if it.title:
+                    header_parts.append(it.title)
+                if it.organization:
+                    header_parts.append(it.organization)
+                if it.location:
+                    header_parts.append(it.location)
+                if it.dates:
+                    header_parts.append(it.dates)
+                if header_parts:
+                    lines.append(" | ".join(header_parts))
+
+                for b in it.bullets or []:
+                    b_clean = b.strip().lstrip("•-* ").strip()
+                    if b_clean:
+                        lines.append(f"  * {b_clean}")
+
+                if it.technologies:
+                    lines.append(f"    Technologies: {', '.join(it.technologies)}")
+                lines.append("")
+
+    return "\n".join(lines).strip() + "\n"
+
+
+def _extract_resume_from_payload(stored: ResumeData, payload: Optional[Dict[str, Any]]) -> Tuple[ResumeData, Optional[str]]:
+    if not payload:
+        return stored, None
+    custom_filename = payload.get("filename")
+    raw_resume = payload.get("resume") or payload.get("content") or payload
+    if isinstance(raw_resume, dict) and ("personal" in raw_resume or "sections" in raw_resume):
+        try:
+            dict_copy = dict(raw_resume)
+            dict_copy["id"] = stored.id
+            dict_copy["user_id"] = stored.user_id
+            return ResumeData.model_validate(dict_copy), custom_filename
+        except Exception as e:
+            logger.warning("Could not parse payload as ResumeData: %s", e)
+            return stored, custom_filename
+    return stored, custom_filename
+
+
+@router.get("/{resume_id}/export-docx")
+def export_resume_docx(
+    resume_id: str,
+    filename: Optional[str] = Query(None),
+    user_id: str = Depends(get_current_user_id),
+):
+    """
+    Exports resume to an ATS-safe Microsoft Word (.docx) file.
+    """
+    resume = get_resume(resume_id, user_id=user_id)
+    doc_bytes = generate_ats_word_document(resume)
+    out_name = get_export_filename(resume, filename, ".docx")
+    return Response(
+        content=doc_bytes.getvalue(),
+        media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        headers={
+            "Content-Disposition": f'attachment; filename="{out_name}"',
+            "Access-Control-Expose-Headers": "Content-Disposition",
+        },
+    )
+
+
+@router.post("/{resume_id}/export-docx")
+def export_resume_docx_post(
+    resume_id: str,
+    payload: Optional[Dict[str, Any]] = None,
+    filename: Optional[str] = Query(None),
+    user_id: str = Depends(get_current_user_id),
+):
+    """
+    Exports live/draft resume state to an ATS-safe Microsoft Word (.docx) file.
+    """
+    stored = get_resume(resume_id, user_id=user_id)
+    resume, custom_name = _extract_resume_from_payload(stored, payload)
+    final_name = filename or custom_name
+    doc_bytes = generate_ats_word_document(resume)
+    out_name = get_export_filename(resume, final_name, ".docx")
+    return Response(
+        content=doc_bytes.getvalue(),
+        media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        headers={
+            "Content-Disposition": f'attachment; filename="{out_name}"',
+            "Access-Control-Expose-Headers": "Content-Disposition",
+        },
+    )
+
+
+@router.get("/{resume_id}/export-txt")
+def export_resume_txt(
+    resume_id: str,
+    filename: Optional[str] = Query(None),
+    user_id: str = Depends(get_current_user_id),
+):
+    """
+    Exports resume to a clean ATS plain-text (.txt) file.
+    """
+    resume = get_resume(resume_id, user_id=user_id)
+    txt_content = generate_clean_plain_text(resume)
+    out_name = get_export_filename(resume, filename, ".txt")
+    return Response(
+        content=txt_content.encode("utf-8"),
+        media_type="text/plain; charset=utf-8",
+        headers={
+            "Content-Disposition": f'attachment; filename="{out_name}"',
+            "Access-Control-Expose-Headers": "Content-Disposition",
+        },
+    )
+
+
+@router.post("/{resume_id}/export-txt")
+def export_resume_txt_post(
+    resume_id: str,
+    payload: Optional[Dict[str, Any]] = None,
+    filename: Optional[str] = Query(None),
+    user_id: str = Depends(get_current_user_id),
+):
+    """
+    Exports live/draft resume state to a clean ATS plain-text (.txt) file.
+    """
+    stored = get_resume(resume_id, user_id=user_id)
+    resume, custom_name = _extract_resume_from_payload(stored, payload)
+    final_name = filename or custom_name
+    txt_content = generate_clean_plain_text(resume)
+    out_name = get_export_filename(resume, final_name, ".txt")
+    return Response(
+        content=txt_content.encode("utf-8"),
+        media_type="text/plain; charset=utf-8",
+        headers={
+            "Content-Disposition": f'attachment; filename="{out_name}"',
+            "Access-Control-Expose-Headers": "Content-Disposition",
+        },
+    )
 
 
 # ============================================================================

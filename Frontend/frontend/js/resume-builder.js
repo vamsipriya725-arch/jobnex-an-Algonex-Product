@@ -77,6 +77,28 @@
     DOM.btnTailorAccept = document.getElementById("btn-tailor-accept");
     DOM.btnTailorCancel = document.getElementById("btn-tailor-cancel");
 
+    // Phase 8 Export Elements & Modal 10
+    DOM.tabBtnExport = document.getElementById("tab-btn-export");
+    DOM.paneExport = document.getElementById("pane-export");
+    DOM.exportFilenameInput = document.getElementById("export-filename-input");
+    DOM.exportFilenamePreview = document.getElementById("export-filename-preview");
+    DOM.exportPdfSinglePage = document.getElementById("export-pdf-single-page-toggle");
+    DOM.btnTriggerExportPdf = document.getElementById("btn-trigger-export-pdf");
+    DOM.btnTriggerExportDocx = document.getElementById("btn-trigger-export-docx");
+    DOM.btnTriggerExportTxt = document.getElementById("btn-trigger-export-txt");
+    DOM.btnTriggerCopyTxt = document.getElementById("btn-trigger-copy-txt");
+    DOM.modalExportReady = document.getElementById("modal-export-ready");
+    DOM.readyModalTitle = document.getElementById("ready-modal-title");
+    DOM.readyModalFilename = document.getElementById("ready-modal-filename");
+    DOM.readyModalAtsScore = document.getElementById("ready-modal-ats-score");
+    DOM.readyModalTemplate = document.getElementById("ready-modal-template");
+    DOM.modalReadyDownloadPdf = document.getElementById("modal-btn-download-pdf");
+    DOM.modalReadyDownloadDocx = document.getElementById("modal-btn-download-docx");
+    DOM.modalReadyDownloadTxt = document.getElementById("modal-btn-download-txt");
+    DOM.modalReadyCopyClipboard = document.getElementById("modal-btn-copy-clipboard");
+    DOM.btnCloseExportReady = document.getElementById("btn-close-export-ready-modal");
+    DOM.btnBackEditor = document.getElementById("modal-btn-back-editor");
+
     // Dropzone & File picker
     DOM.dropzone = document.getElementById("dropzone-area");
     DOM.filePicker = document.getElementById("resume-file-picker");
@@ -2383,6 +2405,264 @@
   }
 
   // =========================================================================
+  // Phase 8: Export Tab, Format Selection & High-Fidelity Print Engine
+  // =========================================================================
+
+  function renderExportTab(resume) {
+    if (!resume) return;
+
+    // 1. Export Filename Initialization
+    const filenameInput = document.getElementById("export-filename-input");
+    const filenamePreview = document.getElementById("export-filename-preview");
+    if (filenameInput && !filenameInput.value) {
+      filenameInput.value = window.JobNexResumeStore.getStandardFilename("", "").replace(/\.[^/.]+$/, "");
+    }
+    if (filenamePreview && filenameInput) {
+      const base = filenameInput.value.trim() || "JobNex_Resume";
+      const clean = base.replace(/[^\w\s-]/g, "").replace(/[\s_]+/g, "_");
+      filenamePreview.textContent = `${clean}.pdf`;
+    }
+
+    // 2. Synchronize "Fit to single page" toggle
+    const fitToggle = document.getElementById("export-pdf-single-page-toggle");
+    const toolbarToggle = document.getElementById("toggle-fit-single-page");
+    if (fitToggle && toolbarToggle) {
+      fitToggle.checked = toolbarToggle.checked;
+    }
+
+    // 3. Pre-Flight Quality Check
+    const atsScoreItem = document.getElementById("check-ats-score");
+    const atsScoreLabel = document.getElementById("check-ats-score-label");
+    const curScore = resume.readiness_score || 0;
+    const curLabel = resume.readiness_label || "Poor";
+    if (atsScoreLabel) {
+      atsScoreLabel.textContent = `${curScore}% (${curLabel})`;
+    }
+    if (atsScoreItem) {
+      if (curScore >= 70) {
+        atsScoreItem.className = "export-checklist-item is-valid";
+      } else {
+        atsScoreItem.className = "export-checklist-item is-warning";
+      }
+    }
+
+    const contactItem = document.getElementById("check-contact-info");
+    const contactLabel = document.getElementById("check-contact-label");
+    const p = resume.personal || {};
+    const hasContact = Boolean(p.name && p.email && p.phone);
+    if (contactLabel) {
+      contactLabel.textContent = hasContact ? "Verified Complete" : "Missing Phone or Email";
+    }
+    if (contactItem) {
+      contactItem.className = hasContact ? "export-checklist-item is-valid" : "export-checklist-item is-warning";
+    }
+
+    if (typeof lucide !== "undefined" && lucide.createIcons) lucide.createIcons();
+  }
+
+  function showExportReadyModal(chosenFormat = "pdf") {
+    const resume = window.JobNexResumeStore.currentResume;
+    if (!resume) return;
+
+    const modalTitle = document.getElementById("ready-modal-title");
+    const modalFilename = document.getElementById("ready-modal-filename");
+    const modalScore = document.getElementById("ready-modal-ats-score");
+    const modalTemplate = document.getElementById("ready-modal-template");
+
+    const customName = document.getElementById("export-filename-input")?.value || "";
+    const ext = chosenFormat === "docx" ? ".docx" : chosenFormat === "txt" ? ".txt" : ".pdf";
+    const finalFilename = window.JobNexResumeStore.getStandardFilename(customName, ext);
+
+    if (modalTitle) {
+      modalTitle.textContent = resume.personal?.name || resume.name || "Untitled Resume";
+    }
+    if (modalFilename) {
+      modalFilename.textContent = finalFilename;
+    }
+    if (modalScore) {
+      const sc = resume.readiness_score || 0;
+      const lb = resume.readiness_label || "Poor";
+      modalScore.textContent = `${sc}% (${lb})`;
+      if (sc >= 85) modalScore.className = "font-bold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200 text-[10px]";
+      else if (sc >= 70) modalScore.className = "font-bold text-brand-700 bg-brand-50 px-2.5 py-0.5 rounded-full border border-brand-200 text-[10px]";
+      else modalScore.className = "font-bold text-amber-700 bg-amber-50 px-2.5 py-0.5 rounded-full border border-amber-200 text-[10px]";
+    }
+    if (modalTemplate) {
+      const tId = resume.templateSettings?.templateId || "modern-clean";
+      const nameMap = {
+        "modern-clean": "Modern Clean",
+        "executive-ats": "Executive ATS",
+        "minimalist": "Minimalist",
+        "tech-slate": "Tech Slate",
+      };
+      modalTemplate.textContent = nameMap[tId] || tId;
+    }
+
+    openModal(DOM.modalExportReady);
+    if (typeof lucide !== "undefined" && lucide.createIcons) lucide.createIcons();
+  }
+
+  function initExportTab() {
+    // 1. Filename input real-time preview
+    const filenameInp = document.getElementById("export-filename-input");
+    const filenamePreview = document.getElementById("export-filename-preview");
+    if (filenameInp && filenamePreview) {
+      filenameInp.addEventListener("input", (e) => {
+        const base = e.target.value.trim() || "JobNex_Resume";
+        const clean = base.replace(/[^\w\s-]/g, "").replace(/[\s_]+/g, "_");
+        filenamePreview.textContent = `${clean}.pdf`;
+      });
+    }
+
+    // 2. Synchronize "Fit to single page" checkboxes
+    const exportFitToggle = document.getElementById("export-pdf-single-page-toggle");
+    const toolbarFitToggle = document.getElementById("toggle-fit-single-page");
+    if (exportFitToggle && toolbarFitToggle) {
+      exportFitToggle.addEventListener("change", (e) => {
+        toolbarFitToggle.checked = e.target.checked;
+        const sheet = document.getElementById("resume-preview-sheet");
+        if (sheet) {
+          sheet.classList.toggle("fit-single-page", e.target.checked);
+          updatePageIndicatorAndBreaks();
+        }
+      });
+      toolbarFitToggle.addEventListener("change", (e) => {
+        exportFitToggle.checked = e.target.checked;
+      });
+    }
+
+    // 3. Export PDF Triggers
+    const triggerPdfExport = () => {
+      const sheet = document.getElementById("resume-preview-sheet");
+      if (!sheet) return;
+      window.print();
+      setTimeout(() => {
+        showExportReadyModal("pdf");
+      }, 500);
+    };
+
+    document.getElementById("btn-trigger-export-pdf")?.addEventListener("click", triggerPdfExport);
+
+    // Overwrite preview toolbar btn-export-pdf handler to show ready modal after print
+    const toolbarExportPdfBtn = document.getElementById("btn-export-pdf");
+    if (toolbarExportPdfBtn) {
+      toolbarExportPdfBtn.onclick = (e) => {
+        e.preventDefault();
+        triggerPdfExport();
+      };
+    }
+
+    // 4. Export DOCX Trigger
+    document.getElementById("btn-trigger-export-docx")?.addEventListener("click", async (e) => {
+      const btn = e.currentTarget;
+      const originalHtml = btn.innerHTML;
+      btn.disabled = true;
+      btn.innerHTML = '<i data-lucide="loader-2" class="w-3.5 h-3.5 animate-spin"></i><span>Generating Word Document...</span>';
+      if (typeof lucide !== "undefined" && lucide.createIcons) lucide.createIcons();
+
+      const customName = document.getElementById("export-filename-input")?.value || "";
+      try {
+        const exportedFilename = await window.JobNexResumeStore.exportDocx(customName);
+        showToast("Downloaded", `Exported "${exportedFilename}" successfully.`);
+        showExportReadyModal("docx");
+      } catch (err) {
+        showToast("Export Failed", err.message, true);
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = originalHtml;
+        if (typeof lucide !== "undefined" && lucide.createIcons) lucide.createIcons();
+      }
+    });
+
+    // 5. Export TXT Trigger
+    document.getElementById("btn-trigger-export-txt")?.addEventListener("click", async (e) => {
+      const btn = e.currentTarget;
+      const originalHtml = btn.innerHTML;
+      btn.disabled = true;
+      btn.innerHTML = '<i data-lucide="loader-2" class="w-3.5 h-3.5 animate-spin"></i><span>Generating Text...</span>';
+      if (typeof lucide !== "undefined" && lucide.createIcons) lucide.createIcons();
+
+      const customName = document.getElementById("export-filename-input")?.value || "";
+      try {
+        const exportedFilename = await window.JobNexResumeStore.exportTxt(customName);
+        showToast("Downloaded", `Exported "${exportedFilename}" successfully.`);
+        showExportReadyModal("txt");
+      } catch (err) {
+        showToast("Export Failed", err.message, true);
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = originalHtml;
+        if (typeof lucide !== "undefined" && lucide.createIcons) lucide.createIcons();
+      }
+    });
+
+    // 6. Copy Plain Text Trigger
+    const copyPlainText = () => {
+      const text = window.JobNexResumeStore.generatePlainText();
+      if (!text) {
+        showToast("Notice", "No resume content to copy.", true);
+        return;
+      }
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(() => {
+          showToast("Copied to Clipboard", "ATS-formatted text copied to clipboard.");
+        }).catch(() => {
+          fallbackCopyText(text);
+        });
+      } else {
+        fallbackCopyText(text);
+      }
+    };
+
+    function fallbackCopyText(text) {
+      const ta = document.createElement("textarea");
+      ta.value = text;
+      ta.style.position = "fixed";
+      ta.style.opacity = "0";
+      document.body.appendChild(ta);
+      ta.select();
+      try {
+        document.execCommand("copy");
+        showToast("Copied to Clipboard", "ATS-formatted text copied to clipboard.");
+      } catch (e) {
+        showToast("Error", "Could not copy text to clipboard.", true);
+      }
+      document.body.removeChild(ta);
+    }
+
+    document.getElementById("btn-trigger-copy-txt")?.addEventListener("click", copyPlainText);
+
+    // 7. Modal 10 Action Buttons
+    document.getElementById("modal-btn-download-pdf")?.addEventListener("click", () => {
+      window.print();
+    });
+
+    document.getElementById("modal-btn-download-docx")?.addEventListener("click", async () => {
+      const customName = document.getElementById("export-filename-input")?.value || "";
+      try {
+        await window.JobNexResumeStore.exportDocx(customName);
+        showToast("Downloaded", "Word document downloaded.");
+      } catch (err) {
+        showToast("Export Failed", err.message, true);
+      }
+    });
+
+    document.getElementById("modal-btn-download-txt")?.addEventListener("click", async () => {
+      const customName = document.getElementById("export-filename-input")?.value || "";
+      try {
+        await window.JobNexResumeStore.exportTxt(customName);
+        showToast("Downloaded", "Plain text resume downloaded.");
+      } catch (err) {
+        showToast("Export Failed", err.message, true);
+      }
+    });
+
+    document.getElementById("modal-btn-copy-clipboard")?.addEventListener("click", copyPlainText);
+    document.getElementById("btn-close-export-ready-modal")?.addEventListener("click", () => closeModal(DOM.modalExportReady));
+    document.getElementById("modal-btn-back-editor")?.addEventListener("click", () => closeModal(DOM.modalExportReady));
+  }
+
+  // =========================================================================
   // File Upload & 5-Stage Real Progress Tracking
   // =========================================================================
 
@@ -3839,6 +4119,8 @@
       renderATSScoreTab(window.JobNexResumeStore.currentResume);
     } else if (tabKey === "optimize" && window.JobNexResumeStore.currentResume) {
       renderOptimizeTab(window.JobNexResumeStore.currentResume);
+    } else if (tabKey === "export" && window.JobNexResumeStore.currentResume) {
+      renderExportTab(window.JobNexResumeStore.currentResume);
     }
   }
 
@@ -4487,6 +4769,9 @@
     // Optimize Tab Handling (Phase 7)
     initOptimizeTab();
 
+    // Export Tab Handling (Phase 8)
+    initExportTab();
+
     // Preview Toolbar: Undo / Redo
     document.getElementById("btn-preview-undo")?.addEventListener("click", () => {
       window.JobNexResumeStore.undo();
@@ -4576,6 +4861,10 @@
           const optPane = document.getElementById("pane-optimize");
           if (optPane && !optPane.classList.contains("hidden")) {
             renderOptimizeTab(curRes);
+          }
+          const expPane = document.getElementById("pane-export");
+          if (expPane && !expPane.classList.contains("hidden")) {
+            renderExportTab(curRes);
           }
         }
       }

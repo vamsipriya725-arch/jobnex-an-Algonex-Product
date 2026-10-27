@@ -844,6 +844,160 @@
         return [];
       }
     }
+
+    // =========================================================================
+    // Phase 8: Document Export Helpers (DOCX, Plain Text & Custom Filenames)
+    // =========================================================================
+
+    getStandardFilename(customName = "", ext = ".pdf") {
+      ext = ext.startsWith(".") ? ext : `.${ext}`;
+      if (customName && customName.trim()) {
+        const clean = customName.trim().replace(/[^\w\s-]/g, "").replace(/[\s_]+/g, "_");
+        if (clean) return `${clean}${ext}`;
+      }
+      const p = this.currentResume?.personal?.name || "";
+      const raw = (p.trim() || this.currentResume?.name || "Resume").trim();
+      let clean = raw.replace(/[^\w\s-]/g, "").replace(/[\s_]+/g, "_");
+      if (!clean || clean.toLowerCase() === "untitled_resume" || clean.toLowerCase() === "resume") {
+        clean = "JobNex_Resume";
+      } else if (!clean.toLowerCase().endsWith("resume")) {
+        clean = `${clean}_Resume`;
+      }
+      return `${clean}${ext}`;
+    }
+
+    generatePlainText() {
+      if (!this.currentResume) return "";
+      const r = this.currentResume;
+      const lines = [];
+      const p = r.personal || {};
+      const name = (p.name || r.name || "Candidate").trim();
+      lines.push(name.toUpperCase());
+
+      const contact = [];
+      if (p.email) contact.push(p.email);
+      if (p.phone) contact.push(p.phone);
+      if (p.location) contact.push(p.location);
+      if (p.links && p.links.length) {
+        p.links.forEach((l) => { if (l.url) contact.push(l.url); });
+      }
+      if (contact.length) lines.push(contact.join(" | "));
+      lines.push("=".repeat(72));
+      lines.push("");
+
+      if (r.summary && r.summary.trim()) {
+        lines.push("PROFESSIONAL SUMMARY");
+        lines.push("-".repeat(40));
+        lines.push(r.summary.trim());
+        lines.push("");
+      }
+
+      (r.sections || []).forEach((sec) => {
+        if (sec.hidden) return;
+        const visibleItems = (sec.items || []).filter((i) => !i.hidden);
+        if (!visibleItems.length) return;
+
+        lines.push(sec.title.toUpperCase());
+        lines.push("-".repeat(40));
+
+        if (sec.type === "skills") {
+          visibleItems.forEach((it) => {
+            const list = it.technologies && it.technologies.length ? it.technologies : it.bullets;
+            if (it.title && list && list.length) {
+              lines.push(`${it.title}: ${list.join(", ")}`);
+            } else if (it.title) {
+              lines.push(`* ${it.title}`);
+            }
+          });
+          lines.push("");
+        } else {
+          visibleItems.forEach((it) => {
+            const parts = [];
+            if (it.title) parts.push(it.title);
+            if (it.organization) parts.push(it.organization);
+            if (it.location) parts.push(it.location);
+            if (it.dates) parts.push(it.dates);
+            if (parts.length) lines.push(parts.join(" | "));
+
+            (it.bullets || []).forEach((b) => {
+              const clean = b.trim().replace(/^[•\-*]\s*/, "").trim();
+              if (clean) lines.push(`  * ${clean}`);
+            });
+
+            if (it.technologies && it.technologies.length) {
+              lines.push(`    Technologies: ${it.technologies.join(", ")}`);
+            }
+            lines.push("");
+          });
+        }
+      });
+
+      return lines.join("\n").trim() + "\n";
+    }
+
+    async exportDocx(customFilename = "") {
+      if (!this.currentResume) throw new Error("No active resume to export.");
+      await this.saveNow();
+
+      const finalName = this.getStandardFilename(customFilename, ".docx");
+      const url = `${getApiBaseUrl()}/api/resumes/${this.currentResume.id}/export-docx?filename=${encodeURIComponent(finalName)}`;
+      const res = await fetch(url, {
+        method: "POST",
+        headers: {
+          ...getAuthHeaders(),
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ resume: this.currentResume, filename: finalName }),
+      });
+
+      if (!res.ok) {
+        const errJson = await res.json().catch(() => ({}));
+        throw new Error(errJson.detail || "Failed to generate Word document.");
+      }
+
+      const blob = await res.blob();
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = downloadUrl;
+      a.download = finalName;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(downloadUrl);
+      return finalName;
+    }
+
+    async exportTxt(customFilename = "") {
+      if (!this.currentResume) throw new Error("No active resume to export.");
+      await this.saveNow();
+
+      const finalName = this.getStandardFilename(customFilename, ".txt");
+      const url = `${getApiBaseUrl()}/api/resumes/${this.currentResume.id}/export-txt?filename=${encodeURIComponent(finalName)}`;
+      const res = await fetch(url, {
+        method: "POST",
+        headers: {
+          ...getAuthHeaders(),
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ resume: this.currentResume, filename: finalName }),
+      });
+
+      if (!res.ok) {
+        const errJson = await res.json().catch(() => ({}));
+        throw new Error(errJson.detail || "Failed to generate plain text resume.");
+      }
+
+      const blob = await res.blob();
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = downloadUrl;
+      a.download = finalName;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(downloadUrl);
+      return finalName;
+    }
   }
 
   window.JobNexResumeStore = new ResumeBuilderStore();

@@ -857,6 +857,103 @@
     </div>
   </div>
 
+  <!-- MODAL 10: YOUR RESUME IS READY MODAL (Phase 8) -->
+  <div id="modal-export-ready" class="modal-backdrop">
+    <div class="modal-content p-6 sm:p-7 space-y-5 max-w-lg">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+        <div class="flex items-center gap-2.5">
+          <div class="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
+            <i data-lucide="check-circle-2" class="w-4 h-4"></i>
+          </div>
+          <div>
+            <h2 class="text-base font-bold text-slate-900 m-0">Your Resume is Ready!</h2>
+            <p class="text-[11px] text-slate-500 m-0">Exported with ATS-optimized vector formatting</p>
+          </div>
+        </div>
+        <button id="btn-close-export-ready-modal" type="button" class="text-slate-400 hover:text-slate-600 cursor-pointer p-1">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <!-- Celebration Card -->
+      <div class="text-center py-2 space-y-3">
+        <div class="export-ready-badge">
+          <i data-lucide="sparkles" class="w-8 h-8 text-emerald-600"></i>
+        </div>
+        <div class="space-y-1">
+          <h3 id="ready-modal-title" class="text-sm font-bold text-slate-900 m-0">Untitled Resume</h3>
+          <p class="text-xs text-slate-500 m-0">Zero placeholder tags • 100% ATS parseable</p>
+        </div>
+      </div>
+
+      <!-- File details card -->
+      <div class="p-3.5 rounded-xl bg-slate-50 border border-slate-200/80 space-y-2 text-xs">
+        <div class="flex items-center justify-between">
+          <span class="text-slate-500">File Base Name:</span>
+          <span id="ready-modal-filename" class="font-bold text-slate-800">JobNex_Resume</span>
+        </div>
+        <div class="flex items-center justify-between">
+          <span class="text-slate-500">ATS Readiness:</span>
+          <span id="ready-modal-ats-score" class="font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200 text-[10px]">92% (Excellent)</span>
+        </div>
+        <div class="flex items-center justify-between">
+          <span class="text-slate-500">Template Style:</span>
+          <span id="ready-modal-template" class="font-semibold text-slate-700">Modern Clean</span>
+        </div>
+      </div>
+
+      <!-- Download Action Buttons (Primary PDF, Secondary DOCX, Tertiary TXT) -->
+      <div class="space-y-2 pt-1">
+        <button
+          id="modal-btn-download-pdf"
+          type="button"
+          class="w-full py-2.5 px-4 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-sm cursor-pointer transition-colors"
+        >
+          <i data-lucide="printer" class="w-4 h-4 text-emerald-400"></i>
+          <span>Download PDF (High-Res Print)</span>
+        </button>
+
+        <button
+          id="modal-btn-download-docx"
+          type="button"
+          class="w-full py-2.5 px-4 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-sm cursor-pointer transition-colors"
+        >
+          <i data-lucide="file-text" class="w-4 h-4"></i>
+          <span>Download Word (.docx)</span>
+        </button>
+
+        <div class="flex items-center gap-2 pt-1">
+          <button
+            id="modal-btn-download-txt"
+            type="button"
+            class="flex-1 py-2 px-3 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-700 font-semibold text-xs flex items-center justify-center gap-1.5 cursor-pointer transition-colors"
+          >
+            <i data-lucide="file-code-2" class="w-3.5 h-3.5 text-slate-500"></i>
+            <span>Plain Text (.txt)</span>
+          </button>
+          <button
+            id="modal-btn-copy-clipboard"
+            type="button"
+            class="flex-1 py-2 px-3 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-700 font-semibold text-xs flex items-center justify-center gap-1.5 cursor-pointer transition-colors"
+          >
+            <i data-lucide="copy" class="w-3.5 h-3.5 text-slate-500"></i>
+            <span>Copy Text</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="text-center pt-2 border-t border-slate-100">
+        <button
+          id="modal-btn-back-editor"
+          type="button"
+          class="text-xs font-semibold text-brand-600 hover:text-brand-800 cursor-pointer"
+        >
+          Return to Editor
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- EDITOR VIEW (Phase 3 Editor Layout and Live Preview) -->
   <div id="builder-editor-view" class="hidden builder-layout-container">
     <!-- 1. Left Icon Sidebar -->
@@ -924,6 +1021,18 @@
         >
           <i data-lucide="sparkles" class="w-5 h-5"></i>
           <span class="tab-tooltip">Optimize for Job</span>
+        </button>
+
+        <!-- Tab 5: Export Resume -->
+        <button
+          id="tab-btn-export"
+          type="button"
+          class="sidebar-tab-btn"
+          data-tab="export"
+          title="Export Resume"
+        >
+          <i data-lucide="download" class="w-5 h-5"></i>
+          <span class="tab-tooltip">Export Resume</span>
         </button>
       </div>
 
@@ -1913,6 +2022,188 @@
 
               <div id="tailoring-suggestions-container" class="space-y-3">
                 <!-- Rendered dynamically -->
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Pane 5: Export Resume (Phase 8 Full Implementation) -->
+        <div id="pane-export" class="tab-pane hidden space-y-6">
+          <!-- Header Card -->
+          <div class="p-4 rounded-xl bg-brand-50/70 border border-brand-100 flex items-center justify-between">
+            <div>
+              <h3 class="text-xs font-bold text-brand-900 m-0">Export & Download Center</h3>
+              <p class="text-[11px] text-brand-700 m-0 mt-0.5">Generate high-fidelity ATS-safe PDF, Word (.docx), or raw plain-text resumes.</p>
+            </div>
+            <div class="w-8 h-8 rounded-lg bg-brand-100 text-brand-700 flex items-center justify-center shrink-0">
+              <i data-lucide="download" class="w-4 h-4"></i>
+            </div>
+          </div>
+
+          <!-- Filename Customization Card -->
+          <div class="p-4 rounded-2xl bg-white border border-slate-200/90 shadow-2xs space-y-3">
+            <div class="flex items-center justify-between">
+              <label for="export-filename-input" class="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
+                <i data-lucide="pencil" class="w-3.5 h-3.5 text-brand-600"></i>
+                <span>Export Filename</span>
+              </label>
+              <span id="export-filename-preview" class="text-[10px] text-slate-400 font-mono font-medium">JobNex_Resume.pdf</span>
+            </div>
+            <div class="relative">
+              <input
+                id="export-filename-input"
+                type="text"
+                placeholder="e.g. Elena_Rostova_FullStack_Resume"
+                class="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 hover:border-slate-300 rounded-xl text-xs text-slate-900 outline-none focus:border-brand-500 focus:bg-white font-medium"
+              />
+            </div>
+            <p class="text-[10px] text-slate-400 m-0">Special characters and spaces will be automatically formatted for cross-platform file safety.</p>
+          </div>
+
+          <!-- Format Selection Cards -->
+          <div class="space-y-3">
+            <h4 class="text-xs font-bold text-slate-800 uppercase tracking-wider m-0 flex items-center gap-1.5">
+              <i data-lucide="layers" class="w-3.5 h-3.5 text-brand-600"></i>
+              <span>Select Export Format</span>
+            </h4>
+
+            <!-- 1. PDF Document Card (Featured) -->
+            <div class="export-format-card is-featured">
+              <div class="flex items-start justify-between gap-3">
+                <div class="flex items-start gap-3">
+                  <div class="w-10 h-10 rounded-xl bg-slate-900 text-white flex items-center justify-center shrink-0 shadow-xs">
+                    <i data-lucide="printer" class="w-5 h-5"></i>
+                  </div>
+                  <div class="space-y-1">
+                    <div class="flex items-center gap-2">
+                      <h4 class="text-sm font-bold text-slate-900 m-0">PDF Document (.pdf)</h4>
+                      <span class="export-format-badge bg-brand-100 text-brand-800 border border-brand-200">Recommended</span>
+                    </div>
+                    <p class="text-xs text-slate-500 m-0 leading-relaxed">
+                      Pixel-perfect vector layout with real selectable text. Generated via custom print CSS without raster image compression.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div class="pt-2 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <label class="inline-flex items-center gap-2 text-xs font-semibold text-slate-700 cursor-pointer select-none">
+                  <input id="export-pdf-single-page-toggle" type="checkbox" class="rounded text-brand-600 focus:ring-brand-500 cursor-pointer" />
+                  <span>Fit to single page (tighten margins)</span>
+                </label>
+
+                <button
+                  id="btn-trigger-export-pdf"
+                  type="button"
+                  class="px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-sm cursor-pointer transition-colors"
+                >
+                  <i data-lucide="printer" class="w-3.5 h-3.5"></i>
+                  <span>Print / Save as PDF</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- 2. Microsoft Word Card (.docx) -->
+            <div class="export-format-card">
+              <div class="flex items-start justify-between gap-3">
+                <div class="flex items-start gap-3">
+                  <div class="w-10 h-10 rounded-xl bg-brand-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+                    <i data-lucide="file-text" class="w-5 h-5"></i>
+                  </div>
+                  <div class="space-y-1">
+                    <div class="flex items-center gap-2">
+                      <h4 class="text-sm font-bold text-slate-900 m-0">Word Document (.docx)</h4>
+                      <span class="export-format-badge bg-emerald-50 text-emerald-800 border border-emerald-200">100% ATS Safe</span>
+                    </div>
+                    <p class="text-xs text-slate-500 m-0 leading-relaxed">
+                      Strict single-column Word document with standard 0.75" margins and clean bullet hierarchy. Compatible with Word, Google Docs, and all ATS scanners.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div class="pt-2 border-t border-slate-100 flex items-center justify-end gap-2">
+                <button
+                  id="btn-trigger-export-docx"
+                  type="button"
+                  class="px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-xs cursor-pointer transition-colors"
+                >
+                  <i data-lucide="download" class="w-3.5 h-3.5"></i>
+                  <span>Download .docx</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- 3. Plain Text Card (.txt) -->
+            <div class="export-format-card">
+              <div class="flex items-start justify-between gap-3">
+                <div class="flex items-start gap-3">
+                  <div class="w-10 h-10 rounded-xl bg-slate-100 text-slate-700 flex items-center justify-center shrink-0 border border-slate-200">
+                    <i data-lucide="file-code-2" class="w-5 h-5"></i>
+                  </div>
+                  <div class="space-y-1">
+                    <div class="flex items-center gap-2">
+                      <h4 class="text-sm font-bold text-slate-900 m-0">Plain Text (.txt)</h4>
+                      <span class="export-format-badge bg-slate-100 text-slate-700 border border-slate-200">Text Portals</span>
+                    </div>
+                    <p class="text-xs text-slate-500 m-0 leading-relaxed">
+                      Structured ASCII text with uppercase delimiters. Ideal for pasting into legacy text-only job portal application boxes.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div class="pt-2 border-t border-slate-100 flex items-center justify-end gap-2">
+                <button
+                  id="btn-trigger-copy-txt"
+                  type="button"
+                  class="px-3.5 py-2 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-700 font-semibold text-xs flex items-center justify-center gap-1.5 cursor-pointer transition-colors"
+                >
+                  <i data-lucide="copy" class="w-3.5 h-3.5 text-slate-500"></i>
+                  <span>Copy Text</span>
+                </button>
+                <button
+                  id="btn-trigger-export-txt"
+                  type="button"
+                  class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-900 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-xs cursor-pointer transition-colors"
+                >
+                  <i data-lucide="download" class="w-3.5 h-3.5"></i>
+                  <span>Download .txt</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Pre-flight Export Verification Checklist -->
+          <div class="p-4 rounded-2xl bg-white border border-slate-200/90 shadow-2xs space-y-3">
+            <h4 class="text-xs font-bold text-slate-800 uppercase tracking-wider m-0 flex items-center gap-1.5">
+              <i data-lucide="shield-check" class="w-3.5 h-3.5 text-emerald-600"></i>
+              <span>Pre-Flight Quality Check</span>
+            </h4>
+
+            <div class="space-y-2">
+              <div id="check-ats-score" class="export-checklist-item is-valid">
+                <div class="flex items-center gap-2">
+                  <i data-lucide="check" class="w-3.5 h-3.5"></i>
+                  <span>ATS Readiness Score</span>
+                </div>
+                <span id="check-ats-score-label" class="font-bold">Evaluating...</span>
+              </div>
+
+              <div id="check-contact-info" class="export-checklist-item is-valid">
+                <div class="flex items-center gap-2">
+                  <i data-lucide="check" class="w-3.5 h-3.5"></i>
+                  <span>Contact Information Completeness</span>
+                </div>
+                <span id="check-contact-label" class="font-bold">Verified</span>
+              </div>
+
+              <div id="check-zero-placeholders" class="export-checklist-item is-valid">
+                <div class="flex items-center gap-2">
+                  <i data-lucide="check" class="w-3.5 h-3.5"></i>
+                  <span>Zero Placeholder Verification</span>
+                </div>
+                <span class="font-bold">100% Passed</span>
               </div>
             </div>
           </div>

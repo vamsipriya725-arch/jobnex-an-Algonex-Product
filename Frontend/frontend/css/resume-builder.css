@@ -918,4 +918,227 @@ input[type="range"].brand-slider::-moz-range-thumb {
   box-shadow: 0 4px 12px -2px rgba(15, 23, 42, 0.08);
 }
 
+/* ==========================================================================
+   Phase 8: Export Tab, Format Selection & High-Fidelity Print CSS
+   ========================================================================== */
+
+/* Export Format Cards */
+.export-format-card {
+  position: relative;
+  background: #ffffff;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 1rem;
+  padding: 1.25rem 1.35rem;
+  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.export-format-card:hover {
+  border-color: #646ca6;
+  box-shadow: 0 8px 24px -4px rgba(100, 108, 166, 0.12);
+  transform: translateY(-1.5px);
+}
+
+.export-format-card.is-featured {
+  border-color: #646ca6;
+  background: linear-gradient(180deg, #ffffff 0%, #f7f8fd 100%);
+  box-shadow: 0 4px 16px -2px rgba(100, 108, 166, 0.15);
+}
+
+.export-format-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.export-checklist-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.6rem 0.85rem;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.625rem;
+  font-size: 11.5px;
+  color: #334155;
+}
+
+.export-checklist-item.is-valid {
+  background: #f0fdf4;
+  border-color: #bbf7d0;
+  color: #166534;
+}
+
+.export-checklist-item.is-warning {
+  background: #fffbeb;
+  border-color: #fde68a;
+  color: #92400e;
+}
+
+/* Modal 10: Export Ready Celebration Card */
+.export-ready-badge {
+  width: 4rem;
+  height: 4rem;
+  border-radius: 1.25rem;
+  background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+  border: 2px solid #a7f3d0;
+  color: #059669;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto;
+  box-shadow: 0 8px 20px -4px rgba(16, 185, 129, 0.25);
+  animation: bounceIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes bounceIn {
+  0% { transform: scale(0.6); opacity: 0; }
+  70% { transform: scale(1.1); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+/* ==========================================================================
+   High-Fidelity Real Vector Print CSS (@media print)
+   Ensures ONLY the resume sheet prints with 100% selectable vector text,
+   clean A4 margins, and zero web application chrome.
+   ========================================================================== */
+
+@page {
+  size: A4 portrait;
+  margin: 10mm 12mm 10mm 12mm;
+}
+
+@media print {
+  /* 1. Global Reset & Body */
+  html, body {
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+    width: 100% !important;
+    height: auto !important;
+    font-size: 10pt !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* 2. Hide all application UI, navbars, sidebars, modals, toolbars */
+  #navbar-container,
+  nav,
+  header,
+  footer,
+  aside,
+  .editor-middle-panel,
+  .editor-resizer-bar,
+  .preview-toolbar,
+  .modal-backdrop,
+  #builder-toast,
+  #builder-dashboard-view,
+  .btn-polish,
+  button,
+  input,
+  select,
+  textarea {
+    display: none !important;
+    visibility: hidden !important;
+  }
+
+  /* 3. Force editor container and preview sheet wrapper to fill page */
+  #builder-editor-view {
+    display: block !important;
+    position: static !important;
+    width: 100% !important;
+    height: auto !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+    background: #ffffff !important;
+  }
+
+  #editor-preview-panel,
+  .preview-sheet-wrapper {
+    display: block !important;
+    position: static !important;
+    width: 100% !important;
+    height: auto !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+    background: transparent !important;
+  }
+
+  /* 4. Target ONLY the resume sheet */
+  #resume-preview-sheet {
+    display: block !important;
+    visibility: visible !important;
+    position: static !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-height: auto !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    box-shadow: none !important;
+    border: none !important;
+    border-radius: 0 !important;
+    background: #ffffff !important;
+    color: #111827 !important;
+    overflow: visible !important;
+  }
+
+  #resume-preview-sheet * {
+    visibility: visible !important;
+  }
+
+  /* 5. Clean page breaks */
+  h1, h2, h3, h4, .preview-section-title {
+    page-break-after: avoid !important;
+    break-after: avoid !important;
+  }
+
+  .preview-section-item,
+  .preview-work-item,
+  .preview-edu-item,
+  .preview-proj-item {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  .preview-bullet {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  /* 6. Fit to single page print mode */
+  #resume-preview-sheet.fit-single-page {
+    font-size: 8.5pt !important;
+    line-height: 1.25 !important;
+  }
+
+  #resume-preview-sheet.fit-single-page .preview-header {
+    margin-bottom: 8px !important;
+  }
+
+  #resume-preview-sheet.fit-single-page .preview-section {
+    margin-bottom: 8px !important;
+  }
+
+  #resume-preview-sheet.fit-single-page .preview-section-item {
+    margin-bottom: 4px !important;
+  }
+
+  #resume-preview-sheet.fit-single-page .preview-bullet {
+    margin-bottom: 2px !important;
+  }
+}
+
+
 
