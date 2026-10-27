@@ -49,6 +49,13 @@ app.include_router(resume_router)
 app.include_router(filter_router)
 app.include_router(ats_resume_router)
 
+try:
+    from resume_builder import router as resume_builder_router
+    app.include_router(resume_builder_router)
+    logger.info("Successfully mounted Resume Builder router")
+except Exception as e:
+    logger.warning("Could not include resume_builder router: %s", e)
+
 # Mount Auth router (MySQL users table for register, login, me)
 try:
     if str(backend_dir.parent) not in sys.path:

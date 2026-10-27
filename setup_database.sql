@@ -181,4 +181,17 @@ CREATE TABLE IF NOT EXISTS job_applications (
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
-
+-- 8. JobNex Resume Builder
+CREATE TABLE IF NOT EXISTS resumes (
+    id VARCHAR(64) PRIMARY KEY,
+    user_id VARCHAR(100) NOT NULL,
+    name VARCHAR(255) NOT NULL DEFAULT 'Untitled Resume',
+    is_active BOOLEAN NOT NULL DEFAULT FALSE,
+    readiness_score INT NOT NULL DEFAULT 0,
+    readiness_label VARCHAR(50) NOT NULL DEFAULT 'Poor',
+    content LONGTEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_user_id (user_id),
+    INDEX idx_user_active (user_id, is_active)
+);
