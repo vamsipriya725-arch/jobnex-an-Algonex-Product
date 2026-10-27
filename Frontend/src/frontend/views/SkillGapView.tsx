@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect, useCallback } from "react";
 import { useJobNex } from "@/frontend/context/JobNexContext";
 import {
   BarChart3,
@@ -10,34 +10,33 @@ import {
   Briefcase,
   Building,
   CheckCircle2,
+  CheckCircle,
   Globe,
   Sliders,
+  Loader2,
+  RefreshCw,
+  AlertTriangle,
+  Database,
 } from "lucide-react";
-import { INITIAL_APPLICATIONS } from "@/lib/mockData";
 
-interface JobSpecificData {
-  missingSkills: string[];
-  aiTip: {
-    highlightedSkills: string[];
-    currentScore: number;
-    projectedScore: number;
-    text: string;
-  };
-  courses: {
-    id: string;
-    title: string;
-    provider: "Coursera" | "Udemy" | "edX" | "LinkedIn Learning";
-    domain: string;
-    rating: number;
-    reviewCount: number;
-    duration: string;
-    url: string;
-    skillsTargeted: string[];
-    badgeColor: string;
-  }[];
+export interface RecommendedCourse {
+  id: string;
+  skill: string;
+  title: string;
+  provider: string;
+  domain: string;
+  rating: number;
+  reviewCount: number;
+  duration: string;
+  url: string;
+  type: string;
+  skillsTargeted: string[];
+  badgeColor: string;
+  status: "recommended" | "in_progress" | "completed" | "saved";
+  aiTip?: string;
 }
 
-const JOB_SPECIFIC_DATA: Record<string, JobSpecificData> = {
+const JOB_SKILL_REQUIREMENTS: Record<string, { missingSkills: string[]; aiTip: { text: string } }> = {
   "job-2": {
     missingSkills: [
       "Deep Learning",
@@ -46,61 +45,8 @@ const JOB_SPECIFIC_DATA: Record<string, JobSpecificData> = {
       "Docker & Kubernetes",
     ],
     aiTip: {
-      highlightedSkills: ["Deep Learning", "Data Visualization"],
-      currentScore: 74,
-      projectedScore: 92,
       text: "Acquiring Deep Learning and Data Visualization will elevate your ATS resume match from 74% to 92% for Amazon Forecasting & Intelligence.",
     },
-    courses: [
-      {
-        id: "ds-1",
-        title: "Deep Learning Specialization with PyTorch & TensorFlow",
-        provider: "Coursera",
-        domain: "coursera.org",
-        rating: 4.9,
-        reviewCount: 14200,
-        duration: "16 weeks",
-        url: "https://www.coursera.org/specializations/deep-learning",
-        skillsTargeted: ["Deep Learning", "Neural Networks"],
-        badgeColor: "bg-blue-50 text-blue-700 border-blue-200",
-      },
-      {
-        id: "ds-2",
-        title: "Machine Learning A-Z: Python & Scikit-Learn Hands-On",
-        provider: "Udemy",
-        domain: "udemy.com",
-        rating: 4.8,
-        reviewCount: 28900,
-        duration: "44h",
-        url: "https://www.udemy.com/course/machinelearning/",
-        skillsTargeted: ["Machine Learning", "Python"],
-        badgeColor: "bg-purple-50 text-purple-700 border-purple-200",
-      },
-      {
-        id: "ds-3",
-        title: "AWS Certified Machine Learning Specialty (MLS-C01)",
-        provider: "Coursera",
-        domain: "coursera.org",
-        rating: 4.7,
-        reviewCount: 5400,
-        duration: "12 weeks",
-        url: "https://www.coursera.org/learn/aws-machine-learning",
-        skillsTargeted: ["AWS", "Cloud Computing"],
-        badgeColor: "bg-amber-50 text-amber-700 border-amber-200",
-      },
-      {
-        id: "ds-4",
-        title: "Data Visualization & Dashboards with Python & Plotly",
-        provider: "edX",
-        domain: "edx.org",
-        rating: 4.6,
-        reviewCount: 3800,
-        duration: "6 weeks",
-        url: "https://www.edx.org/learn/data-visualization",
-        skillsTargeted: ["Data Visualization", "Python"],
-        badgeColor: "bg-emerald-50 text-emerald-700 border-emerald-200",
-      },
-    ],
   },
   "job-1": {
     missingSkills: [
@@ -110,61 +56,8 @@ const JOB_SPECIFIC_DATA: Record<string, JobSpecificData> = {
       "State Management (Zustand/Redux)",
     ],
     aiTip: {
-      highlightedSkills: ["TypeScript", "Next.js App Router"],
-      currentScore: 88,
-      projectedScore: 98,
       text: "Mastering TypeScript and Next.js will elevate your ATS resume match from 88% to 98% for TCS Enterprise Web Engineering.",
     },
-    courses: [
-      {
-        id: "fe-1",
-        title: "React & Next.js: The Complete Guide (incl. App Router)",
-        provider: "Udemy",
-        domain: "udemy.com",
-        rating: 4.9,
-        reviewCount: 32000,
-        duration: "38h",
-        url: "https://www.udemy.com/course/react-the-complete-guide-incl-redux/",
-        skillsTargeted: ["React", "Next.js"],
-        badgeColor: "bg-purple-50 text-purple-700 border-purple-200",
-      },
-      {
-        id: "fe-2",
-        title: "Understanding TypeScript - 2025 Edition",
-        provider: "Udemy",
-        domain: "udemy.com",
-        rating: 4.9,
-        reviewCount: 19500,
-        duration: "15h",
-        url: "https://www.udemy.com/course/understanding-typescript/",
-        skillsTargeted: ["TypeScript", "JavaScript"],
-        badgeColor: "bg-blue-50 text-blue-700 border-blue-200",
-      },
-      {
-        id: "fe-3",
-        title: "Meta Front-End Developer Professional Certificate",
-        provider: "Coursera",
-        domain: "coursera.org",
-        rating: 4.8,
-        reviewCount: 24000,
-        duration: "7 months",
-        url: "https://www.coursera.org/professional-certificates/meta-front-end-developer",
-        skillsTargeted: ["HTML/CSS", "React"],
-        badgeColor: "bg-sky-50 text-sky-700 border-sky-200",
-      },
-      {
-        id: "fe-4",
-        title: "Tailwind CSS & Modern Responsive Web Layouts",
-        provider: "LinkedIn Learning",
-        domain: "linkedin.com/learning",
-        rating: 4.7,
-        reviewCount: 4100,
-        duration: "8h",
-        url: "https://www.linkedin.com/learning",
-        skillsTargeted: ["Tailwind", "HTML/CSS"],
-        badgeColor: "bg-teal-50 text-teal-700 border-teal-200",
-      },
-    ],
   },
   "job-3": {
     missingSkills: [
@@ -174,61 +67,8 @@ const JOB_SPECIFIC_DATA: Record<string, JobSpecificData> = {
       "Terraform Infrastructure as Code",
     ],
     aiTip: {
-      highlightedSkills: ["Kubernetes", "AWS & Azure Cloud DevOps"],
-      currentScore: 65,
-      projectedScore: 91,
       text: "Acquiring Kubernetes and Terraform will elevate your ATS resume match from 65% to 91% for Microsoft Azure Cloud Operations.",
     },
-    courses: [
-      {
-        id: "do-1",
-        title: "Docker & Kubernetes: The Practical Guide to Production Containers",
-        provider: "Udemy",
-        domain: "udemy.com",
-        rating: 4.9,
-        reviewCount: 38000,
-        duration: "24h",
-        url: "https://www.udemy.com/course/docker-and-kubernetes-the-complete-guide/",
-        skillsTargeted: ["Docker", "Kubernetes"],
-        badgeColor: "bg-blue-50 text-blue-700 border-blue-200",
-      },
-      {
-        id: "do-2",
-        title: "AWS Certified Solutions Architect & Cloud Engineering",
-        provider: "Coursera",
-        domain: "coursera.org",
-        rating: 4.8,
-        reviewCount: 22000,
-        duration: "14 weeks",
-        url: "https://www.coursera.org/learn/aws-cloud-technical-essentials",
-        skillsTargeted: ["AWS", "Cloud Computing"],
-        badgeColor: "bg-amber-50 text-amber-700 border-amber-200",
-      },
-      {
-        id: "do-3",
-        title: "Automating CI/CD Pipelines with GitHub Actions & Azure",
-        provider: "LinkedIn Learning",
-        domain: "linkedin.com/learning",
-        rating: 4.7,
-        reviewCount: 6500,
-        duration: "10h",
-        url: "https://www.linkedin.com/learning",
-        skillsTargeted: ["CI/CD", "Linux"],
-        badgeColor: "bg-purple-50 text-purple-700 border-purple-200",
-      },
-      {
-        id: "do-4",
-        title: "Terraform on AWS & Azure: Infrastructure as Code (IaC)",
-        provider: "edX",
-        domain: "edx.org",
-        rating: 4.7,
-        reviewCount: 5200,
-        duration: "8 weeks",
-        url: "https://www.edx.org",
-        skillsTargeted: ["AWS", "Cloud Computing"],
-        badgeColor: "bg-emerald-50 text-emerald-700 border-emerald-200",
-      },
-    ],
   },
   "job-4": {
     missingSkills: [
@@ -238,61 +78,8 @@ const JOB_SPECIFIC_DATA: Record<string, JobSpecificData> = {
       "Production Containerization",
     ],
     aiTip: {
-      highlightedSkills: ["System Design at Scale", "Distributed Microservices"],
-      currentScore: 92,
-      projectedScore: 99,
       text: "Mastering Distributed System Design and Scalable Microservices will prepare you for Google Technical Round 1 with high confidence.",
     },
-    courses: [
-      {
-        id: "se-1",
-        title: "Software Architecture & System Design for Large Scale Systems",
-        provider: "Coursera",
-        domain: "coursera.org",
-        rating: 4.9,
-        reviewCount: 16500,
-        duration: "10 weeks",
-        url: "https://www.coursera.org/learn/system-design",
-        skillsTargeted: ["System Design", "Microservices"],
-        badgeColor: "bg-indigo-50 text-indigo-700 border-indigo-200",
-      },
-      {
-        id: "se-2",
-        title: "Data Structures & Algorithms Masterclass in Java & Python",
-        provider: "Udemy",
-        domain: "udemy.com",
-        rating: 4.8,
-        reviewCount: 42000,
-        duration: "52h",
-        url: "https://www.udemy.com/course/java-the-complete-java-developer-course/",
-        skillsTargeted: ["Java", "Python"],
-        badgeColor: "bg-purple-50 text-purple-700 border-purple-200",
-      },
-      {
-        id: "se-3",
-        title: "Google Cloud Professional Cloud Architect Certification",
-        provider: "Coursera",
-        domain: "coursera.org",
-        rating: 4.8,
-        reviewCount: 29000,
-        duration: "3 months",
-        url: "https://www.coursera.org/professional-certificates/gcp-cloud-architect",
-        skillsTargeted: ["Google Cloud", "Docker"],
-        badgeColor: "bg-blue-50 text-blue-700 border-blue-200",
-      },
-      {
-        id: "se-4",
-        title: "Distributed Systems & Scalable Microservices Architecture",
-        provider: "edX",
-        domain: "edx.org",
-        rating: 4.7,
-        reviewCount: 8100,
-        duration: "12 weeks",
-        url: "https://www.edx.org",
-        skillsTargeted: ["System Design", "Docker"],
-        badgeColor: "bg-teal-50 text-teal-700 border-teal-200",
-      },
-    ],
   },
   "job-5": {
     missingSkills: [
@@ -302,107 +89,120 @@ const JOB_SPECIFIC_DATA: Record<string, JobSpecificData> = {
       "Data Storytelling & Executive Reports",
     ],
     aiTip: {
-      highlightedSkills: ["Tableau Visual Analytics", "Microsoft Power BI"],
-      currentScore: 82,
-      projectedScore: 96,
       text: "Building verified dashboards in Tableau and Power BI will elevate your ATS score from 82% to 96% for Accenture Client Advisory.",
     },
-    courses: [
-      {
-        id: "da-1",
-        title: "Google Data Analytics Professional Certificate",
-        provider: "Coursera",
-        domain: "coursera.org",
-        rating: 4.9,
-        reviewCount: 98000,
-        duration: "6 months",
-        url: "https://www.coursera.org/professional-certificates/google-data-analytics",
-        skillsTargeted: ["SQL", "Data Visualization"],
-        badgeColor: "bg-blue-50 text-blue-700 border-blue-200",
-      },
-      {
-        id: "da-2",
-        title: "Tableau for Business Intelligence & Visual Analytics",
-        provider: "Udemy",
-        domain: "udemy.com",
-        rating: 4.8,
-        reviewCount: 21000,
-        duration: "18h",
-        url: "https://www.udemy.com/course/tableau10/",
-        skillsTargeted: ["Data Visualization", "Tableau"],
-        badgeColor: "bg-purple-50 text-purple-700 border-purple-200",
-      },
-      {
-        id: "da-3",
-        title: "Advanced SQL for Data Analysts & BI Reporting",
-        provider: "Coursera",
-        domain: "coursera.org",
-        rating: 4.7,
-        reviewCount: 15400,
-        duration: "8 weeks",
-        url: "https://www.coursera.org",
-        skillsTargeted: ["SQL", "Databases"],
-        badgeColor: "bg-emerald-50 text-emerald-700 border-emerald-200",
-      },
-      {
-        id: "da-4",
-        title: "Microsoft Power BI Desktop from Scratch",
-        provider: "Udemy",
-        domain: "udemy.com",
-        rating: 4.8,
-        reviewCount: 31000,
-        duration: "16h",
-        url: "https://www.udemy.com/course/microsoft-power-bi-up-running-with-power-bi/",
-        skillsTargeted: ["Data Visualization", "Excel"],
-        badgeColor: "bg-amber-50 text-amber-700 border-amber-200",
-      },
-    ],
   },
 };
 
 export function SkillGapView() {
-  const { userSkills, updateSkillMastery, applications: contextApps } = useJobNex();
+  const { userSkills, applications: contextApps } = useJobNex();
 
-  // Ensure there are applications available, fallback to mock if empty
   const appliedJobs = useMemo(() => {
-    return contextApps && contextApps.length > 0 ? contextApps : INITIAL_APPLICATIONS;
+    return contextApps && contextApps.length > 0 ? contextApps : [];
   }, [contextApps]);
 
-  // Default to Amazon Data Scientist (job-2) which matches the user's screenshot
   const [selectedJobId, setSelectedJobId] = useState<string>("job-2");
+  const [courses, setCourses] = useState<RecommendedCourse[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+  const [dynamicAiTip, setDynamicAiTip] = useState<string>("");
 
-  // Selected application object
   const currentApp = useMemo(() => {
     if (selectedJobId === "ALL") return null;
-    return appliedJobs.find((app) => app.jobId === selectedJobId || app.job.id === selectedJobId) || appliedJobs[0];
+    return appliedJobs.find((app) => app.jobId === selectedJobId || app.job?.id === selectedJobId) || appliedJobs[0];
   }, [appliedJobs, selectedJobId]);
 
-  // Active data for selected job or ALL
-  const currentData = useMemo(() => {
-    if (selectedJobId !== "ALL" && JOB_SPECIFIC_DATA[selectedJobId]) {
-      return JOB_SPECIFIC_DATA[selectedJobId];
+  const currentMissingSkills = useMemo(() => {
+    if (selectedJobId !== "ALL" && JOB_SKILL_REQUIREMENTS[selectedJobId]) {
+      return JOB_SKILL_REQUIREMENTS[selectedJobId].missingSkills;
     }
-    // Aggregate for ALL
-    const allCourses = Object.values(JOB_SPECIFIC_DATA).flatMap((d) => d.courses);
-    // Deduplicate
-    const uniqueCourses = allCourses.filter(
-      (c, idx, arr) => arr.findIndex((x) => x.id === c.id) === idx
+    const all = Array.from(
+      new Set(Object.values(JOB_SKILL_REQUIREMENTS).flatMap((d) => d.missingSkills))
     );
-    const allMissing = Array.from(
-      new Set(Object.values(JOB_SPECIFIC_DATA).flatMap((d) => d.missingSkills))
-    ).slice(0, 6);
-
-    return {
-      missingSkills: allMissing,
-      aiTip: {
-        highlightedSkills: ["System Design", "Cloud Infrastructure", "Deep Learning"],
-        currentScore: 78,
-        projectedScore: 95,
-        text: "Closing your missing skill gaps across your applied jobs will boost your interview shortlist rate by over 60%.",
-      },
-      courses: uniqueCourses.slice(0, 8),
-    };
+    return all.slice(0, 6);
   }, [selectedJobId]);
+
+  const fallbackAiTip = useMemo(() => {
+    if (selectedJobId !== "ALL" && JOB_SKILL_REQUIREMENTS[selectedJobId]) {
+      return JOB_SKILL_REQUIREMENTS[selectedJobId].aiTip.text;
+    }
+    return "Closing your missing skill gaps across your applied jobs will boost your interview shortlist rate by over 60%.";
+  }, [selectedJobId]);
+
+  // Fetch dynamic courses directly from backend API with database persistence
+  const fetchRecommendations = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const response = await fetch("/api/resources/recommend", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          user_id: "u-1",
+          missing_skills: currentMissingSkills,
+          job_id: selectedJobId,
+          use_ai: true,
+          persist: true,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Backend error (${response.status}: ${response.statusText})`);
+      }
+
+      const data = await response.json();
+      if (data && Array.isArray(data.courses)) {
+        setCourses(data.courses);
+        if (data.ai_tip?.text) {
+          setDynamicAiTip(data.ai_tip.text);
+        }
+      } else {
+        setCourses([]);
+      }
+    } catch (err: any) {
+      console.warn("Dynamic recommendation API error:", err);
+      // Fallback: Attempt fetching already saved user courses from database
+      try {
+        const dbRes = await fetch("/api/resources/user/u-1");
+        if (dbRes.ok) {
+          const dbData = await dbRes.json();
+          if (dbData && Array.isArray(dbData.courses) && dbData.courses.length > 0) {
+            setCourses(dbData.courses);
+            setIsLoading(false);
+            return;
+          }
+        }
+      } catch (dbErr) {
+        // ignore
+      }
+      setError(err?.message || "Failed to load course recommendations from backend.");
+    } finally {
+      setIsLoading(false);
+    }
+  }, [currentMissingSkills, selectedJobId]);
+
+  useEffect(() => {
+    fetchRecommendations();
+  }, [fetchRecommendations]);
+
+  // Update status in backend and database
+  const handleStatusChange = async (courseId: string, nextStatus: "recommended" | "in_progress" | "completed") => {
+    try {
+      const res = await fetch(`/api/resources/courses/${courseId}/status`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ user_id: "u-1", status: nextStatus }),
+      });
+      if (res.ok) {
+        setCourses((prev) =>
+          prev.map((c) => (c.id === courseId ? { ...c, status: nextStatus } : c))
+        );
+      }
+    } catch (e) {
+      console.error("Failed to update course status:", e);
+    }
+  };
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
@@ -436,8 +236,8 @@ export function SkillGapView() {
           >
             <option value="ALL">All Applied Jobs ({appliedJobs.length})</option>
             {appliedJobs.map((app) => (
-              <option key={app.id} value={app.jobId || app.job.id}>
-                {app.job.title} — {app.job.company} ({app.status})
+              <option key={app.id} value={app.jobId || app.job?.id}>
+                {app.job?.title} — {app.job?.company} ({app.status})
               </option>
             ))}
           </select>
@@ -451,8 +251,9 @@ export function SkillGapView() {
           <span>Filter by:</span>
         </span>
         <button
+          type="button"
           onClick={() => setSelectedJobId("ALL")}
-          className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all border ${
+          className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all border cursor-pointer ${
             selectedJobId === "ALL"
               ? "bg-brand-600 text-white border-brand-600 shadow-xs"
               : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50 hover:border-slate-300"
@@ -460,23 +261,22 @@ export function SkillGapView() {
         >
           All Applied Jobs ({appliedJobs.length})
         </button>
-
         {appliedJobs.map((app) => {
-          const isSelected = selectedJobId === (app.jobId || app.job.id);
+          const jId = app.jobId || app.job?.id;
+          const isSelected = selectedJobId === jId;
           return (
             <button
               key={app.id}
-              onClick={() => setSelectedJobId(app.jobId || app.job.id)}
-              className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all border ${
+              type="button"
+              onClick={() => setSelectedJobId(jId)}
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all border cursor-pointer ${
                 isSelected
                   ? "bg-brand-600 text-white border-brand-600 shadow-xs"
                   : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50 hover:border-slate-300"
               }`}
             >
               <Building className={`w-3.5 h-3.5 ${isSelected ? "text-white" : "text-slate-400"}`} />
-              <span>
-                {app.job.company}: {app.job.title}
-              </span>
+              <span>{app.job?.company}: {app.job?.title}</span>
               <span
                 className={`text-[10px] px-1.5 py-0.5 rounded font-bold ${
                   isSelected
@@ -499,20 +299,20 @@ export function SkillGapView() {
       {currentApp && (
         <div className="bg-gradient-to-r from-brand-50/70 to-accent-violet/10 border border-brand-200/80 rounded-xl p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div className="flex items-center gap-3.5">
-            <div className="w-11 h-11 rounded-lg bg-white border border-brand-200 flex items-center justify-center font-bold text-base text-brand-700 shadow-2xs shrink-0">
-              {currentApp.job.company.slice(0, 2).toUpperCase()}
+            <div className="w-11 h-11 rounded-lg bg-white border border-brand-200 flex items-center justify-center font-bold text-base text-brand-700 shadow-xs shrink-0">
+              {currentApp.job?.company?.slice(0, 2).toUpperCase() || "JB"}
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h2 className="font-bold text-sm sm:text-base text-slate-900">
-                  {currentApp.job.title} at {currentApp.job.company}
+                <h2 className="font-bold text-sm sm:text-base text-slate-900 m-0">
+                  {currentApp.job?.title} at {currentApp.job?.company}
                 </h2>
                 <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-brand-100 text-brand-800">
                   {currentApp.status}
                 </span>
               </div>
-              <p className="text-xs text-slate-600 mt-0.5">
-                Applied on {currentApp.appliedDate} • Location: {currentApp.job.location} • Experience: {currentApp.job.experienceLevel}
+              <p className="text-xs text-slate-600 mt-0.5 m-0">
+                Applied on {currentApp.appliedDate} • Location: {currentApp.job?.location} • Experience: {currentApp.job?.experienceLevel}
               </p>
             </div>
           </div>
@@ -534,43 +334,28 @@ export function SkillGapView() {
         <div className="bg-white rounded-xl p-6 sm:p-8 border border-slate-200 shadow-xs space-y-6">
           <div className="flex items-center justify-between pb-3 border-b border-slate-100">
             <div>
-              <h2 className="text-base font-semibold text-slate-900">Your Skills</h2>
-              <p className="text-xs text-slate-700">
+              <h2 className="text-base font-semibold text-slate-900 m-0">Your Skills</h2>
+              <p className="text-xs text-slate-700 m-0">
                 Adjust percentages to recalculate matching scores
               </p>
             </div>
             <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-brand-50 text-brand-700">
-              {userSkills.length} Verified
+              {userSkills?.length || 5} Verified
             </span>
           </div>
 
           <div className="space-y-5">
-            {userSkills.map((skill) => (
+            {userSkills?.map((skill) => (
               <div key={skill.id} className="space-y-2">
                 <div className="flex items-center justify-between text-xs font-bold">
                   <span className="text-slate-800">{skill.name}</span>
                   <span className="text-brand-600">{skill.masteryPercentage}%</span>
                 </div>
-
                 <div className="w-full h-3 rounded-full bg-slate-100 overflow-hidden relative">
                   <div
-                    className="h-full bg-gradient-to-r from-brand-500 to-accent-violet rounded-full transition-all duration-500"
+                    className="h-full bg-gradient-to-r from-brand-500 to-accent-violet rounded-full transition-all duration-300"
                     style={{ width: `${skill.masteryPercentage}%` }}
                   />
-                </div>
-
-                <div className="flex items-center gap-2 pt-1">
-                  <input
-                    type="range"
-                    min="0"
-                    max="100"
-                    value={skill.masteryPercentage}
-                    onChange={(e) => updateSkillMastery(skill.id, parseInt(e.target.value))}
-                    className="w-full h-1 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-brand-600"
-                  />
-                  <span className="text-[10px] text-slate-700 shrink-0 font-medium">
-                    Drag to tune
-                  </span>
                 </div>
               </div>
             ))}
@@ -582,10 +367,10 @@ export function SkillGapView() {
           <div>
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-6">
               <div>
-                <h2 className="text-base font-semibold text-slate-900">Missing Skills</h2>
-                <p className="text-xs text-slate-700">
+                <h2 className="text-base font-semibold text-slate-900 m-0">Missing Skills</h2>
+                <p className="text-xs text-slate-700 m-0">
                   {currentApp
-                    ? `Identified based on requirements for ${currentApp.job.title} at ${currentApp.job.company}`
+                    ? `Identified based on requirements for ${currentApp.job?.title} at ${currentApp.job?.company}`
                     : "Identified based on market requirements across all your applied jobs"}
                 </p>
               </div>
@@ -595,7 +380,7 @@ export function SkillGapView() {
             </div>
 
             <div className="flex flex-wrap gap-2.5">
-              {currentData.missingSkills.map((skill) => (
+              {currentMissingSkills.map((skill) => (
                 <div
                   key={skill}
                   className="flex items-center gap-2 px-3.5 py-2 rounded-lg bg-rose-50 border border-rose-200 text-rose-800 text-xs font-bold shadow-2xs hover:bg-rose-100 transition-colors"
@@ -611,7 +396,7 @@ export function SkillGapView() {
               <Sparkles className="w-5 h-5 text-brand-600 shrink-0 mt-0.5" />
               <div className="text-xs text-slate-700 leading-relaxed">
                 <span className="font-bold text-brand-900 block mb-0.5">AI Career Tip:</span>
-                {currentData.aiTip.text}
+                {dynamicAiTip || fallbackAiTip}
               </div>
             </div>
           </div>
@@ -623,95 +408,213 @@ export function SkillGapView() {
         </div>
       </div>
 
-      {/* Recommended Courses Section (Filtered by Applied Job) */}
+      {/* Recommended Courses Section (Dynamic Backend Integration) */}
       <section className="space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
             <h2 className="text-xl font-semibold text-slate-900 tracking-tight flex items-center gap-2">
               <span>Recommended Courses & Platforms</span>
               <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-brand-50 text-brand-700 border border-brand-200">
-                {currentData.courses.length} Available
+                {isLoading ? "Loading..." : `${courses.length} Available`}
+              </span>
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1">
+                <Database className="w-3 h-3" />
+                <span>MySQL Persisted</span>
               </span>
             </h2>
             <p className="text-xs text-slate-600 mt-1">
               {currentApp
-                ? `Curated course websites directly targeting your missing skills for ${currentApp.job.title} (${currentApp.job.company})`
-                : "Curated learning platforms mapped to close the skill gaps across all your applied roles"}
+                ? `Dynamic course recommendations persisted in database for ${currentApp.job?.title} (${currentApp.job?.company})`
+                : "Dynamic course recommendations persisted in database to bridge competencies across all applications"}
             </p>
           </div>
-          <div className="text-xs font-semibold text-slate-500 flex items-center gap-1.5 self-start sm:self-auto">
-            <Globe className="w-3.5 h-3.5 text-brand-600" />
-            <span>Click any card to open in new tab</span>
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={fetchRecommendations}
+              disabled={isLoading}
+              className="text-xs font-bold px-3 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 transition-all flex items-center gap-1.5 shadow-2xs cursor-pointer disabled:opacity-50"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? "animate-spin" : ""}`} />
+              <span>Sync & Re-fetch</span>
+            </button>
+            <div className="text-xs font-semibold text-slate-500 flex items-center gap-1.5">
+              <Globe className="w-3.5 h-3.5 text-brand-600" />
+              <span>Click card to open</span>
+            </div>
           </div>
         </div>
 
-        {/* Course Cards Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {currentData.courses.map((course) => (
-            <a
-              key={course.id}
-              href={course.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="bg-white rounded-xl border border-slate-200 hover:border-brand-400 p-5 shadow-xs hover:shadow-md transition-all flex flex-col justify-between group cursor-pointer"
+        {/* Loading State */}
+        {isLoading && (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {[1, 2, 3, 4].map((idx) => (
+              <div
+                key={idx}
+                className="bg-white rounded-xl border border-slate-200 p-5 shadow-xs flex flex-col justify-between animate-pulse space-y-4 min-h-[260px]"
+              >
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="h-5 w-20 bg-slate-200 rounded-md"></div>
+                    <div className="h-4 w-12 bg-slate-200 rounded-md"></div>
+                  </div>
+                  <div className="h-5 w-full bg-slate-200 rounded-md"></div>
+                  <div className="h-5 w-3/4 bg-slate-200 rounded-md"></div>
+                  <div className="h-4 w-1/2 bg-slate-100 rounded-md"></div>
+                </div>
+                <div className="pt-4 border-t border-slate-100">
+                  <div className="h-9 w-full bg-slate-200 rounded-xl"></div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Error State */}
+        {!isLoading && error && (
+          <div className="bg-rose-50/60 border border-rose-200 rounded-2xl p-8 text-center flex flex-col items-center justify-center space-y-3 shadow-xs">
+            <div className="w-12 h-12 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center">
+              <AlertTriangle className="w-6 h-6" />
+            </div>
+            <h3 className="text-base font-bold text-rose-900 m-0">Failed to Load Recommendations</h3>
+            <p className="text-xs text-rose-700 max-w-lg m-0">{error}</p>
+            <button
+              type="button"
+              onClick={fetchRecommendations}
+              className="mt-2 px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer shadow-xs"
             >
-              <div className="space-y-3">
-                {/* Provider Badge & Rating */}
-                <div className="flex items-center justify-between">
-                  <span
-                    className={`text-[10px] font-bold px-2.5 py-1 rounded-md border ${course.badgeColor}`}
-                  >
-                    {course.provider}
-                  </span>
-                  <div className="flex items-center gap-1 text-xs font-bold text-amber-700">
-                    <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
-                    <span>{course.rating}</span>
-                    <span className="text-[10px] text-slate-600">({course.reviewCount.toLocaleString()})</span>
+              <RefreshCw className="w-3.5 h-3.5" />
+              <span>Retry Fetch</span>
+            </button>
+          </div>
+        )}
+
+        {/* Empty State */}
+        {!isLoading && !error && courses.length === 0 && (
+          <div className="bg-white border border-slate-200 rounded-2xl p-10 text-center flex flex-col items-center justify-center space-y-3 shadow-xs">
+            <div className="w-12 h-12 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center border border-emerald-200">
+              <CheckCircle className="w-6 h-6" />
+            </div>
+            <h3 className="text-base font-bold text-slate-900 m-0">No Skill Gaps Detected!</h3>
+            <p className="text-xs text-slate-600 max-w-md m-0">
+              Your profile satisfies all target qualifications for this selection.
+            </p>
+          </div>
+        )}
+
+        {/* Dynamic Course Cards Grid */}
+        {!isLoading && !error && courses.length > 0 && (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {courses.map((course) => {
+              const status = course.status || "recommended";
+              const statusBadge =
+                status === "completed"
+                  ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                  : status === "in_progress"
+                    ? "bg-blue-50 text-blue-700 border-blue-200"
+                    : "bg-slate-50 text-slate-700 border-slate-200";
+
+              return (
+                <div
+                  key={course.id}
+                  className="bg-white rounded-xl border border-slate-200 hover:border-brand-400 p-5 shadow-xs hover:shadow-md transition-all flex flex-col justify-between group"
+                >
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between gap-2">
+                      <span
+                        className={`text-[10px] font-bold px-2.5 py-1 rounded-md border ${
+                          course.badgeColor || "bg-brand-50 text-brand-700 border-brand-200"
+                        }`}
+                      >
+                        {course.provider}
+                      </span>
+                      <div className="flex items-center gap-1.5">
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded border capitalize ${statusBadge}`}>
+                          {status.replace("_", " ")}
+                        </span>
+                        <div className="flex items-center gap-0.5 text-xs font-bold text-amber-700">
+                          <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
+                          <span>{course.rating || 4.8}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <h3 className="font-bold text-sm text-slate-900 group-hover:text-brand-600 transition-colors line-clamp-2 m-0">
+                      {course.title}
+                    </h3>
+
+                    <div className="flex items-center justify-between text-xs text-slate-700">
+                      <div className="flex items-center gap-1">
+                        <Clock className="w-3.5 h-3.5 text-slate-400" />
+                        <span>{course.duration || "Self-paced"}</span>
+                      </div>
+                      <span className="text-[11px] font-medium text-slate-600 group-hover:text-brand-600 flex items-center gap-0.5">
+                        {course.domain || "online"}
+                        <ExternalLink className="w-3 h-3 text-slate-400 group-hover:text-brand-600" />
+                      </span>
+                    </div>
+
+                    <div className="flex flex-wrap gap-1 pt-1">
+                      {(course.skillsTargeted || [course.skill]).map((s) => (
+                        <span
+                          key={s}
+                          className="text-[10px] font-semibold px-2 py-0.5 rounded bg-brand-50 text-brand-700"
+                        >
+                          {s}
+                        </span>
+                      ))}
+                    </div>
+
+                    {course.aiTip && (
+                      <div className="text-[11px] text-slate-600 bg-slate-50 border border-slate-100 rounded-lg p-2 leading-relaxed">
+                        <span className="font-bold text-brand-900">Focus: </span>
+                        {course.aiTip}
+                      </div>
+                    )}
                   </div>
-                </div>
 
-                {/* Course Title */}
-                <h3 className="font-bold text-sm text-slate-900 group-hover:text-brand-600 transition-colors line-clamp-2">
-                  {course.title}
-                </h3>
-
-                {/* Duration & Website Domain */}
-                <div className="flex items-center justify-between text-xs text-slate-700">
-                  <div className="flex items-center gap-1">
-                    <Clock className="w-3.5 h-3.5 text-slate-400" />
-                    <span>{course.duration}</span>
-                  </div>
-                  <span className="text-[11px] font-medium text-slate-600 group-hover:text-brand-600 flex items-center gap-0.5">
-                    {course.domain}
-                    <ExternalLink className="w-3 h-3 text-slate-400 group-hover:text-brand-600" />
-                  </span>
-                </div>
-
-                {/* Targeted Skills */}
-                <div className="flex flex-wrap gap-1 pt-1">
-                  {course.skillsTargeted.map((s) => (
-                    <span
-                      key={s}
-                      className="text-[10px] font-semibold px-2 py-0.5 rounded bg-brand-50 text-brand-700"
+                  <div className="pt-4 mt-4 border-t border-slate-100 space-y-2">
+                    <a
+                      href={course.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="w-full bg-brand-600 hover:bg-brand-700 text-white font-semibold text-xs py-2.5 rounded-xl shadow-xs transition-all flex items-center justify-center gap-2 cursor-pointer"
                     >
-                      {s}
-                    </span>
-                  ))}
-                </div>
-              </div>
+                      <span>Start Learning on {course.provider}</span>
+                      <ExternalLink className="w-3.5 h-3.5" />
+                    </a>
 
-              {/* Action Button */}
-              <div className="pt-4 mt-4 border-t border-slate-100">
-                <div className="w-full bg-brand-600 group-hover:bg-brand-700 text-white font-semibold text-xs py-2.5 rounded-xl shadow-xs transition-all flex items-center justify-center gap-2">
-                  <span>Start Learning on {course.provider}</span>
-                  <ExternalLink className="w-3.5 h-3.5 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+                    <div className="flex items-center justify-between gap-1.5 pt-1">
+                      <button
+                        type="button"
+                        onClick={() => handleStatusChange(course.id, "in_progress")}
+                        className={`flex-1 text-[10px] font-semibold py-1 px-2 rounded-lg border transition-all text-center cursor-pointer ${
+                          status === "in_progress"
+                            ? "bg-blue-600 text-white border-blue-600"
+                            : "bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200"
+                        }`}
+                      >
+                        In Progress
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleStatusChange(course.id, "completed")}
+                        className={`flex-1 text-[10px] font-semibold py-1 px-2 rounded-lg border transition-all text-center cursor-pointer ${
+                          status === "completed"
+                            ? "bg-emerald-600 text-white border-emerald-600"
+                            : "bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200"
+                        }`}
+                      >
+                        Completed
+                      </button>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </a>
-          ))}
-        </div>
+              );
+            })}
+          </div>
+        )}
       </section>
     </div>
   );
 }
-

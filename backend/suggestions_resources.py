@@ -555,6 +555,83 @@ def suggest_resources(
     }
 
 
+def _extract_domain(url: Optional[str]) -> str:
+    if not url:
+        return "online"
+    try:
+        host = urlparse(url).netloc
+        return host.replace("www.", "") if host else "online"
+    except Exception:
+        return "online"
+
+
+def format_course_item(skill: str, resource: Dict[str, Any], index: int = 1, ai_tip: str = "") -> Dict[str, Any]:
+    platform = resource.get("platform", "Online Course")
+    title = resource.get("title") or f"Mastering {skill.title()}"
+    url = resource.get("url", "#")
+    domain = _extract_domain(url)
+    
+    badge_colors = {
+        "coursera": "bg-blue-50 text-blue-700 border-blue-200",
+        "udemy": "bg-purple-50 text-purple-700 border-purple-200",
+        "edx": "bg-emerald-50 text-emerald-700 border-emerald-200",
+        "w3schools": "bg-green-50 text-green-700 border-green-200",
+        "hackerrank": "bg-amber-50 text-amber-700 border-amber-200",
+        "freecodecamp": "bg-cyan-50 text-cyan-700 border-cyan-200",
+        "youtube": "bg-rose-50 text-rose-700 border-rose-200",
+        "official docs": "bg-slate-50 text-slate-700 border-slate-200",
+    }
+    badge_color = badge_colors.get(platform.lower(), "bg-brand-50 text-brand-700 border-brand-200")
+    
+    durations = {
+        "coursera": "6-12 weeks",
+        "udemy": "20-40h",
+        "edx": "4-8 weeks",
+        "w3schools": "Self-paced",
+        "hackerrank": "Practice modules",
+        "youtube": "Video series",
+        "official docs": "Reference docs",
+    }
+    duration = durations.get(platform.lower(), "Self-paced")
+    
+    ratings = {
+        "coursera": 4.9,
+        "udemy": 4.8,
+        "edx": 4.7,
+        "w3schools": 4.8,
+        "hackerrank": 4.9,
+        "youtube": 4.7,
+    }
+    rating = ratings.get(platform.lower(), 4.8)
+    
+    review_counts = {
+        "coursera": 14200,
+        "udemy": 28900,
+        "edx": 5400,
+        "w3schools": 50000,
+        "hackerrank": 32000,
+        "youtube": 18500,
+    }
+    review_count = review_counts.get(platform.lower(), 1200)
+
+    return {
+        "id": f"crs-{abs(hash(url + skill)) % 1000000}",
+        "skill": skill,
+        "title": title,
+        "provider": platform,
+        "domain": domain,
+        "rating": rating,
+        "reviewCount": review_count,
+        "duration": duration,
+        "url": url,
+        "type": resource.get("type", "course"),
+        "skillsTargeted": [skill],
+        "badgeColor": badge_color,
+        "status": "recommended",
+        "aiTip": ai_tip or resource.get("tip", ""),
+    }
+
+
 # ----------------------------------------------------------------- router
 def create_router(fetch_missing_skills=None, ai_generator=None, link_checker=None):
     """FastAPI router. Pass fakes in tests."""
@@ -562,29 +639,176 @@ def create_router(fetch_missing_skills=None, ai_generator=None, link_checker=Non
     from pydantic import BaseModel, Field
 
     if fetch_missing_skills is None:
-        from resource_db import fetch_missing_skills_from_db   # lazy: DB only needed at runtime
+        from resource_db import fetch_missing_skills_from_db
         fetch_missing_skills = fetch_missing_skills_from_db
     fetch = fetch_missing_skills
 
+    try:
+        from resource_db import (
+            upsert_course_recommendations,
+            get_user_course_recommendations,
+            update_course_status,
+        )
+    except Exception as e:
+        logger.warning("resource_db persistence helpers unavailable: %s", e)
+        upsert_course_recommendations = None
+        get_user_course_recommendations = None
+        update_course_status = None
+
     class ResourceRequest(BaseModel):
-        missing_skills: List[str]
+        missing_skills: Optional[List[str]] = None
+        user_id: Optional[str] = "u-1"
+        job_id: Optional[str] = None
+        analysis_id: Optional[int] = None
         max_per_skill: int = Field(MAX_RESOURCES, ge=MIN_RESOURCES, le=MAX_RESOURCES)
         use_ai: bool = True
+        persist: bool = True
+
+    class StatusUpdateRequest(BaseModel):
+        user_id: str = "u-1"
+        status: str = Field(..., description="recommended, in_progress, completed, saved")
 
     router = APIRouter(prefix="/api/resources", tags=["resources"])
 
-    @router.post("")
-    def suggest(request: ResourceRequest):
-        return suggest_resources(
-            request.missing_skills, request.max_per_skill, request.use_ai,
+    def _generate_and_optionally_persist(
+        skills: List[str],
+        user_id: str = "u-1",
+        max_per_skill: int = MAX_RESOURCES,
+        use_ai: bool = True,
+        persist: bool = True,
+    ) -> Dict[str, Any]:
+        result = suggest_resources(
+            skills, max_per_skill, use_ai,
             ai_generator=ai_generator, link_checker=link_checker,
         )
+
+        # Build clean course objects from suggestions
+        courses = []
+        for s in result.get("suggestions", []):
+            skill_name = s.get("skill", "")
+            ai_msg = s.get("message", "")
+            for idx, r in enumerate(s.get("resources", []), 1):
+                courses.append(format_course_item(skill_name, r, idx, ai_msg))
+
+        # Persist to database if enabled and persistence helper is available
+        if persist and user_id and upsert_course_recommendations is not None and courses:
+            try:
+                upsert_course_recommendations(user_id, courses)
+                if get_user_course_recommendations is not None:
+                    persisted_courses = get_user_course_recommendations(user_id=user_id, limit=len(courses) * 2)
+                    if persisted_courses:
+                        courses = persisted_courses
+            except Exception as e:
+                logger.warning("Could not persist courses to DB: %s", e)
+
+        return {
+            "success": True,
+            "user_id": user_id,
+            "total_skills": result.get("total_skills", len(skills)),
+            "ai_used": result.get("ai_used", False),
+            "summary": result.get("summary", ""),
+            "ai_tip": {
+                "text": result.get("summary") or "Closing these skill gaps will boost your ATS match score significantly.",
+                "highlightedSkills": skills[:2] if skills else [],
+            },
+            "suggestions": result.get("suggestions", []),
+            "courses": courses,
+            "total": len(courses),
+            "skipped": result.get("skipped", []),
+        }
+
+    @router.post("")
+    def suggest(request: ResourceRequest):
+        skills = request.missing_skills or []
+        user_id = request.user_id or "u-1"
+
+        if not skills and request.analysis_id is not None:
+            try:
+                raw = fetch(request.analysis_id)
+                skills = parse_missing_skills(raw) if raw else []
+            except Exception:
+                pass
+
+        if not skills:
+            return {
+                "success": True,
+                "user_id": user_id,
+                "total_skills": 0,
+                "ai_used": False,
+                "summary": "No missing skill gaps detected. Profile matches requirements!",
+                "ai_tip": {"text": "No missing skill gaps identified.", "highlightedSkills": []},
+                "suggestions": [],
+                "courses": [],
+                "total": 0,
+                "skipped": [],
+            }
+
+        return _generate_and_optionally_persist(
+            skills=skills,
+            user_id=user_id,
+            max_per_skill=request.max_per_skill,
+            use_ai=request.use_ai,
+            persist=request.persist,
+        )
+
+    @router.post("/recommend")
+    def recommend_courses(request: ResourceRequest):
+        return suggest(request)
+
+    @router.get("/user/{user_id}")
+    def get_user_courses(
+        user_id: str,
+        skill: Optional[str] = None,
+        status: Optional[str] = None,
+        limit: int = Query(50, ge=1, le=200),
+    ):
+        if get_user_course_recommendations is None:
+            raise HTTPException(status_code=503, detail="Database persistence unavailable")
+        try:
+            courses = get_user_course_recommendations(user_id=user_id, skill=skill, status=status, limit=limit)
+            return {
+                "success": True,
+                "user_id": user_id,
+                "total": len(courses),
+                "courses": courses,
+            }
+        except Exception as e:
+            logger.error("Failed to fetch user courses: %s", e)
+            raise HTTPException(status_code=500, detail="Failed to retrieve courses")
+
+    @router.get("/courses")
+    def get_courses_query(
+        user_id: str = Query("u-1"),
+        skill: Optional[str] = None,
+        status: Optional[str] = None,
+        limit: int = Query(50, ge=1, le=200),
+    ):
+        return get_user_courses(user_id=user_id, skill=skill, status=status, limit=limit)
+
+    @router.patch("/courses/{course_id}/status")
+    def change_course_status(course_id: int, request: StatusUpdateRequest):
+        if update_course_status is None:
+            raise HTTPException(status_code=503, detail="Database persistence unavailable")
+        try:
+            updated = update_course_status(user_id=request.user_id, course_id=course_id, status=request.status)
+            if not updated:
+                raise HTTPException(status_code=404, detail="Course recommendation not found")
+            return {"success": True, "course": updated}
+        except ValueError as ve:
+            raise HTTPException(status_code=422, detail=str(ve))
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.error("Failed to update course status: %s", e)
+            raise HTTPException(status_code=500, detail="Failed to update course status")
 
     @router.get("/{analysis_id}")
     def suggest_for_analysis(
         analysis_id: int,
+        user_id: str = Query("u-1"),
         max_per_skill: int = Query(MAX_RESOURCES, ge=MIN_RESOURCES, le=MAX_RESOURCES),
         use_ai: bool = True,
+        persist: bool = True,
     ):
         try:
             raw = fetch(analysis_id)
@@ -593,13 +817,19 @@ def create_router(fetch_missing_skills=None, ai_generator=None, link_checker=Non
             raise HTTPException(status_code=503, detail="Database unavailable")
         if raw is None:
             raise HTTPException(status_code=404, detail="Analysis not found")
-        result = suggest_resources(
-            parse_missing_skills(raw), max_per_skill, use_ai,
-            ai_generator=ai_generator, link_checker=link_checker,
+        
+        skills = parse_missing_skills(raw)
+        data = _generate_and_optionally_persist(
+            skills=skills,
+            user_id=user_id,
+            max_per_skill=max_per_skill,
+            use_ai=use_ai,
+            persist=persist,
         )
-        return {"Analysis_Id": analysis_id, **result}
+        return {"Analysis_Id": analysis_id, **data}
 
     return router
+
 
 
 if __name__ == "__main__":

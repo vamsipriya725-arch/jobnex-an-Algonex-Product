@@ -447,7 +447,8 @@ app.post("/api/analyze", async (req, res) => {
 // Helper to forward requests to Python FastAPI backend using native fetch
 async function forwardToBackend(prefix, req, res) {
   try {
-    const targetUrl = `${BACKEND_URL}${prefix}${req.url}`;
+    const pathAndQuery = req.originalUrl || `${prefix}${req.url}`;
+    const targetUrl = `${BACKEND_URL}${pathAndQuery}`;
     const options = {
       method: req.method,
       headers: {},
@@ -498,9 +499,70 @@ app.use("/ats-resume", (req, res) => {
   forwardToBackend("/ats-resume", req, res);
 });
 
+// Direct MySQL query endpoint for saved Skill Gap courses with proxy fallback
+app.get("/api/skill-gap/courses", async (req, res) => {
+  const { user_id = "u-1", skill, status } = req.query;
+  try {
+    let query = "SELECT * FROM user_course_recommendations WHERE user_id = ?";
+    const params = [user_id];
+    if (skill) {
+      query += " AND skill = ?";
+      params.push(skill);
+    }
+    if (status) {
+      query += " AND status = ?";
+      params.push(status);
+    }
+    query += " ORDER BY updated_at DESC LIMIT 50";
+    const [rows] = await pool.execute(query, params);
+
+    const formatted = rows.map((r) => {
+      let skillsTargeted = [];
+      try {
+        skillsTargeted = typeof r.skills_targeted === "string" ? JSON.parse(r.skills_targeted) : (r.skills_targeted || [r.skill]);
+      } catch {
+        skillsTargeted = [r.skill];
+      }
+      return {
+        id: String(r.id),
+        userId: r.user_id,
+        skill: r.skill,
+        title: r.course_title,
+        provider: r.provider,
+        domain: (r.course_url || "").split("/")[2] || "online",
+        url: r.course_url,
+        type: r.course_type || "course",
+        rating: Number(r.rating) || 4.8,
+        reviewCount: Number(r.review_count) || 1200,
+        duration: r.duration || "Self-paced",
+        badgeColor: r.badge_color || "bg-blue-50 text-blue-700 border-blue-200",
+        skillsTargeted: skillsTargeted || [r.skill],
+        status: r.status || "recommended",
+        aiTip: r.ai_tip || "",
+        createdAt: r.created_at,
+        updatedAt: r.updated_at,
+      };
+    });
+
+    return res.json({ success: true, user_id, count: formatted.length, total: formatted.length, courses: formatted });
+  } catch (err) {
+    forwardToBackend("/api/skill-gap", req, res);
+  }
+});
+
+// Proxy /api/resources and /api/skill-gap to Python FastAPI backend
+app.use("/api/resources", (req, res) => {
+  forwardToBackend("/api/resources", req, res);
+});
+
+app.use("/api/skill-gap", (req, res) => {
+  forwardToBackend("/api/skill-gap", req, res);
+});
+
 // ==========================================
 // STATIC FRONTEND SERVING
 // ==========================================
+
 
 // Serve static frontend assets
 app.use("/frontend", express.static(FRONTEND_DIR));

@@ -64,9 +64,13 @@ except ImportError:
 
 try:
     from suggestions_resources import create_router as create_suggestions_router
-    app.include_router(create_suggestions_router())
-except ImportError:
-    pass
+    suggestions_router = create_suggestions_router()
+    app.include_router(suggestions_router)
+    # Also mount with /api/skill-gap prefix for direct skill-gap route semantics
+    app.include_router(suggestions_router, prefix="/api/skill-gap")
+except Exception as e:
+    logger.warning("Could not include suggestions router: %s", e)
+
 
 try:
     from application_dashboard import create_router as create_dashboard_router

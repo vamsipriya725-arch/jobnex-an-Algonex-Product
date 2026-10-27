@@ -108,3 +108,43 @@ CREATE TABLE IF NOT EXISTS daily_job_matches (
     INDEX idx_run_date (run_date),
     INDEX idx_run_score (run_date, match_score)
 );
+
+-- 6. User Course Recommendations (Skill Gap Learning Resources)
+CREATE TABLE IF NOT EXISTS user_course_recommendations (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id VARCHAR(100) NOT NULL,
+    skill VARCHAR(100) NOT NULL,
+    course_title VARCHAR(255) NOT NULL,
+    provider VARCHAR(100) NOT NULL,
+    course_url VARCHAR(500) NOT NULL,
+    course_type VARCHAR(50) DEFAULT 'course',
+    rating DECIMAL(3, 1) DEFAULT 4.8,
+    review_count INT DEFAULT 1200,
+    duration VARCHAR(50) DEFAULT 'Self-paced',
+    badge_color VARCHAR(100) DEFAULT 'bg-blue-50 text-blue-700 border-blue-200',
+    skills_targeted JSON NULL,
+    status VARCHAR(50) NOT NULL DEFAULT 'recommended',
+    ai_tip TEXT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE KEY uq_user_skill_course (user_id, skill, course_url),
+    INDEX idx_user_skill (user_id, skill),
+    INDEX idx_user_status (user_id, status)
+);
+
+-- 7. Job Applications (Auto-Apply Engine)
+CREATE TABLE IF NOT EXISTS job_applications (
+    application_id INT AUTO_INCREMENT PRIMARY KEY,
+    job_title VARCHAR(255) NOT NULL,
+    company VARCHAR(255) NOT NULL,
+    job_url VARCHAR(500) NULL,
+    apply_email VARCHAR(255) NULL,
+    job_description TEXT NULL,
+    match_score DECIMAL(5,2) NOT NULL DEFAULT 0,
+    cover_letter TEXT NULL,
+    status ENUM('queued', 'sent', 'failed', 'manual_required') NOT NULL DEFAULT 'queued',
+    status_message VARCHAR(500) NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
