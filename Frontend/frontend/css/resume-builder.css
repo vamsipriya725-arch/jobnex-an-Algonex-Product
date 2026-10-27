@@ -1,0 +1,150 @@
+/*
+ * JobNex Resume Builder Stylesheet
+ * Aligned with JobNex Design System (lavender #eaebf6, deep purple #505787, slate #2e3049, white rounded cards)
+ */
+
+:root {
+  --builder-primary: #52588f;
+  --builder-primary-hover: #434776;
+  --builder-accent: #646ca6;
+  --builder-bg: #eaebf6;
+  --builder-card: #ffffff;
+  --builder-border: #d9dcea;
+}
+
+/* Modal Animations */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(15, 23, 42, 0.6);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  z-index: 999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.25s ease, visibility 0.25s ease;
+  padding: 1rem;
+}
+
+.modal-backdrop.is-open {
+  opacity: 1;
+  visibility: visible;
+}
+
+.modal-content {
+  background: #ffffff;
+  border-radius: 1.25rem;
+  box-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.25);
+  border: 1px solid rgba(226, 232, 240, 0.8);
+  width: 100%;
+  max-width: 600px;
+  max-height: 90vh;
+  overflow-y: auto;
+  transform: scale(0.96) translateY(8px);
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.modal-backdrop.is-open .modal-content {
+  transform: scale(1) translateY(0);
+}
+
+/* Dropzone styling */
+.dropzone-container {
+  border: 2px dashed #cbd5e1;
+  border-radius: 1rem;
+  background-color: #f8fafc;
+  transition: all 0.25s ease;
+  cursor: pointer;
+}
+
+.dropzone-container:hover,
+.dropzone-container.drag-over {
+  border-color: #646ca6;
+  background-color: #f5f6fc;
+  box-shadow: 0 0 0 4px rgba(100, 108, 166, 0.12);
+}
+
+/* Progress Stage Indicators */
+.stage-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.6rem 0.75rem;
+  border-radius: 0.75rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  transition: all 0.25s ease;
+}
+
+.stage-item.pending {
+  color: #94a3b8;
+  background-color: #f8fafc;
+}
+
+.stage-item.active {
+  color: #383b61;
+  background-color: #eaebf6;
+  border-left: 3px solid #646ca6;
+}
+
+.stage-item.completed {
+  color: #065f46;
+  background-color: #ecfdf5;
+}
+
+.stage-item.failed {
+  color: #991b1b;
+  background-color: #fef2f2;
+}
+
+/* Table Card Layout */
+.resume-table-row {
+  transition: background-color 0.15s ease;
+}
+
+.resume-table-row:hover {
+  background-color: #f8fafc;
+}
+
+/* Action Dropdown Menu */
+.action-dropdown {
+  position: absolute;
+  right: 0;
+  top: 100%;
+  margin-top: 0.25rem;
+  min-width: 160px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.75rem;
+  box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.15);
+  z-index: 50;
+  padding: 0.35rem;
+}
+
+/* Readiness Rating Badges */
+.badge-poor {
+  background-color: #fff1f2;
+  color: #e11d48;
+  border: 1px solid #fecdd3;
+}
+
+.badge-okayish {
+  background-color: #fffbeb;
+  color: #b45309;
+  border: 1px solid #fde68a;
+}
+
+.badge-good {
+  background-color: #eff6ff;
+  color: #2563eb;
+  border: 1px solid #bfdbfe;
+}
+
+.badge-excellent {
+  background-color: #ecfdf5;
+  color: #059669;
+  border: 1px solid #a7f3d0;
+}

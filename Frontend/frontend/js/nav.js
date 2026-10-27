@@ -67,6 +67,7 @@ function initNav(activePageName) {
   // Update navigation links dynamically
   const links = [
     { id: "nav-home", href: homePrefix + "index.html", key: "home" },
+    { id: "nav-builder", href: prefix + "resume-builder.html", key: "resume-builder" },
     { id: "nav-interview", href: prefix + "interview-prep.html", key: "interview-prep" },
     { id: "nav-skills", href: prefix + "skill-gap.html", key: "skill-gap" },
     { id: "nav-autoapply", href: prefix + "auto-apply.html", key: "auto-apply" },

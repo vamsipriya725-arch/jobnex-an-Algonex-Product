@@ -50,9 +50,12 @@ app.include_router(filter_router)
 app.include_router(ats_resume_router)
 
 try:
-    from resume_builder import router as resume_builder_router
+    from resume_builder import router as resume_builder_router, get_job_status, cancel_job_endpoint
     app.include_router(resume_builder_router)
-    logger.info("Successfully mounted Resume Builder router")
+    # Direct alias endpoints matching exact requirement GET /api/jobs/:id and POST /api/jobs/:id/cancel
+    app.add_api_route("/api/jobs/{job_id}", get_job_status, methods=["GET"], tags=["Job Status"])
+    app.add_api_route("/api/jobs/{job_id}/cancel", cancel_job_endpoint, methods=["POST"], tags=["Job Status"])
+    logger.info("Successfully mounted Resume Builder router and /api/jobs aliases")
 except Exception as e:
     logger.warning("Could not include resume_builder router: %s", e)
 
