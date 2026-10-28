@@ -14,6 +14,12 @@
 
   const MAX_FILE_SIZE_BYTES = 2 * 1024 * 1024; // 2 MB
 
+  function getApiBase() {
+    if (window.location.port === "8000") return "";
+    const host = window.location.hostname || "127.0.0.1";
+    return `http://${host}:8000`;
+  }
+
   // Application State
   const state = {
     search: "",
@@ -1601,7 +1607,7 @@
     const subtitleEl = document.getElementById("diff-rule-subtitle");
     if (subtitleEl) subtitleEl.textContent = suggestion.reason || "ATS surgical rewrite";
 
-    const apiBase = window.location.port === "8000" ? "" : "http://127.0.0.1:8000";
+    const apiBase = getApiBase();
     const headers = { "Content-Type": "application/json" };
     const token = localStorage.getItem("jobnex_access_token");
     if (token) headers["Authorization"] = `Bearer ${token}`;
@@ -2310,7 +2316,7 @@
       const subtitleEl = document.getElementById("tailor-keyword-subtitle");
       if (subtitleEl) subtitleEl.textContent = `Integrating in-demand keyword: ${keyword}`;
 
-      const apiBase = window.location.port === "8000" ? "" : "http://127.0.0.1:8000";
+      const apiBase = getApiBase();
       const headers = { "Content-Type": "application/json" };
       const token = localStorage.getItem("jobnex_access_token");
       if (token) headers["Authorization"] = `Bearer ${token}`;
@@ -2723,7 +2729,7 @@
       const formData = new FormData();
       formData.append("file", file);
 
-      const apiBase = window.location.port === "8000" ? "" : "http://127.0.0.1:8000";
+      const apiBase = getApiBase();
       const headers = {};
       const token = localStorage.getItem("jobnex_access_token");
       if (token) headers["Authorization"] = `Bearer ${token}`;
@@ -2750,7 +2756,15 @@
 
       startJobPolling(jobData.jobId);
     } catch (err) {
-      handleJobFailure("Structural Analysis", err.message);
+      const isNetworkError =
+        err.message === "Failed to fetch" ||
+        err.name === "TypeError" ||
+        (err.message && err.message.toLowerCase().includes("network"));
+      const stage = isNetworkError ? "Server Connection" : "Structural Analysis";
+      const message = isNetworkError
+        ? "Unable to reach JobNex backend API (http://127.0.0.1:8000). Please make sure the backend server is running."
+        : err.message;
+      handleJobFailure(stage, message);
     }
   }
 
@@ -2805,7 +2819,7 @@
   function startJobPolling(jobId) {
     if (state.jobPollingTimer) clearInterval(state.jobPollingTimer);
 
-    const apiBase = window.location.port === "8000" ? "" : "http://127.0.0.1:8000";
+    const apiBase = getApiBase();
 
     state.jobPollingTimer = setInterval(async () => {
       try {
@@ -2878,7 +2892,7 @@
     }
 
     try {
-      const apiBase = window.location.port === "8000" ? "" : "http://127.0.0.1:8000";
+      const apiBase = getApiBase();
       await fetch(`${apiBase}/api/jobs/${state.currentJobId}/cancel`, { method: "POST" });
     } catch (e) {
       // Ignore

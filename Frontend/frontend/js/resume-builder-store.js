@@ -18,11 +18,12 @@
   }
 
   function getApiBaseUrl() {
-    // Check if hosted directly under FastAPI or standalone http.server on 3000
+    // Check if hosted directly under FastAPI or standalone http.server
     if (window.location.port === "8000") {
       return "";
     }
-    return "http://127.0.0.1:8000";
+    const host = window.location.hostname || "127.0.0.1";
+    return `http://${host}:8000`;
   }
 
   function getAuthHeaders() {

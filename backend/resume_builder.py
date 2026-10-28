@@ -5,11 +5,13 @@ readiness evaluation, and undo-friendly state synchronization.
 """
 from __future__ import annotations
 
+import asyncio
 import hashlib
 import json
 import logging
 import os
 import re
+import time
 import uuid
 from datetime import datetime, timezone
 import io
@@ -2026,10 +2028,11 @@ STRICT ZERO-HALLUCINATION & REWRITING RULES:
 }}
 """
 
+    env_model = os.getenv("GEMINI_MODEL", "gemini-3.8-flash")
     models_to_try = [
+        env_model,
+        "gemini-3.5-flash-lite",
         "gemini-2.5-flash",
-        "gemini-2.0-flash",
-        "gemini-1.5-flash",
     ]
 
     for model in models_to_try:
