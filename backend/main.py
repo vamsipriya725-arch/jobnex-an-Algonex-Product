@@ -121,9 +121,11 @@ app.add_middleware(
         "http://localhost:5500",
         "http://127.0.0.1:5501",
         "http://localhost:5501",
-        "*"
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
     ],
-    allow_credentials=False,
+    allow_origin_regex=r"^https?://.*",
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -796,3 +798,12 @@ def save_candidate_profile(p: CandidateProfileIn):
         if cur: cur.close()
         if conn and getattr(conn, "is_connected", lambda: True)(): conn.close()
 
+
+
+if __name__ == "__main__":
+    import uvicorn
+    print("=" * 60)
+    print("[*] Starting JobNex FastAPI Backend on http://127.0.0.1:8000")
+    print("[*] Documentation: http://127.0.0.1:8000/docs")
+    print("=" * 60)
+    uvicorn.run("main:app", host="127.0.0.1", port=8000, reload=True)
