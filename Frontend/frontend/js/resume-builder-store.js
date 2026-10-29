@@ -26,10 +26,12 @@
     return `http://${host}:8000`;
   }
 
-  function getAuthHeaders() {
-    const headers = {
-      "Content-Type": "application/json",
-    };
+  function getAuthHeaders(includeContentType = false) {
+    const headers = {};
+
+    if (includeContentType) {
+      headers["Content-Type"] = "application/json";
+    }
 
     const token = localStorage.getItem("jobnex_access_token");
     if (token) {
@@ -176,7 +178,7 @@
       try {
         const res = await fetch(`${getApiBaseUrl()}/api/resumes`, {
           method: "POST",
-          headers: getAuthHeaders(),
+          headers: getAuthHeaders(true),
           body: JSON.stringify({
             name,
             is_active: isActive,
@@ -218,7 +220,7 @@
       try {
         const res = await fetch(`${getApiBaseUrl()}/api/resumes/${resumeId}/rename`, {
           method: "PATCH",
-          headers: getAuthHeaders(),
+          headers: getAuthHeaders(true),
           body: JSON.stringify({ name: newName }),
         });
 
@@ -335,7 +337,7 @@
       try {
         const res = await fetch(`${getApiBaseUrl()}/api/resumes/${this.currentResume.id}`, {
           method: "PUT",
-          headers: getAuthHeaders(),
+          headers: getAuthHeaders(true),
           body: JSON.stringify({
             name: this.currentResume.name,
             is_active: this.currentResume.is_active,
@@ -699,7 +701,7 @@
       try {
         const res = await fetch(`${getApiBaseUrl()}/api/resumes/${this.currentResume.id}/target-jobs`, {
           method: "POST",
-          headers: getAuthHeaders(),
+          headers: getAuthHeaders(true),
           body: JSON.stringify({ title, company: company || "", description }),
         });
         if (!res.ok) {
@@ -944,10 +946,7 @@
       const url = `${getApiBaseUrl()}/api/resumes/${this.currentResume.id}/export-docx?filename=${encodeURIComponent(finalName)}`;
       const res = await fetch(url, {
         method: "POST",
-        headers: {
-          ...getAuthHeaders(),
-          "Content-Type": "application/json",
-        },
+        headers: getAuthHeaders(true),
         body: JSON.stringify({ resume: this.currentResume, filename: finalName }),
       });
 
@@ -976,10 +975,7 @@
       const url = `${getApiBaseUrl()}/api/resumes/${this.currentResume.id}/export-txt?filename=${encodeURIComponent(finalName)}`;
       const res = await fetch(url, {
         method: "POST",
-        headers: {
-          ...getAuthHeaders(),
-          "Content-Type": "application/json",
-        },
+        headers: getAuthHeaders(true),
         body: JSON.stringify({ resume: this.currentResume, filename: finalName }),
       });
 

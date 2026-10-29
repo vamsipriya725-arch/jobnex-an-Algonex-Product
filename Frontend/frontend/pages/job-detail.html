@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Job Details — JobNex" />
+  <title>Job Details | JobNex</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: { sans: ['"Plus Jakarta Sans"', 'Inter', 'sans-serif'] },
+          colors: {
+            brand: { 50:'#f4f5fb',100:'#eaebf6',200:'#d5d9ee',300:'#bac0e1',400:'#9ba3d2',500:'#7c85be',600:'#646ca6',700:'#505787',800:'#3e4268',900:'#2e3049',950:'#1f2030' },
+          }
+        }
+      }
+    };
+  </script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <link rel="stylesheet" href="../css/styles.css" />
+  <style>
+    .skill-tag { display:inline-flex;align-items:center;padding:3px 10px;border-radius:9999px;font-size:11px;font-weight:600;background:#eaebf6;color:#505787;border:1px solid #d5d9ee; }
+    .desc-body p { margin-bottom:0.75rem; }
+    .desc-body ul { list-style:disc;padding-left:1.25rem;margin-bottom:0.75rem; }
+    .desc-body li { margin-bottom:0.25rem; }
+  </style>
+</head>
+<body class="bg-[#eaebf6] text-[#2b2e3e] flex flex-col min-h-screen">
+  <div id="navbar-container"></div>
+
+  <main class="flex-1 max-w-5xl mx-auto w-full px-4 sm:px-6 py-8 space-y-6">
+    <!-- Back -->
+    <a href="posted-jobs.html" class="inline-flex items-center gap-1.5 text-xs font-semibold text-brand-600 hover:text-brand-800 transition-colors">
+      <i data-lucide="arrow-left" class="w-4 h-4"></i>
+      Back to Job Openings
+    </a>
+
+    <!-- Skeleton / Content -->
+    <div id="jd-loading" class="bg-white rounded-xl p-12 text-center border border-slate-200 shadow-xs">
+      <div class="inline-flex items-center gap-2 text-brand-600 font-semibold text-sm">
+        <span class="w-5 h-5 border-2 border-brand-600 border-t-transparent rounded-full animate-spin"></span>
+        Loading job details...
+      </div>
+    </div>
+
+    <div id="jd-error" class="hidden bg-white rounded-xl p-10 text-center border border-rose-200 shadow-xs space-y-3">
+      <i data-lucide="alert-circle" class="w-10 h-10 text-rose-400 mx-auto"></i>
+      <p class="text-sm font-semibold text-slate-700">Job not found or failed to load.</p>
+      <a href="posted-jobs.html" class="inline-block px-4 py-2 bg-brand-600 text-white text-xs font-semibold rounded-xl">← Back to Jobs</a>
+    </div>
+
+    <div id="jd-content" class="hidden space-y-5">
+      <!-- Hero Card -->
+      <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 sm:p-8">
+        <div class="flex flex-col sm:flex-row items-start gap-5">
+          <div id="jd-logo" class="w-20 h-20 rounded-2xl overflow-hidden bg-slate-100 border border-slate-200 shrink-0"></div>
+          <div class="flex-1 space-y-2">
+            <div class="flex flex-wrap items-center gap-2">
+              <h1 id="jd-title" class="text-2xl font-bold text-slate-900 tracking-tight"></h1>
+              <span id="jd-type-badge" class="text-[11px] font-bold px-2.5 py-1 rounded-full border"></span>
+              <span id="jd-mode-badge" class="text-[11px] font-bold px-2.5 py-1 rounded-full border"></span>
+            </div>
+            <p id="jd-company" class="text-sm font-bold text-slate-700"></p>
+            <div class="flex flex-wrap items-center gap-x-5 gap-y-1.5 text-xs text-slate-500">
+              <span id="jd-location" class="flex items-center gap-1.5"><i data-lucide="map-pin" class="w-3.5 h-3.5"></i></span>
+              <span id="jd-exp" class="flex items-center gap-1.5"><i data-lucide="briefcase" class="w-3.5 h-3.5"></i></span>
+              <span id="jd-salary" class="flex items-center gap-1.5 font-semibold text-amber-700"><i data-lucide="indian-rupee" class="w-3.5 h-3.5"></i></span>
+              <span id="jd-openings" class="flex items-center gap-1.5"><i data-lucide="users" class="w-3.5 h-3.5"></i></span>
+              <span id="jd-dept" class="flex items-center gap-1.5"><i data-lucide="building-2" class="w-3.5 h-3.5"></i></span>
+              <span id="jd-education" class="flex items-center gap-1.5"><i data-lucide="graduation-cap" class="w-3.5 h-3.5"></i></span>
+              <span id="jd-posted" class="flex items-center gap-1.5"><i data-lucide="calendar" class="w-3.5 h-3.5"></i></span>
+              <span id="jd-deadline" class="flex items-center gap-1.5 text-rose-500 font-semibold"><i data-lucide="clock" class="w-3.5 h-3.5"></i></span>
+            </div>
+          </div>
+          <!-- Apply CTA -->
+          <div class="flex flex-col gap-2 sm:items-end shrink-0">
+            <button id="jd-apply-btn" class="px-6 py-3 bg-brand-600 hover:bg-brand-700 text-white font-bold text-sm rounded-xl shadow-md hover:shadow-lg transition-all">
+              Apply Now
+            </button>
+          </div>
+        </div>
+
+        <!-- Skills -->
+        <div class="mt-5 pt-5 border-t border-slate-100">
+          <p class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2.5">Required Skills</p>
+          <div id="jd-skills" class="flex flex-wrap gap-2"></div>
+        </div>
+      </div>
+
+      <!-- Description -->
+      <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 sm:p-8">
+        <h2 class="text-base font-bold text-slate-900 mb-4 flex items-center gap-2">
+          <i data-lucide="file-text" class="w-4 h-4 text-brand-600"></i>
+          Job Description
+        </h2>
+        <div id="jd-description" class="text-sm text-slate-700 leading-relaxed desc-body whitespace-pre-wrap"></div>
+      </div>
+    </div>
+  </main>
+
+  <div id="footer-container"></div>
+
+  <script src="../data/mock-data.js"></script>
+  <script src="../js/utils.js"></script>
+  <script src="../js/auth.js"></script>
+  <script src="../js/nav.js"></script>
+  <script src="../js/job-detail.js"></script>
+</body>
+</html>

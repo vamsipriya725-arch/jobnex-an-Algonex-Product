@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="JobNex Admin — Post, manage, and bulk-upload job listings." />
+  <title>Admin — Jobs | JobNex</title>
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: { sans: ['"Plus Jakarta Sans"', 'Inter', 'sans-serif'] },
+          colors: {
+            brand: { 50:'#f4f5fb',100:'#eaebf6',200:'#d5d9ee',300:'#bac0e1',400:'#9ba3d2',500:'#7c85be',600:'#646ca6',700:'#505787',800:'#3e4268',900:'#2e3049',950:'#1f2030' },
+            royal:'#646ca6','royal-deep':'#505787',cream:'#eaebf6',sage:'#bac0e1',navy:'#3e4268',
+          }
+        }
+      }
+    };
+  </script>
+
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <!-- Project Styles -->
+  <link rel="stylesheet" href="../css/styles.css" />
+
+  <style>
+    /* Slim scrollbar */
+    .slim-scroll { scrollbar-width: thin; scrollbar-color: #bac0e1 transparent; }
+    .slim-scroll::-webkit-scrollbar { width: 5px; }
+    .slim-scroll::-webkit-scrollbar-thumb { background: #bac0e1; border-radius: 99px; }
+
+    /* Tag input pill */
+    .skill-pill {
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 3px 10px; border-radius: 9999px; font-size: 11px;
+      font-weight: 600; background: #eaebf6; color: #505787;
+      border: 1px solid #d5d9ee; white-space: nowrap;
+    }
+    .skill-pill button { display: flex; align-items: center; cursor: pointer; color: #646ca6; }
+    .skill-pill button:hover { color: #e11d48; }
+
+    /* Tab styling */
+    .admin-tab { cursor: pointer; padding: 8px 18px; border-radius: 10px; font-size: 12px; font-weight: 600; transition: all 0.15s; color: #565b7a; }
+    .admin-tab.active { background: #646ca6; color: #fff; box-shadow: 0 2px 8px -2px rgba(100,108,166,0.4); }
+    .admin-tab:not(.active):hover { background: #eaebf6; color: #3e4268; }
+
+    /* Table row hover */
+    .manage-row { transition: background 0.12s; }
+    .manage-row:hover { background: #f4f5fb; }
+
+    /* Status badge */
+    .status-badge-active  { background:#d1fae5; color:#065f46; border:1px solid #a7f3d0; }
+    .status-badge-draft   { background:#fef3c7; color:#92400e; border:1px solid #fde68a; }
+    .status-badge-expired { background:#fee2e2; color:#991b1b; border:1px solid #fca5a5; }
+
+    /* Section card */
+    .section-card { background:#fff; border-radius:16px; border:1px solid #e2e5f0; box-shadow:0 1px 4px rgba(43,46,62,0.06); padding: 28px; }
+
+    /* Form label */
+    .form-label { font-size:11px; font-weight:700; color:#565b7a; text-transform:uppercase; letter-spacing:0.06em; margin-bottom:5px; display:block; }
+
+    /* Confirm overlay */
+    #confirm-overlay { background: rgba(0,0,0,0.55); backdrop-filter: blur(4px); }
+
+    /* CSV preview table */
+    .preview-table th { font-size:10px; font-weight:700; color:#565b7a; text-transform:uppercase; letter-spacing:0.05em; padding:6px 10px; background:#f4f5fb; border-bottom:1px solid #e2e5f0; white-space:nowrap; }
+    .preview-table td { font-size:11px; padding:6px 10px; border-bottom:1px solid #f0f1f8; white-space:nowrap; max-width:180px; overflow:hidden; text-overflow:ellipsis; }
+
+    /* Input field base */
+    .field-input {
+      width:100%; background:#f8f9fd; border:1px solid #d5d9ee; border-radius:10px;
+      padding:9px 12px; font-size:12px; color:#2b2e3e; outline:none;
+      transition: border-color 0.15s;
+    }
+    .field-input:focus { border-color:#646ca6; background:#fff; }
+    .field-input::placeholder { color:#9ba3d2; }
+
+    textarea.field-input { resize: vertical; min-height: 110px; }
+
+    select.field-input { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%239ba3d2' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:right 10px center; padding-right:32px; }
+  </style>
+</head>
+<body class="bg-[#eaebf6] text-[#2b2e3e] flex flex-col min-h-screen">
+
+  <!-- Navbar -->
+  <div id="navbar-container"></div>
+
+  <!-- Access Denied (shown until admin check passes) -->
+  <div id="access-denied" class="hidden flex-1 flex items-center justify-center py-20">
+    <div class="text-center space-y-4 max-w-sm">
+      <div class="w-16 h-16 rounded-2xl bg-rose-100 flex items-center justify-center mx-auto">
+        <i data-lucide="shield-x" class="w-8 h-8 text-rose-500"></i>
+      </div>
+      <h1 class="text-xl font-bold text-slate-900">Admin Access Required</h1>
+      <p class="text-sm text-slate-500">This page is restricted to administrators only.</p>
+      <a href="posted-jobs.html" class="inline-block px-5 py-2.5 bg-brand-600 text-white text-xs font-semibold rounded-xl">← Browse Jobs</a>
+    </div>
+  </div>
+
+  <!-- Main Admin Panel -->
+  <main id="admin-main" class="hidden flex-1 max-w-[1300px] mx-auto w-full px-4 sm:px-6 py-6 space-y-6">
+
+    <!-- Header -->
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+      <div class="flex items-center gap-4">
+        <div class="w-12 h-12 rounded-xl bg-amber-50 border border-amber-200 flex items-center justify-center">
+          <i data-lucide="shield" class="w-6 h-6 text-amber-600"></i>
+        </div>
+        <div>
+          <h1 class="text-xl font-bold text-slate-900 tracking-tight">Admin — Job Management</h1>
+          <p class="text-xs text-slate-500 mt-0.5">Post jobs, bulk upload, and manage all listings</p>
+        </div>
+      </div>
+      <!-- Stats -->
+      <div class="flex items-center gap-4 text-center">
+        <div class="px-4 py-2 bg-brand-50 border border-brand-200 rounded-xl">
+          <p id="stat-active" class="text-xl font-bold text-brand-700">–</p>
+          <p class="text-[10px] font-semibold text-brand-500 uppercase">Active</p>
+        </div>
+        <div class="px-4 py-2 bg-amber-50 border border-amber-200 rounded-xl">
+          <p id="stat-draft" class="text-xl font-bold text-amber-700">–</p>
+          <p class="text-[10px] font-semibold text-amber-500 uppercase">Draft</p>
+        </div>
+        <div class="px-4 py-2 bg-rose-50 border border-rose-200 rounded-xl">
+          <p id="stat-expired" class="text-xl font-bold text-rose-700">–</p>
+          <p class="text-[10px] font-semibold text-rose-500 uppercase">Expired</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="flex items-center gap-2 bg-white rounded-xl border border-slate-200 shadow-xs p-2 w-fit">
+      <button class="admin-tab active" data-tab="post" id="tab-post">
+        <span class="flex items-center gap-1.5"><i data-lucide="plus-circle" class="w-4 h-4"></i>Post a Job</span>
+      </button>
+      <button class="admin-tab" data-tab="bulk" id="tab-bulk">
+        <span class="flex items-center gap-1.5"><i data-lucide="upload" class="w-4 h-4"></i>Bulk Upload</span>
+      </button>
+      <button class="admin-tab" data-tab="manage" id="tab-manage">
+        <span class="flex items-center gap-1.5"><i data-lucide="list" class="w-4 h-4"></i>Manage Jobs</span>
+      </button>
+    </div>
+
+    <!-- ===== SECTION A: POST A JOB ===== -->
+    <div id="panel-post" class="section-card space-y-6">
+      <div class="flex items-center justify-between border-b border-slate-100 pb-4">
+        <h2 id="form-section-title" class="text-base font-bold text-slate-900 flex items-center gap-2">
+          <i data-lucide="plus-circle" class="w-5 h-5 text-brand-600"></i>
+          Post a New Job
+        </h2>
+        <button id="form-reset-btn" class="text-xs font-semibold text-slate-400 hover:text-rose-500 transition-colors flex items-center gap-1">
+          <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i> Reset
+        </button>
+      </div>
+
+      <form id="job-form" class="space-y-5" novalidate>
+        <!-- Hidden edit ID -->
+        <input type="hidden" id="edit-job-id" value="" />
+
+        <!-- Row 1 -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label class="form-label" for="f-title">Job Title *</label>
+            <input id="f-title" type="text" class="field-input" placeholder="e.g. Senior Frontend Engineer" required />
+          </div>
+          <div>
+            <label class="form-label" for="f-company">Company Name *</label>
+            <input id="f-company" type="text" class="field-input" placeholder="e.g. Algonex Technologies" required />
+          </div>
+        </div>
+
+        <!-- Row 2 -->
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div>
+            <label class="form-label" for="f-work-mode">Work Mode *</label>
+            <select id="f-work-mode" class="field-input">
+              <option value="Office">Office</option>
+              <option value="Hybrid">Hybrid</option>
+              <option value="Remote">Remote</option>
+            </select>
+          </div>
+          <div>
+            <label class="form-label" for="f-job-type">Job Type *</label>
+            <select id="f-job-type" class="field-input">
+              <option value="Full-time">Full-time</option>
+              <option value="Part-time">Part-time</option>
+              <option value="Internship">Internship</option>
+              <option value="Contract">Contract</option>
+            </select>
+          </div>
+          <div>
+            <label class="form-label" for="f-status">Status</label>
+            <select id="f-status" class="field-input">
+              <option value="active">Active</option>
+              <option value="draft">Draft</option>
+              <option value="expired">Expired</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Row 3: Experience + Salary -->
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div>
+            <label class="form-label">Experience (years)</label>
+            <div class="flex items-center gap-2">
+              <input id="f-exp-min" type="number" min="0" max="30" class="field-input" placeholder="Min" />
+              <span class="text-slate-400 text-xs shrink-0">–</span>
+              <input id="f-exp-max" type="number" min="0" max="30" class="field-input" placeholder="Max" />
+            </div>
+          </div>
+          <div>
+            <label class="form-label" for="f-salary">Salary Range</label>
+            <input id="f-salary" type="text" class="field-input" placeholder="e.g. ₹12–18 LPA or Not disclosed" />
+          </div>
+          <div>
+            <label class="form-label" for="f-openings">No. of Openings</label>
+            <input id="f-openings" type="number" min="1" class="field-input" placeholder="1" value="1" />
+          </div>
+        </div>
+
+        <!-- Row 4: Locations -->
+        <div>
+          <label class="form-label" for="f-locations">Locations (comma-separated)</label>
+          <input id="f-locations" type="text" class="field-input" placeholder="e.g. Bangalore, Mumbai, Remote" />
+        </div>
+
+        <!-- Row 5: Skills tag input -->
+        <div>
+          <label class="form-label">Key Skills</label>
+          <div id="skills-tag-wrapper" class="flex flex-wrap gap-1.5 p-2 bg-slate-50 border border-slate-200 rounded-xl min-h-[44px] items-center focus-within:border-brand-500 transition-all">
+            <!-- Pills inserted here -->
+            <input id="f-skills-input" type="text" placeholder="Type skill + Enter" class="flex-1 min-w-[150px] bg-transparent text-xs outline-none text-slate-800 placeholder-slate-400" />
+          </div>
+        </div>
+
+        <!-- Row 6: Education + Department -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label class="form-label" for="f-education">Education Required</label>
+            <input id="f-education" type="text" class="field-input" placeholder="e.g. B.Tech / B.E. in CS or equivalent" />
+          </div>
+          <div>
+            <label class="form-label" for="f-department">Role / Department</label>
+            <input id="f-department" type="text" class="field-input" placeholder="e.g. Engineering · Frontend" />
+          </div>
+        </div>
+
+        <!-- Row 7: Apply details + Logo -->
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div>
+            <label class="form-label" for="f-apply-link">Apply Link (URL)</label>
+            <input id="f-apply-link" type="url" class="field-input" placeholder="https://..." />
+          </div>
+          <div>
+            <label class="form-label" for="f-apply-email">Apply Email</label>
+            <input id="f-apply-email" type="email" class="field-input" placeholder="careers@company.com" />
+          </div>
+          <div>
+            <label class="form-label" for="f-last-date">Apply Last Date</label>
+            <input id="f-last-date" type="date" class="field-input" />
+          </div>
+        </div>
+
+        <!-- Row 8: Company Logo -->
+        <div>
+          <label class="form-label" for="f-logo">Company Logo URL (optional)</label>
+          <input id="f-logo" type="url" class="field-input" placeholder="https://cdn.example.com/logo.png" />
+        </div>
+
+        <!-- Row 9: Description -->
+        <div>
+          <label class="form-label" for="f-description">Job Description *</label>
+          <textarea id="f-description" class="field-input" rows="7" placeholder="Describe roles, responsibilities, requirements, perks..." required></textarea>
+        </div>
+
+        <!-- Validation Errors -->
+        <div id="form-errors" class="hidden bg-rose-50 border border-rose-200 rounded-xl p-3 text-xs text-rose-700 space-y-1"></div>
+
+        <!-- Actions -->
+        <div class="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
+          <button type="button" id="btn-save-draft" class="px-5 py-2.5 text-xs font-semibold border border-slate-200 text-slate-700 rounded-xl hover:border-brand-300 hover:text-brand-600 transition-all flex items-center gap-1.5 cursor-pointer">
+            <i data-lucide="file" class="w-4 h-4"></i> Save as Draft
+          </button>
+          <button type="submit" id="btn-publish" class="px-6 py-2.5 bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold rounded-xl shadow-sm transition-all flex items-center gap-1.5 cursor-pointer">
+            <i data-lucide="send" class="w-4 h-4"></i>
+            <span id="btn-publish-text">Publish Job</span>
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <!-- ===== SECTION B: BULK UPLOAD ===== -->
+    <div id="panel-bulk" class="hidden section-card space-y-6">
+      <div class="flex items-center justify-between border-b border-slate-100 pb-4">
+        <h2 class="text-base font-bold text-slate-900 flex items-center gap-2">
+          <i data-lucide="upload" class="w-5 h-5 text-brand-600"></i>
+          Bulk Upload Jobs (CSV / Excel)
+        </h2>
+        <button id="bulk-download-template" class="flex items-center gap-1.5 text-xs font-semibold text-brand-600 hover:text-brand-800 transition-colors cursor-pointer border border-brand-200 px-3 py-1.5 rounded-lg">
+          <i data-lucide="download" class="w-4 h-4"></i> Download Template
+        </button>
+      </div>
+
+      <!-- Upload Drop Zone -->
+      <div id="bulk-dropzone" class="border-2 border-dashed border-slate-200 hover:border-brand-400 rounded-2xl p-10 text-center cursor-pointer transition-all group">
+        <div class="w-14 h-14 mx-auto rounded-2xl bg-brand-50 border border-brand-200 flex items-center justify-center mb-4 group-hover:bg-brand-100 transition-colors">
+          <i data-lucide="file-spreadsheet" class="w-7 h-7 text-brand-600"></i>
+        </div>
+        <p class="text-sm font-bold text-slate-700">Drop your CSV or Excel file here</p>
+        <p class="text-xs text-slate-400 mt-1">or <span class="text-brand-600 font-semibold cursor-pointer hover:underline" id="bulk-browse-link">click to browse</span></p>
+        <p class="text-[10px] text-slate-400 mt-2">Supported: .csv, .xlsx • Max 500 rows</p>
+        <input id="bulk-file-input" type="file" accept=".csv,.xlsx,.xls" class="hidden" />
+      </div>
+
+      <!-- Preview Table -->
+      <div id="bulk-preview-section" class="hidden space-y-4">
+        <div class="flex items-center justify-between">
+          <h3 class="text-sm font-bold text-slate-800">Preview <span id="bulk-row-count" class="text-brand-600"></span></h3>
+          <button id="bulk-clear-btn" class="text-xs font-semibold text-rose-500 hover:underline flex items-center gap-1 cursor-pointer">
+            <i data-lucide="trash-2" class="w-3.5 h-3.5"></i> Clear
+          </button>
+        </div>
+        <div class="overflow-auto max-h-72 rounded-xl border border-slate-200 slim-scroll">
+          <table class="preview-table w-full text-left" id="bulk-preview-table">
+            <thead id="bulk-preview-head"></thead>
+            <tbody id="bulk-preview-body"></tbody>
+          </table>
+        </div>
+
+        <!-- Row Errors -->
+        <div id="bulk-errors-section" class="hidden space-y-2">
+          <p class="text-xs font-bold text-rose-700">⚠ Row-level errors:</p>
+          <ul id="bulk-errors-list" class="text-xs text-rose-600 space-y-1 list-disc list-inside"></ul>
+        </div>
+
+        <div class="flex items-center justify-end gap-3">
+          <p class="text-xs text-slate-400 mr-auto"><span id="bulk-valid-count" class="font-bold text-emerald-600"></span> valid rows</p>
+          <button id="btn-import" class="px-6 py-2.5 bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 cursor-pointer">
+            <i data-lucide="check-circle" class="w-4 h-4"></i>
+            Import Valid Rows
+          </button>
+        </div>
+      </div>
+
+      <!-- Import Result -->
+      <div id="bulk-result" class="hidden rounded-xl p-4 border text-sm font-semibold"></div>
+    </div>
+
+    <!-- ===== SECTION C: MANAGE JOBS ===== -->
+    <div id="panel-manage" class="hidden section-card space-y-5">
+      <div class="flex items-center justify-between border-b border-slate-100 pb-4">
+        <h2 class="text-base font-bold text-slate-900 flex items-center gap-2">
+          <i data-lucide="list" class="w-5 h-5 text-brand-600"></i>
+          Manage Jobs
+        </h2>
+        <button id="manage-refresh-btn" class="text-xs font-semibold text-brand-600 hover:text-brand-800 flex items-center gap-1.5 cursor-pointer">
+          <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i> Refresh
+        </button>
+      </div>
+
+      <!-- Search + Status Filter -->
+      <div class="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+        <div class="flex items-center gap-2 flex-1 px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus-within:border-brand-500 transition-all">
+          <i data-lucide="search" class="w-4 h-4 text-slate-400 shrink-0"></i>
+          <input id="manage-search" type="text" placeholder="Search title, company..." class="flex-1 text-xs text-slate-800 placeholder-slate-400 outline-none bg-transparent font-medium" />
+        </div>
+        <select id="manage-status-filter" class="field-input w-auto min-w-[140px]">
+          <option value="all">All Status</option>
+          <option value="active">Active</option>
+          <option value="draft">Draft</option>
+          <option value="expired">Expired</option>
+        </select>
+      </div>
+
+      <!-- Jobs Table -->
+      <div class="overflow-auto max-h-[520px] rounded-xl border border-slate-200 slim-scroll">
+        <table class="w-full text-left">
+          <thead>
+            <tr class="text-[10px] font-bold text-slate-500 uppercase tracking-wider border-b border-slate-200 bg-slate-50">
+              <th class="px-4 py-3">Job</th>
+              <th class="px-4 py-3">Status</th>
+              <th class="px-4 py-3">Type</th>
+              <th class="px-4 py-3">Location</th>
+              <th class="px-4 py-3">Exp</th>
+              <th class="px-4 py-3">Posted</th>
+              <th class="px-4 py-3 text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="manage-table-body">
+            <!-- rows rendered by JS -->
+          </tbody>
+        </table>
+        <div id="manage-empty" class="hidden py-16 text-center">
+          <i data-lucide="inbox" class="w-10 h-10 text-slate-300 mx-auto mb-3"></i>
+          <p class="text-sm font-semibold text-slate-500">No jobs found</p>
+        </div>
+        <div id="manage-loading" class="py-10 text-center">
+          <span class="inline-flex items-center gap-2 text-brand-600 font-semibold text-xs">
+            <span class="w-4 h-4 border-2 border-brand-600 border-t-transparent rounded-full animate-spin"></span>
+            Loading jobs...
+          </span>
+        </div>
+      </div>
+
+      <!-- Pagination -->
+      <div id="manage-pagination" class="hidden flex items-center justify-center gap-2">
+        <button id="manage-prev" class="px-3 py-1.5 text-xs font-semibold text-brand-600 border border-brand-200 rounded-lg hover:bg-brand-50 disabled:opacity-40 disabled:cursor-not-allowed">← Prev</button>
+        <span id="manage-page-info" class="text-xs text-slate-500"></span>
+        <button id="manage-next" class="px-3 py-1.5 text-xs font-semibold text-brand-600 border border-brand-200 rounded-lg hover:bg-brand-50 disabled:opacity-40 disabled:cursor-not-allowed">Next →</button>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- Delete Confirm Dialog -->
+  <div id="confirm-overlay" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl border border-slate-200 space-y-4">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-rose-100 flex items-center justify-center shrink-0">
+          <i data-lucide="trash-2" class="w-5 h-5 text-rose-600"></i>
+        </div>
+        <div>
+          <p class="font-bold text-slate-900 text-sm">Delete Job?</p>
+          <p id="confirm-job-name" class="text-xs text-slate-500"></p>
+        </div>
+      </div>
+      <p class="text-xs text-slate-600">This action cannot be undone. The job listing will be permanently removed.</p>
+      <div class="flex justify-end gap-3">
+        <button id="confirm-cancel" class="px-4 py-2 text-xs font-semibold text-slate-600 hover:text-slate-900 cursor-pointer">Cancel</button>
+        <button id="confirm-delete" class="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold rounded-xl cursor-pointer transition-colors">Delete</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div id="footer-container"></div>
+
+  <!-- Scripts -->
+  <script src="../data/mock-data.js"></script>
+  <script src="../js/utils.js"></script>
+  <script src="../js/auth.js"></script>
+  <script src="../js/nav.js"></script>
+  <script src="../js/admin-jobs.js"></script>
+</body>
+</html>

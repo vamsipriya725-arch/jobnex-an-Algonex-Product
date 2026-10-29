@@ -1966,6 +1966,7 @@ def generate_content_with_backoff(
                     model_name,
                     attempt + 1,
                     max_retries,
+                    delay,
                     type(e).__name__,
                 )
                 time.sleep(delay)
@@ -2028,10 +2029,10 @@ STRICT ZERO-HALLUCINATION & REWRITING RULES:
 }}
 """
 
-    env_model = os.getenv("GEMINI_MODEL", "gemini-3.8-flash")
+    env_model = os.getenv("GEMINI_MODEL", "gemini-1.5-flash")
     models_to_try = [
         env_model,
-        "gemini-3.5-flash-lite",
+        "gemini-2.0-flash",
         "gemini-2.5-flash",
     ]
 
@@ -3171,8 +3172,7 @@ SCHEMA:
         "gemini-2.5-flash",
         "gemini-2.0-flash",
         "gemini-1.5-flash",
-        "gemini-3.5-flash-lite",
-        "gemini-3.8-flash",
+        "gemini-1.5-flash-latest",
     ]
 
     for model in models_to_try:

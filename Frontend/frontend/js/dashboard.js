@@ -181,7 +181,7 @@ document.addEventListener("DOMContentLoaded", () => {
     tbody.querySelectorAll(".btn-view-app").forEach((btn) => {
       btn.addEventListener("click", () => {
         const appId = btn.getAttribute("data-app-id");
-        const found = applications.find((a) => a.id === appId);
+        const found = applications.find((a) => String(a.id) === String(appId));
         if (found) openDrawer(found);
       });
     });
@@ -319,7 +319,11 @@ document.addEventListener("DOMContentLoaded", () => {
         throw new Error(`Server returned HTTP ${response.status}`);
       }
       const result = await response.json();
-      if (result.success && Array.isArray(result.data)) {
+      // Backend returns { "applications": [...] }
+      if (Array.isArray(result.applications)) {
+        applications = result.applications;
+      } else if (result.success && Array.isArray(result.data)) {
+        // Fallback for alternate API shape
         applications = result.data;
       } else {
         applications = [];

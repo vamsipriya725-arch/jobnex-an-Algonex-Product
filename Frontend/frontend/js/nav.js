@@ -67,6 +67,7 @@ function initNav(activePageName) {
   // Update navigation links dynamically
   const links = [
     { id: "nav-home", href: homePrefix + "index.html", key: "home" },
+    { id: "nav-jobs", href: prefix + "posted-jobs.html", key: "posted-jobs" },
     { id: "nav-builder", href: prefix + "resume-builder.html", key: "resume-builder" },
     { id: "nav-interview", href: prefix + "interview-prep.html", key: "interview-prep" },
     { id: "nav-skills", href: prefix + "skill-gap.html", key: "skill-gap" },
@@ -75,16 +76,28 @@ function initNav(activePageName) {
     { id: "nav-dashboard", href: prefix + "dashboard.html", key: "dashboard" },
     { id: "nav-privacy", href: prefix + "resume-privacy.html", key: "resume-privacy" },
     { id: "nav-ai", href: prefix + "ai-assistant.html", key: "ai-assistant" },
+    { id: "nav-admin", href: prefix + "admin-jobs.html", key: "admin-jobs", adminOnly: true },
   ];
 
   links.forEach(l => {
+    const userRole = (window.JobNexAuth?.getUser()?.role || "").toUpperCase();
+    const isAdmin = userRole === "ADMIN";
+
     const el = document.getElementById(l.id);
     if (el) {
       el.href = l.href;
+      // Show/hide admin-only items
+      if (l.adminOnly) {
+        el.classList.toggle("hidden", !isAdmin);
+      }
       if (l.key === activePageName) {
+        el.className = el.className.replace("hidden ", "");
         el.className = "flex shrink-0 items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold whitespace-nowrap rounded-md bg-brand-600 text-white shadow-xs";
       } else if (l.id === "nav-ai") {
         el.className = "flex shrink-0 items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold whitespace-nowrap rounded-md text-brand-700 bg-brand-50 hover:bg-brand-100 hover:text-brand-800 transition-colors border border-brand-200/60 shadow-xs";
+      } else if (l.id === "nav-admin") {
+        const adminClass = "flex shrink-0 items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold whitespace-nowrap rounded-md text-amber-700 bg-amber-50 hover:bg-amber-100 transition-colors border border-amber-200/60 shadow-xs";
+        el.className = isAdmin ? adminClass : adminClass + " hidden";
       } else {
         el.className = "flex shrink-0 items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium whitespace-nowrap rounded-md text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors";
       }
@@ -93,10 +106,17 @@ function initNav(activePageName) {
     const mobileEl = document.getElementById("mobile-" + l.id);
     if (mobileEl) {
       mobileEl.href = l.href;
+      if (l.adminOnly) {
+        mobileEl.classList.toggle("hidden", !isAdmin);
+      }
       if (l.key === activePageName) {
+        mobileEl.className = mobileEl.className.replace("hidden ", "");
         mobileEl.className = "flex items-center gap-2 px-3 py-2 text-xs font-semibold rounded-lg bg-brand-600 text-white shadow-xs" + (l.id === "nav-ai" ? " col-span-2" : "");
       } else if (l.id === "nav-ai") {
         mobileEl.className = "col-span-2 flex items-center gap-2 px-3 py-2 text-xs font-semibold rounded-lg bg-brand-50 text-brand-700 hover:bg-brand-100 transition-colors border border-brand-200/60";
+      } else if (l.id === "nav-admin") {
+        const mAdminClass = "col-span-2 flex items-center gap-2 px-3 py-2 text-xs font-semibold rounded-lg bg-amber-50 text-amber-700 hover:bg-amber-100 transition-colors border border-amber-200/60";
+        mobileEl.className = isAdmin ? mAdminClass : mAdminClass + " hidden";
       } else {
         mobileEl.className = "flex items-center gap-2 px-3 py-2 text-xs font-semibold rounded-lg text-slate-700 bg-slate-100 hover:bg-slate-200 transition-colors";
       }

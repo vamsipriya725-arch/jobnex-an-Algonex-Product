@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Browse all verified job openings on JobNex — filter by location, experience, type, and work mode." />
+  <title>Job Openings | JobNex</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: { sans: ['"Plus Jakarta Sans"', 'Inter', 'sans-serif'] },
+          colors: {
+            brand: { 50:'#f4f5fb',100:'#eaebf6',200:'#d5d9ee',300:'#bac0e1',400:'#9ba3d2',500:'#7c85be',600:'#646ca6',700:'#505787',800:'#3e4268',900:'#2e3049',950:'#1f2030' },
+            royal:'#646ca6','royal-deep':'#505787',cream:'#eaebf6',sage:'#bac0e1',navy:'#3e4268',
+          }
+        }
+      }
+    };
+  </script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <link rel="stylesheet" href="../css/styles.css" />
+  <style>
+    .jobs-scroll-area { max-height: calc(100vh - 260px); overflow-y: auto; scrollbar-width: thin; scrollbar-color: #bac0e1 transparent; }
+    .jobs-scroll-area::-webkit-scrollbar { width: 5px; }
+    .jobs-scroll-area::-webkit-scrollbar-thumb { background: #bac0e1; border-radius: 99px; }
+    .skill-tag { display:inline-flex;align-items:center;padding:2px 8px;border-radius:9999px;font-size:10px;font-weight:600;background:#eaebf6;color:#505787;border:1px solid #d5d9ee; }
+    .badge { display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:9999px;font-size:10px;font-weight:700; }
+  </style>
+</head>
+<body class="bg-[#eaebf6] text-[#2b2e3e] flex flex-col min-h-screen">
+  <div id="navbar-container"></div>
+
+  <main class="flex-1 max-w-[1440px] mx-auto w-full px-4 sm:px-6 py-6">
+    <!-- Header -->
+    <div class="bg-white rounded-xl p-5 border border-slate-200 shadow-sm mb-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+      <div class="flex items-center gap-3">
+        <div class="w-11 h-11 rounded-xl bg-brand-600 flex items-center justify-center text-white shadow-sm">
+          <i data-lucide="briefcase" class="w-5 h-5"></i>
+        </div>
+        <div>
+          <h1 class="text-xl font-bold text-slate-900 tracking-tight">Job Openings</h1>
+          <p id="jobs-subtitle" class="text-xs text-slate-500">Loading...</p>
+        </div>
+      </div>
+      <!-- Search -->
+      <div class="flex items-center gap-2 w-full sm:w-auto">
+        <div class="flex items-center gap-2 flex-1 sm:w-72 px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus-within:border-brand-500 transition-all">
+          <i data-lucide="search" class="w-4 h-4 text-slate-400 shrink-0"></i>
+          <input id="pj-search" type="text" placeholder="Title, skills, company..." class="w-full text-xs text-slate-800 placeholder-slate-400 outline-none bg-transparent font-medium" />
+        </div>
+        <button id="pj-search-btn" class="px-4 py-2.5 bg-brand-600 hover:bg-brand-700 text-white text-xs font-semibold rounded-xl transition-all">Search</button>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-4 gap-5 items-start">
+      <!-- Filters Sidebar -->
+      <aside class="lg:col-span-1 bg-white rounded-xl p-5 border border-slate-200 shadow-xs space-y-5">
+        <div class="flex items-center justify-between">
+          <h3 class="font-bold text-sm text-slate-900">Filters</h3>
+          <button id="pj-clear-filters" class="text-[10px] font-semibold text-brand-600 hover:underline">Clear all</button>
+        </div>
+
+        <!-- Work Mode -->
+        <div class="space-y-2">
+          <label class="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Work Mode</label>
+          <div class="space-y-1.5 text-xs text-slate-600">
+            <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" value="Office" class="wm-cb rounded text-brand-600" /><span>Office</span></label>
+            <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" value="Hybrid" class="wm-cb rounded text-brand-600" /><span>Hybrid</span></label>
+            <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" value="Remote" class="wm-cb rounded text-brand-600" /><span>Remote</span></label>
+          </div>
+        </div>
+
+        <!-- Job Type -->
+        <div class="space-y-2 pt-3 border-t border-slate-100">
+          <label class="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Job Type</label>
+          <div class="space-y-1.5 text-xs text-slate-600">
+            <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" value="Full-time" class="jt-cb rounded text-brand-600" /><span>Full-time</span></label>
+            <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" value="Part-time" class="jt-cb rounded text-brand-600" /><span>Part-time</span></label>
+            <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" value="Internship" class="jt-cb rounded text-brand-600" /><span>Internship</span></label>
+            <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" value="Contract" class="jt-cb rounded text-brand-600" /><span>Contract</span></label>
+          </div>
+        </div>
+
+        <!-- Experience -->
+        <div class="space-y-2 pt-3 border-t border-slate-100">
+          <label class="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Experience (yrs)</label>
+          <div class="flex items-center gap-2">
+            <input id="exp-min" type="number" min="0" max="30" placeholder="Min" class="w-1/2 px-2 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-700 outline-none focus:border-brand-500" />
+            <span class="text-slate-400 text-xs">–</span>
+            <input id="exp-max" type="number" min="0" max="30" placeholder="Max" class="w-1/2 px-2 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-700 outline-none focus:border-brand-500" />
+          </div>
+        </div>
+
+        <!-- Sort -->
+        <div class="space-y-2 pt-3 border-t border-slate-100">
+          <label class="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Sort by</label>
+          <select id="pj-sort" class="w-full text-xs font-semibold text-slate-700 bg-slate-50 border border-slate-200 rounded-lg px-2 py-1.5 outline-none focus:border-brand-500">
+            <option value="newest">Latest First</option>
+            <option value="oldest">Oldest First</option>
+          </select>
+        </div>
+
+        <button id="pj-apply-filters" class="w-full bg-brand-600 hover:bg-brand-700 text-white font-semibold text-xs py-2.5 rounded-xl transition-all">Apply Filters</button>
+      </aside>
+
+      <!-- Job List -->
+      <section class="lg:col-span-3 space-y-4">
+        <div id="pj-jobs-container" class="jobs-scroll-area space-y-3 pr-1">
+          <!-- Rendered by posted-jobs.js -->
+        </div>
+
+        <!-- Pagination -->
+        <div id="pj-pagination" class="hidden flex items-center justify-center gap-2 pt-2">
+          <button id="pj-prev" class="px-3 py-1.5 text-xs font-semibold text-brand-600 border border-brand-200 rounded-lg hover:bg-brand-50 disabled:opacity-40 disabled:cursor-not-allowed">← Prev</button>
+          <span id="pj-page-info" class="text-xs text-slate-500"></span>
+          <button id="pj-next" class="px-3 py-1.5 text-xs font-semibold text-brand-600 border border-brand-200 rounded-lg hover:bg-brand-50 disabled:opacity-40 disabled:cursor-not-allowed">Next →</button>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <div id="footer-container"></div>
+
+  <script src="../data/mock-data.js"></script>
+  <script src="../js/utils.js"></script>
+  <script src="../js/auth.js"></script>
+  <script src="../js/nav.js"></script>
+  <script src="../js/posted-jobs.js"></script>
+</body>
+</html>

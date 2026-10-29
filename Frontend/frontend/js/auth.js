@@ -22,7 +22,7 @@ const Auth = {
       const stored = localStorage.getItem("jobnex_user");
       if (stored) {
         const parsed = JSON.parse(stored);
-        if (parsed && parsed.name && !parsed.name.toLowerCase().includes("sandeep")) {
+      if (parsed && parsed.name) {
           // Clean legacy stock photos or dummy names
           if (parsed.avatar && parsed.avatar.includes("534528741775-53994a69daeb")) {
             parsed.avatar = parsed.name ? `https://ui-avatars.com/api/?name=${encodeURIComponent(parsed.name)}&background=2563eb&color=fff` : "";
@@ -111,7 +111,9 @@ const Auth = {
     if (typeof updateNavbarUser === "function") {
       updateNavbarUser();
     }
-    showToast("Signed out successfully.");
+    if (typeof showToast === "function") {
+      showToast("Signed out successfully.");
+    }
   },
 
   // Initialize optional Supabase CDN client

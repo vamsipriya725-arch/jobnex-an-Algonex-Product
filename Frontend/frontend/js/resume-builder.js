@@ -426,9 +426,26 @@
         openDeleteModal(id, name);
       });
     });
+
+    // Quick Download (PDF via print)
+    document.querySelectorAll(".btn-quick-download").forEach((btn) => {
+      btn.addEventListener("click", async (e) => {
+        e.stopPropagation();
+        const id = btn.getAttribute("data-id");
+        try {
+          await openEditor(id);
+          // Wait briefly for editor to render then trigger print
+          setTimeout(() => window.print(), 600);
+        } catch (err) {
+          showToast("Download Failed", err.message || "Could not open resume for download.", true);
+        }
+      });
+    });
   }
 
   function renderPagination() {
+    if (!DOM.paginationSummary || !DOM.btnPrev || !DOM.btnNext || !DOM.paginationPages) return;
+
     const start = state.total === 0 ? 0 : (state.page - 1) * state.perPage + 1;
     const end = Math.min(state.page * state.perPage, state.total);
     DOM.paginationSummary.textContent = `Showing ${start}–${end} of ${state.total} resumes`;
@@ -1611,8 +1628,10 @@
     const headers = { "Content-Type": "application/json" };
     const token = localStorage.getItem("jobnex_access_token");
     if (token) headers["Authorization"] = `Bearer ${token}`;
-    const user = window.JobNexAuth?.getUser ? window.JobNexAuth.getUser() : null;
-    if (user && user.id) headers["X-User-Id"] = String(user.id);
+    try {
+      const user = window.JobNexAuth?.getUser ? window.JobNexAuth.getUser() : null;
+      if (user && user.id) headers["X-User-Id"] = String(user.id);
+    } catch (_) {}
 
     try {
       const curResume = window.JobNexResumeStore.currentResume;
@@ -2141,7 +2160,7 @@
       if (descInp) {
         descInp.value = activeJob.description || "";
         const countEl = document.getElementById("job-desc-char-count");
-        if (countEl) countEl.textContent = `${activeJob.description.length} chars`;
+        if (countEl) countEl.textContent = `${(activeJob.description || "").length} chars`;
       }
 
       if (inputCard) inputCard.classList.remove("hidden");

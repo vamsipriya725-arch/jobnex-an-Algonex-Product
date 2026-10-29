@@ -59,6 +59,14 @@ try:
 except Exception as e:
     logger.warning("Could not include resume_builder router: %s", e)
 
+# NEW — Jobs Board router
+try:
+    from jobs_board import router as jobs_board_router
+    app.include_router(jobs_board_router)
+    logger.info("Successfully mounted Jobs Board router at /api/jobs-board")
+except Exception as e:
+    logger.warning("Could not include jobs_board router: %s", e)
+
 # Mount Auth router (MySQL users table for register, login, me)
 try:
     if str(backend_dir.parent) not in sys.path:
