@@ -70,3 +70,11 @@ package-lock.json
 generated_resumes/
 backend/generated_resumes/
 *.docx
+
+# AI agent local caches
+.agents/
+Backend/.agents/
+.aider*/
+Backend/.aider*/
+skills-lock.json
+Backend/skills-lock.json

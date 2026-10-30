@@ -4,6 +4,8 @@ import { useJobNex } from "@/frontend/context/JobNexContext";
 import { JobCard } from "@/frontend/components/shared/JobCard";
 import { Region, ExperienceLevel, JobPosting } from "@/domain/types";
 import { formatCurrency } from "@/lib/utils";
+import { UploadJobModal } from "@/frontend/components/shared/UploadJobModal";
+import { fetchCommunityJobs } from "@/lib/communityJobs";
 import {
   Search,
   MapPin,
@@ -15,6 +17,7 @@ import {
   SlidersHorizontal,
   ChevronDown,
   RotateCcw,
+  Plus,
 } from "lucide-react";
 
 function JobsViewContent() {
@@ -23,7 +26,36 @@ function JobsViewContent() {
   const initialRegion = (searchParams.get("region") as Region) || null;
   const initialExp = (searchParams.get("exp") as ExperienceLevel) || null;
 
-  const { jobs, savedJobIds, toggleBookmark, applyToJob, uploadedResumeName } = useJobNex();
+  const { jobs: baseJobs, savedJobIds, toggleBookmark, applyToJob, uploadedResumeName, currentUser, isLoggedIn } =
+    useJobNex();
+
+  // Community jobs (uploaded by users, stored in MySQL)
+  const [communityJobs, setCommunityJobs] = useState<JobPosting[]>([]);
+  const [showUpload, setShowUpload] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetchCommunityJobs()
+      .then((list) => {
+        if (!cancelled) setCommunityJobs(list);
+      })
+      .catch(() => {
+        /* backend offline: just show the regular jobs */
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const jobs = useMemo(() => [...communityJobs, ...baseJobs], [communityJobs, baseJobs]);
+
+  const handleApplyClick = (job: JobPosting) => {
+    if (job.isCommunity && job.sourceUrl) {
+      window.open(job.sourceUrl, "_blank", "noopener,noreferrer");
+      return;
+    }
+    setApplyingJob(job);
+  };
 
   // Search & Filter State
   const [keyword, setKeyword] = useState(initialQuery);
@@ -305,10 +337,20 @@ function JobsViewContent() {
                 </span>
               )}
               <ChevronDown
-                className={`w-3.5 h-3.5 transition-transform duration-200 ${
-                  mobileFiltersOpen ? "rotate-180" : ""
-                }`}
+                className={`w-3.5 h-3.5 transition-transform duration-200 ${mobileFiltersOpen ? "rotate-180" : ""
+                  }`}
               />
+            </button>
+
+            {/* Upload a job (community) */}
+            <button
+              type="button"
+              onClick={() => setShowUpload(true)}
+              className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold shadow-xs transition-colors active:scale-95"
+              title="Upload a job to help other users"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span>Upload</span>
             </button>
 
             {/* Sort Selector */}
@@ -712,7 +754,7 @@ function JobsViewContent() {
                         disableMotion={true}
                         isBookmarked={savedJobIds.includes(job.id)}
                         onToggleBookmark={toggleBookmark}
-                        onApply={setApplyingJob}
+                        onApply={handleApplyClick}
                       />
                     </div>
                   );
@@ -722,6 +764,15 @@ function JobsViewContent() {
           </div>
         </div>
       </div>
+
+      {/* Upload Job Modal */}
+      {showUpload && (
+        <UploadJobModal
+          onClose={() => setShowUpload(false)}
+          uploadedBy={isLoggedIn ? currentUser.email : undefined}
+          onUploaded={(job) => setCommunityJobs((prev) => [job, ...prev])}
+        />
+      )}
 
       {/* Instant Apply Modal */}
       {applyingJob && (

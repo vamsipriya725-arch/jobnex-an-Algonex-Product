@@ -17,6 +17,18 @@ from pydantic import BaseModel, EmailStr, Field
 from sqlalchemy import Boolean, Column, DateTime, Integer, String, create_engine
 from sqlalchemy.orm import Session, declarative_base, sessionmaker
 
+from pathlib import Path
+try:
+    from dotenv import load_dotenv
+    root_dir = Path(__file__).resolve().parent
+    if (root_dir / "backend" / ".env").exists():
+        load_dotenv(root_dir / "backend" / ".env")
+    if (root_dir / ".env").exists():
+        load_dotenv(root_dir / ".env")
+    load_dotenv()
+except ImportError:
+    pass
+
 # ---------- Config ----------
 SECRET_KEY = os.getenv("JWT_SECRET", "change-me-in-production")
 ALGORITHM = "HS256"
@@ -25,11 +37,12 @@ GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID", "")
 GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET", "")
 
 # MySQL Workbench Connection Details
-DB_USER = os.getenv("DB_USER", "root")
-DB_PASSWORD = urllib.parse.quote_plus(os.getenv("DB_PASSWORD", "Algonex@123"))
-DB_HOST = os.getenv("DB_HOST", "127.0.0.1")
-DB_PORT = os.getenv("DB_PORT", "3306")
-DB_NAME = os.getenv("DB_NAME", "jobnex")
+DB_USER = os.getenv("DB_USER") or os.getenv("MYSQL_USER") or "root"
+raw_db_password = os.getenv("DB_PASSWORD") or os.getenv("MYSQL_PASSWORD") or "Algonex@2003"
+DB_PASSWORD = urllib.parse.quote_plus(raw_db_password)
+DB_HOST = os.getenv("DB_HOST") or os.getenv("MYSQL_HOST") or "127.0.0.1"
+DB_PORT = os.getenv("DB_PORT") or os.getenv("MYSQL_PORT") or "3306"
+DB_NAME = os.getenv("DB_NAME") or os.getenv("MYSQL_DATABASE") or "jobnex" 
 
 FRONTEND_ORIGINS = [
     "http://127.0.0.1:8000",
@@ -279,4 +292,4 @@ def me(user: User = Depends(get_current_user)):
 if __name__ == "__main__":
     import uvicorn
 
-    uvicorn.run("login:app", host="127.0.0.1", port=8000, reload=True)
+    uvicorn.run("login:app", host="127.0.0.1", port=8000, reload=True)

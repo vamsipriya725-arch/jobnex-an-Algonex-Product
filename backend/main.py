@@ -49,6 +49,13 @@ app.include_router(resume_router)
 app.include_router(filter_router)
 app.include_router(ats_resume_router)
 
+# Community jobs (users upload jobs for others)
+try:
+    from community_jobs import router as community_jobs_router
+    app.include_router(community_jobs_router)
+except Exception as e:
+    logger.warning("Could not include community_jobs router: %s", e)
+
 try:
     from resume_builder import router as resume_builder_router, get_job_status, cancel_job_endpoint
     app.include_router(resume_builder_router)
@@ -468,13 +475,15 @@ def get_analyses():
 
         query = """
             SELECT
-                id,
+                Analysis_Id AS id,
+                Analysis_Id,
                 matched_score,
                 matched_skills,
                 missing_skills,
-                created_at
+                created_At AS created_at,
+                created_At
             FROM resume_analyzer
-            ORDER BY id DESC
+            ORDER BY Analysis_Id DESC
             LIMIT 20
         """
 
@@ -793,4 +802,3 @@ def save_candidate_profile(p: CandidateProfileIn):
     finally:
         if cur: cur.close()
         if conn and getattr(conn, "is_connected", lambda: True)(): conn.close()
-
