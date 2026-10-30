@@ -4,8 +4,35 @@
  */
 
 document.addEventListener("DOMContentLoaded", async () => {
-  // Load reusable navbar & footer
-  if (typeof loadComponent === "function") {
+  const isEmbed = window.location.search.includes("embed=true") || window.parent !== window;
+  if (isEmbed) {
+    document.body.classList.add("jobnex-ai-embed-mode");
+    const nb = document.getElementById("navbar-container");
+    if (nb) nb.style.display = "none";
+    const ft = document.getElementById("footer-container");
+    if (ft) ft.style.display = "none";
+    document.body.style.background = "#ffffff";
+    document.body.style.overflow = "hidden";
+    document.body.style.height = "100vh";
+    const mainEl = document.querySelector("main");
+    if (mainEl) {
+      mainEl.className = "flex-1 p-0 m-0 h-full flex flex-col overflow-hidden";
+      if (mainEl.firstElementChild) {
+        mainEl.firstElementChild.className = "w-full h-full p-0 m-0 flex flex-col";
+        if (mainEl.firstElementChild.firstElementChild) {
+          mainEl.firstElementChild.firstElementChild.className = "bg-white flex flex-col h-full w-full border-0 rounded-none shadow-none overflow-hidden";
+        }
+      }
+    }
+    const closeBtn = document.getElementById("embed-close-btn");
+    if (closeBtn) {
+      closeBtn.classList.remove("hidden");
+      closeBtn.classList.add("flex");
+      closeBtn.addEventListener("click", () => {
+        window.parent.postMessage({ type: "jobnex_close_ai_agent" }, "*");
+      });
+    }
+  } else if (typeof loadComponent === "function") {
     await loadComponent("navbar-container", "../components/navbar.html");
     await loadComponent("footer-container", "../components/footer.html");
     if (typeof initNav === "function") initNav("ai-assistant");

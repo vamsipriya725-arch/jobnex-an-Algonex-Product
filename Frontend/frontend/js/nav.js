@@ -185,7 +185,6 @@ function initNav(activePageName) {
     { id: "nav-dashboard", href: prefix + "dashboard.html", key: "dashboard" },
     { id: "nav-privacy", href: prefix + "resume-privacy.html", key: "resume-privacy" },
     { id: "nav-admin", href: prefix + "admin-jobs.html", key: "admin-jobs" },
-    { id: "nav-ai", href: prefix + "ai-assistant.html", key: "ai-assistant" },
   ];
 
   links.forEach(l => {
@@ -241,8 +240,18 @@ function initNav(activePageName) {
   // Initialize Sticky Navbar Scroll Effects & Progress Bar
   initScrollNavbar();
 
-  // Inject floating Robo Agent launcher across all pages
-  injectFloatingRoboAgent();
+  // Setup 9:16 AI Agent drawer & animated side button
+  initAIAgentDrawer();
+  injectAnimatedSideAIAgent();
+
+  const mobileNavAiBtn = document.getElementById("mobile-nav-ai");
+  if (mobileNavAiBtn) {
+    mobileNavAiBtn.href = "javascript:void(0)";
+    mobileNavAiBtn.onclick = (e) => {
+      e.preventDefault();
+      toggleAIAgentDrawer();
+    };
+  }
 
   if (typeof lucide !== "undefined" && lucide.createIcons) {
     lucide.createIcons();
@@ -250,55 +259,208 @@ function initNav(activePageName) {
 }
 
 /**
- * Floating Robo Agent Launcher Widget
+ * Injects the Animated AI Agent button on the side of the page
  */
-function injectFloatingRoboAgent() {
-  if (document.getElementById("jobnex-robo-launcher")) return;
+function injectAnimatedSideAIAgent() {
+  if (document.getElementById("jobnex-side-ai-agent-btn")) return;
 
-  const isInsidePages = window.location.pathname.includes("/pages/");
   const isAIAssistant = window.location.pathname.includes("ai-assistant.html");
   if (isAIAssistant) return;
 
-  const targetUrl = isInsidePages ? "ai-assistant.html" : "pages/ai-assistant.html";
+  // Keyframe animations for glow pulse and floating bot
+  if (!document.getElementById("jobnex-side-ai-styles")) {
+    const style = document.createElement("style");
+    style.id = "jobnex-side-ai-styles";
+    style.textContent = `
+      @keyframes aiAgentGlowPulse {
+        0%, 100% {
+          box-shadow: 0 10px 25px -4px rgba(99, 102, 241, 0.5), 0 0 0 0 rgba(99, 102, 241, 0.4);
+        }
+        50% {
+          box-shadow: 0 14px 35px -4px rgba(99, 102, 241, 0.75), 0 0 0 8px rgba(99, 102, 241, 0);
+        }
+      }
+      @keyframes aiBotFloat {
+        0%, 100% { transform: translateY(0px) rotate(0deg); }
+        25% { transform: translateY(-4px) rotate(-3deg); }
+        75% { transform: translateY(-2px) rotate(3deg); }
+      }
+      .ai-agent-glow {
+        animation: aiAgentGlowPulse 2.8s ease-in-out infinite;
+      }
+      .ai-bot-anim {
+        animation: aiBotFloat 2.6s ease-in-out infinite;
+      }
+    `;
+    document.head.appendChild(style);
+  }
 
-  const widget = document.createElement("aside");
-  widget.id = "jobnex-robo-launcher";
-  widget.className = "fixed bottom-6 right-6 z-40 flex items-center gap-2.5 group select-none print:hidden";
-  widget.setAttribute("aria-label", "JobNex AI Career Agent");
+  const btn = document.createElement("button");
+  btn.id = "jobnex-side-ai-agent-btn";
+  btn.type = "button";
+  btn.className = "fixed right-4 sm:right-6 bottom-6 sm:bottom-8 z-40 flex items-center gap-2.5 px-4 py-3 rounded-full bg-gradient-to-r from-brand-600 via-indigo-600 to-purple-600 text-white shadow-xl hover:scale-105 active:scale-95 transition-all duration-300 border-2 border-white/90 cursor-pointer group select-none ai-agent-glow print:hidden focus:outline-none focus:ring-4 focus:ring-brand-400/50";
+  btn.setAttribute("title", "Open AI Career Agent (9:16 Side Panel)");
+  btn.setAttribute("aria-label", "Open AI Career Agent");
 
-  widget.innerHTML = `
-    <!-- Speech Bubble Preview / Tooltip -->
-    <a href="${targetUrl}" class="hidden sm:inline-flex items-center gap-2 px-3.5 py-2 rounded-full bg-slate-900/95 text-white text-xs font-semibold shadow-xl border border-brand-400/30 opacity-0 translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300 pointer-events-none group-hover:pointer-events-auto backdrop-blur-md focus-visible:ring-2 focus-visible:ring-brand-500">
-      <span class="inline-block w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-      <span>Chat with JobNex AI</span>
-      <span class="text-[10px] bg-brand-600/80 px-1.5 py-0.5 rounded text-white font-mono">Agent</span>
-    </a>
-
-    <!-- Floating Robot Action Button -->
-    <a href="${targetUrl}" id="jobnex-robo-fab" title="Open JobNex AI Career Agent" class="relative flex items-center justify-center w-14 h-14 rounded-full bg-gradient-to-tr from-brand-700 via-brand-600 to-indigo-600 text-white shadow-xl shadow-brand-600/30 hover:shadow-2xl hover:shadow-brand-500/50 hover:scale-105 active:scale-95 transition-all duration-300 border-2 border-white/90 focus:outline-none focus:ring-4 focus:ring-brand-400/50">
-      <span class="absolute top-0 right-0 flex h-3.5 w-3.5">
+  btn.innerHTML = `
+    <div class="relative flex items-center justify-center w-8 h-8 rounded-full bg-white/20 text-white ai-bot-anim">
+      <i data-lucide="bot" class="w-5 h-5 text-white"></i>
+      <span class="absolute -top-0.5 -right-0.5 flex h-2.5 w-2.5">
         <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-        <span class="relative inline-flex rounded-full h-3.5 w-3.5 bg-emerald-500 border-2 border-white"></span>
+        <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-400 border border-white"></span>
       </span>
-
-      <svg class="w-7 h-7 text-white drop-shadow-xs transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:rotate-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-        <path d="M12 8V4H8"></path>
-        <rect width="16" height="12" x="4" y="8" rx="2"></rect>
-        <path d="M2 14h2"></path>
-        <path d="M20 14h2"></path>
-        <path d="M15 13v2"></path>
-        <path d="M9 13v2"></path>
-      </svg>
-    </a>
+    </div>
+    <span class="font-bold text-xs sm:text-sm tracking-tight text-white pr-1">AI Agent</span>
   `;
 
-  document.body.appendChild(widget);
+  btn.onclick = (e) => {
+    e.preventDefault();
+    toggleAIAgentDrawer();
+  };
+
+  document.body.appendChild(btn);
+
+  if (typeof lucide !== "undefined" && lucide.createIcons) {
+    lucide.createIcons({ root: btn });
+  }
 }
+
+/**
+ * 9:16 Aspect Ratio AI Career Agent Side Panel / Drawer
+ */
+function initAIAgentDrawer() {
+  if (document.getElementById("jobnex-ai-agent-drawer")) return;
+
+  // Backdrop overlay (dim background)
+  const backdrop = document.createElement("div");
+  backdrop.id = "jobnex-ai-agent-backdrop";
+  backdrop.className = "fixed inset-0 z-[998] bg-slate-950/40 backdrop-blur-[2px] opacity-0 pointer-events-none transition-opacity duration-300";
+  backdrop.setAttribute("aria-hidden", "true");
+
+  // 9:16 side drawer
+  const drawer = document.createElement("aside");
+  drawer.id = "jobnex-ai-agent-drawer";
+  drawer.className = "fixed z-[999] right-3 sm:right-6 bottom-3 sm:bottom-6 rounded-[28px] shadow-2xl border border-slate-200/90 bg-white overflow-hidden transition-all duration-300 transform translate-x-[120%] opacity-0 flex flex-col ring-1 ring-slate-900/10";
+  drawer.style.height = "min(92vh, 760px)";
+  drawer.style.width = "calc(min(92vh, 760px) * 9 / 16)";
+  drawer.style.aspectRatio = "9 / 16";
+  drawer.style.maxWidth = "calc(100vw - 24px)";
+  drawer.setAttribute("role", "dialog");
+  drawer.setAttribute("aria-label", "JobNex AI Career Agent");
+
+  drawer.innerHTML = `
+    <div class="w-full h-full relative bg-white flex flex-col">
+      <iframe id="jobnex-ai-agent-iframe" class="w-full h-full border-0 rounded-[28px]" src="about:blank" title="JobNex AI Career Agent"></iframe>
+    </div>
+  `;
+
+  document.body.appendChild(backdrop);
+  document.body.appendChild(drawer);
+
+  // Close triggers
+  backdrop.addEventListener("click", closeAIAgentDrawer);
+
+  window.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && isAIAgentDrawerOpen()) {
+      closeAIAgentDrawer();
+    }
+  });
+
+  window.addEventListener("message", (e) => {
+    if (e.data && e.data.type === "jobnex_close_ai_agent") {
+      closeAIAgentDrawer();
+    }
+  });
+}
+
+function isAIAgentDrawerOpen() {
+  const drawer = document.getElementById("jobnex-ai-agent-drawer");
+  return drawer && drawer.classList.contains("translate-x-0");
+}
+
+function openAIAgentDrawer() {
+  initAIAgentDrawer();
+  const backdrop = document.getElementById("jobnex-ai-agent-backdrop");
+  const drawer = document.getElementById("jobnex-ai-agent-drawer");
+  const iframe = document.getElementById("jobnex-ai-agent-iframe");
+  const sideBtn = document.getElementById("jobnex-side-ai-agent-btn");
+  if (!drawer || !backdrop || !iframe) return;
+
+  const isInsidePages = window.location.pathname.includes("/pages/");
+  const targetUrl = (isInsidePages ? "" : "pages/") + "ai-assistant.html?embed=true";
+
+  if (iframe.getAttribute("src") === "about:blank" || !iframe.src || iframe.src.includes("about:blank")) {
+    iframe.src = targetUrl;
+  }
+
+  drawer.classList.remove("translate-x-[120%]", "opacity-0", "pointer-events-none");
+  drawer.classList.add("translate-x-0", "opacity-100", "pointer-events-auto");
+
+  backdrop.classList.remove("opacity-0", "pointer-events-none");
+  backdrop.classList.add("opacity-100", "pointer-events-auto");
+
+  // Softly hide side button while drawer is open
+  if (sideBtn) {
+    sideBtn.classList.add("opacity-0", "pointer-events-none", "scale-90");
+    sideBtn.classList.remove("opacity-100", "pointer-events-auto", "scale-100");
+  }
+
+  const mobileNavAi = document.getElementById("mobile-nav-ai");
+  if (mobileNavAi) mobileNavAi.setAttribute("aria-expanded", "true");
+
+  // Close mobile menu dropdown if open
+  const mobileMenu = document.getElementById("mobile-menu-dropdown");
+  const mobileBtn = document.getElementById("mobile-menu-btn");
+  if (mobileMenu && !mobileMenu.classList.contains("hidden")) {
+    mobileMenu.classList.add("hidden");
+    mobileBtn?.setAttribute("aria-expanded", "false");
+  }
+}
+
+function closeAIAgentDrawer() {
+  const backdrop = document.getElementById("jobnex-ai-agent-backdrop");
+  const drawer = document.getElementById("jobnex-ai-agent-drawer");
+  const sideBtn = document.getElementById("jobnex-side-ai-agent-btn");
+  if (!drawer || !backdrop) return;
+
+  drawer.classList.remove("translate-x-0", "opacity-100", "pointer-events-auto");
+  drawer.classList.add("translate-x-[120%]", "opacity-0", "pointer-events-none");
+
+  backdrop.classList.remove("opacity-100", "pointer-events-auto");
+  backdrop.classList.add("opacity-0", "pointer-events-none");
+
+  // Re-show animated side button
+  if (sideBtn) {
+    sideBtn.classList.remove("opacity-0", "pointer-events-none", "scale-90");
+    sideBtn.classList.add("opacity-100", "pointer-events-auto", "scale-100");
+  }
+
+  const mobileNavAi = document.getElementById("mobile-nav-ai");
+  if (mobileNavAi) mobileNavAi.setAttribute("aria-expanded", "false");
+}
+
+function toggleAIAgentDrawer() {
+  if (isAIAgentDrawerOpen()) {
+    closeAIAgentDrawer();
+  } else {
+    openAIAgentDrawer();
+  }
+}
+
+window.JobNexAIAgent = {
+  open: openAIAgentDrawer,
+  close: closeAIAgentDrawer,
+  toggle: toggleAIAgentDrawer
+};
 
 if (typeof document !== "undefined") {
   if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", () => injectFloatingRoboAgent());
+    document.addEventListener("DOMContentLoaded", () => {
+      initAIAgentDrawer();
+      injectAnimatedSideAIAgent();
+    });
   } else {
-    injectFloatingRoboAgent();
+    initAIAgentDrawer();
+    injectAnimatedSideAIAgent();
   }
 }
