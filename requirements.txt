@@ -17,3 +17,4 @@ PyJWT
 google-auth
 sqlalchemy
 pymysql
+python-multipart>=0.0.12

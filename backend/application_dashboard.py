@@ -91,6 +91,7 @@ def get_db_config(database: Optional[str] = None) -> dict:
         "user": os.getenv("MYSQL_USER") or os.getenv("DB_USER", "root"),
         "password": os.getenv("MYSQL_PASSWORD") or os.getenv("DB_PASSWORD", "Algonex@2003"),
         "database": database or os.getenv("MYSQL_DATABASE") or os.getenv("DB_NAME", "jobnex"),
+        "connection_timeout": int(os.getenv("DB_CONNECT_TIMEOUT", "2")),
         "use_pure": True,
     }
 

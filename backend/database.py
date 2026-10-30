@@ -21,11 +21,13 @@ def get_connection():
     user = os.getenv("DB_USER") or os.getenv("MYSQL_USER") or "root"
     password = os.getenv("DB_PASSWORD") or os.getenv("MYSQL_PASSWORD") or "Algonex@2003"
     database = os.getenv("DB_NAME") or os.getenv("MYSQL_DATABASE") or "jobnex"
+    timeout = int(os.getenv("DB_CONNECT_TIMEOUT", "3"))
     return mysql.connector.connect(
         host=host,
         port=port,
         user=user,
         password=password,
         database=database,
+        connection_timeout=timeout,
         use_pure=True,
     )

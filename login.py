@@ -64,7 +64,7 @@ DATABASE_URL = os.getenv(
 # ---------- Database ----------
 engine = create_engine(
     DATABASE_URL,
-    connect_args={"check_same_thread": False} if DATABASE_URL.startswith("sqlite") else {},
+    connect_args={"check_same_thread": False} if DATABASE_URL.startswith("sqlite") else {"connect_timeout": int(os.getenv("DB_CONNECT_TIMEOUT", "2"))},
 )
 SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False)
 Base = declarative_base()
