@@ -153,6 +153,8 @@ app.add_middleware(
     allow_origins=[
         "http://127.0.0.1:8000",
         "http://localhost:8000",
+        "http://127.0.0.1:3000",
+        "http://localhost:3000",
         "http://127.0.0.1:5500",
         "http://localhost:5500",
         "http://127.0.0.1:5501",
@@ -167,6 +169,7 @@ app.add_middleware(
 @app.middleware("http")
 async def add_no_cache_headers(request: Request, call_next):
     response = await call_next(request)
+    response.headers["Access-Control-Allow-Private-Network"] = "true"
     path = request.url.path
     if path.startswith("/frontend") or path.startswith("/static") or path.endswith((".html", ".js", ".css")):
         response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"

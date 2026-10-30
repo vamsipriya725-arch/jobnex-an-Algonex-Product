@@ -629,7 +629,7 @@ def _default_ai_generator(history: List[Tuple[str, str]], message: str, context:
     from google import genai
     from google.genai import types
 
-    http_opts = types.HttpOptions(timeout=20000)
+    http_opts = types.HttpOptions(timeout=10000)
     client = genai.Client(api_key=api_key, http_options=http_opts)
 
     formatted_history = [
@@ -647,7 +647,7 @@ def _default_ai_generator(history: List[Tuple[str, str]], message: str, context:
     )
 
     preferred = os.getenv("GEMINI_MODEL", "gemini-3.5-flash")
-    candidates = list(dict.fromkeys([c for c in ["gemini-3.5-flash", preferred, "gemini-3.5-flash-lite", "gemini-flash-latest"] if c]))
+    candidates = list(dict.fromkeys([c for c in ["gemini-3.5-flash", "gemini-3.5-flash-lite", preferred, "gemini-flash-latest"] if c]))
 
     last_error = None
     for model_name in candidates:
@@ -815,7 +815,7 @@ class ChatbotAssistant:
                 raise RuntimeError("GEMINI_API_KEY was not found")
             from google import genai
             from google.genai import types
-            http_opts = types.HttpOptions(timeout=25000)
+            http_opts = types.HttpOptions(timeout=10000)
             client = genai.Client(api_key=api_key, http_options=http_opts)
         except Exception as e:
             logger.error("Gemini client initialization failed: %s (type=%s)", e, type(e).__name__)
@@ -843,7 +843,7 @@ class ChatbotAssistant:
 
         full_reply_parts: List[str] = []
         preferred = os.getenv("GEMINI_MODEL", "gemini-3.5-flash")
-        candidates = list(dict.fromkeys([c for c in ["gemini-3.5-flash", preferred, "gemini-3.5-flash-lite", "gemini-flash-latest"] if c]))
+        candidates = list(dict.fromkeys([c for c in ["gemini-3.5-flash", "gemini-3.5-flash-lite", preferred, "gemini-flash-latest"] if c]))
 
         stream_success = False
         for model_name in candidates:

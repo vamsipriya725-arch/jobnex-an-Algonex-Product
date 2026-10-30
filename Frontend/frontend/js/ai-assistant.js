@@ -300,14 +300,24 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     let streamSucceeded = false;
 
+    const candidateBases = [];
     if (apiBase !== null) {
-      const maxRetries = 2;
-      for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      if (apiBase) candidateBases.push(apiBase);
+      const host = window.location.hostname || "localhost";
+      const portBase = `${window.location.protocol}//${host}:8000`;
+      if (!candidateBases.includes(portBase)) candidateBases.push(portBase);
+      if (!candidateBases.includes("http://localhost:8000")) candidateBases.push("http://localhost:8000");
+      if (!candidateBases.includes("http://127.0.0.1:8000")) candidateBases.push("http://127.0.0.1:8000");
+    }
+
+    for (const targetBase of candidateBases) {
+      if (streamSucceeded) break;
+      for (let attempt = 0; attempt < 2; attempt++) {
         try {
           const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 30000);
+          const timeoutId = setTimeout(() => controller.abort(), 12000);
 
-          const response = await fetch(`${apiBase}/api/chat`, {
+          const response = await fetch(`${targetBase}/api/chat`, {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
@@ -378,8 +388,10 @@ document.addEventListener("DOMContentLoaded", async () => {
                 }
               }
             }
-            streamSucceeded = true;
-            break;
+            if (botMsg.content.trim()) {
+              streamSucceeded = true;
+              break;
+            }
           } else {
             // Standard JSON response fallback
             const data = await response.json();
@@ -395,13 +407,14 @@ document.addEventListener("DOMContentLoaded", async () => {
             break;
           }
         } catch (fetchErr) {
-          console.warn(`Attempt ${attempt + 1} failed:`, fetchErr.message);
-          if (attempt < maxRetries) {
-            await new Promise((r) => setTimeout(r, 800 * (attempt + 1)));
+          console.warn(`Target ${targetBase} attempt ${attempt + 1} failed:`, fetchErr.message);
+          if (attempt === 0) {
+            await new Promise((r) => setTimeout(r, 400));
           }
         }
       }
     }
+
 
     // Client-side fallback if backend was completely unreachable
     if (!streamSucceeded || !botMsg.content) {
@@ -476,8 +489,9 @@ document.addEventListener("DOMContentLoaded", async () => {
     // modern browsers block unencrypted http://127.0.0.1:8000 with Mixed Content error.
     if (isHttps) return null;
 
-    // Local HTTP dev server
-    return "http://127.0.0.1:8000";
+    // Local HTTP dev server matching current host
+    const host = window.location.hostname || "localhost";
+    return `${window.location.protocol}//${host}:8000`;
   }
 
   function generateAutonomousCopilotReply(trimmedQuery, lastAnalysis, currentUser) {
