@@ -24,11 +24,28 @@ export const Navbar: React.FC = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
 
+  const [scrollProgress, setScrollProgress] = useState(0);
+
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 8);
+    const onScroll = () => {
+      const scrollY = window.scrollY || window.pageYOffset || 0;
+      setScrolled(scrollY > 40);
+      const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+      const progress = docHeight > 0 ? (scrollY / docHeight) * 100 : 0;
+      setScrollProgress(Math.min(100, Math.max(0, progress)));
+    };
     onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
+
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setMobileMenuOpen(false);
+    };
+    window.addEventListener("keydown", onKeyDown);
+
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("keydown", onKeyDown);
+    };
   }, []);
 
   if (pathname === "/login" || pathname === "/signup") {
@@ -40,6 +57,7 @@ export const Navbar: React.FC = () => {
   const navLinks = [
     { name: "Home", href: "/", icon: Home },
     { name: "Jobs", href: "/jobs", icon: Briefcase },
+    { name: "Resume Builder", href: "/resume-builder", icon: FileText },
     { name: "Interview Prep", href: "/interview-prep", icon: BrainCircuit },
     { name: "Skill Gap", href: "/skill-gap", icon: BarChart3 },
     { name: "Auto-Apply", href: "/auto-apply", icon: Zap },
@@ -47,16 +65,24 @@ export const Navbar: React.FC = () => {
     { name: "Dashboard", href: "/dashboard", icon: UserCheck },
     { name: "Resume & Privacy", href: "/resume-privacy", icon: ShieldCheck },
     ...(isAdmin ? [{ name: "Admin", href: "/admin/jobs", icon: ShieldCheck }] : []),
+    { name: "AI Agent", href: "/ai-assistant", icon: BrainCircuit },
   ];
 
   return (
+    <>
+    <div
+      style={{ width: `${scrollProgress}%` }}
+      className="fixed top-0 left-0 h-[3px] bg-brand-600 z-[60] transition-all duration-75 pointer-events-none"
+    />
     <header
-      className={`sticky top-0 z-50 border-b border-border transition-all duration-300 ${
-        scrolled ? "bg-background/80 backdrop-blur-md shadow-sm" : "bg-background"
+      className={`sticky top-0 z-50 border-b border-border transition-all duration-200 ${
+        scrolled
+          ? "bg-white/90 backdrop-blur-md shadow-[0_4px_20px_rgba(0,0,0,0.08)]"
+          : "bg-white shadow-none"
       }`}
     >
       <div className="max-w-[1440px] mx-auto px-4 sm:px-6">
-        <div className="flex items-center justify-between gap-5 h-[72px]">
+        <div className={`flex items-center justify-between gap-4 transition-all duration-200 ${scrolled ? "h-[60px]" : "h-[72px]"}`}>
           {/* Logo */}
           <Link
             href="/"
@@ -80,7 +106,8 @@ export const Navbar: React.FC = () => {
 
           {/* Desktop Navigation Links */}
           <nav
-            className="hidden min-[1440px]:flex items-center gap-0.5"
+            className="hidden min-[1100px]:flex items-center justify-center flex-1 min-w-0"
+            style={{ fontSize: "clamp(11.5px, 0.78vw, 13.5px)", gap: "clamp(3px, 0.6vw, 10px)", whiteSpace: "nowrap", overflow: "hidden" }}
             aria-label="Main navigation"
           >
             {navLinks.map((link) => {
@@ -91,9 +118,9 @@ export const Navbar: React.FC = () => {
                   key={link.href}
                   href={link.href}
                   aria-current={isActive ? "page" : undefined}
-                  className={`flex shrink-0 items-center gap-1.5 px-2 py-2 text-xs font-medium whitespace-nowrap rounded-md transition-colors ${
+                  className={`flex shrink-0 items-center gap-1 px-1.5 py-1 text-xs font-medium whitespace-nowrap rounded-md transition-colors ${
                     isActive
-                      ? "bg-brand-50 text-brand-600"
+                      ? "bg-brand-600 text-white font-semibold shadow-xs"
                       : "text-muted-foreground hover:text-foreground hover:bg-accent"
                   }`}
                 >
@@ -105,7 +132,7 @@ export const Navbar: React.FC = () => {
           </nav>
 
           {/* Auth Section */}
-          <div className="hidden md:flex shrink-0 items-center gap-3">
+          <div className="flex shrink-0 items-center gap-2 sm:gap-3">
             {/* Profile Avatar & Login */}
             {isLoggedIn ? (
               <div className="flex items-center gap-2">
@@ -149,7 +176,7 @@ export const Navbar: React.FC = () => {
           </div>
 
           {/* Mobile hamburger button */}
-          <div className="flex items-center gap-2 min-[1440px]:hidden">
+          <div className="flex items-center gap-2 min-[1100px]:hidden">
             <Button
               variant="ghost"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
@@ -165,7 +192,7 @@ export const Navbar: React.FC = () => {
 
       {/* Mobile Menu Dropdown */}
       {mobileMenuOpen && (
-        <div className="min-[1440px]:hidden max-h-[calc(100dvh-72px)] overflow-y-auto bg-background border-b border-border px-4 pt-2 pb-6 space-y-2 shadow-sm animate-in slide-in-from-top">
+        <div className="min-[1100px]:hidden max-h-[calc(100dvh-72px)] overflow-y-auto bg-background border-b border-border px-4 pt-2 pb-6 space-y-2 shadow-sm animate-in slide-in-from-top">
           <div className="grid grid-cols-2 gap-2 pt-2">
             {navLinks.map((link) => {
               const Icon = link.icon;
@@ -190,5 +217,6 @@ export const Navbar: React.FC = () => {
         </div>
       )}
     </header>
+    </>
   );
 };

@@ -52,18 +52,18 @@
   <script src="https://unpkg.com/lucide@latest"></script>
 
   <!-- Project Styles -->
-  <link rel="stylesheet" href="css/styles.css" />
+  <link rel="stylesheet" href="css/styles.css?v=2.4" />
 </head>
-<body class="bg-[#eaebf6] text-[#2b2e3e]">
-  <!-- Navigation Header Placeholder -->
+<body class="bg-[#eaebf6] text-[#2b2e3e] overflow-x-hidden">
+  <!-- Navigation Header Placeholder (Sticky Navbar) -->
   <div id="navbar-container"></div>
 
-  <!-- Main Content -->
+  <!-- Main Content Flow (Only the page body scrolls with single vertical scrollbar) -->
   <div class="space-y-16 pb-20">
-    <!-- Hero Section with Canvas 2D Backdrop -->
-    <section class="relative overflow-hidden min-h-[580px] sm:min-h-[640px] lg:min-h-[720px] flex items-center justify-center pt-16 pb-24 sm:pt-24 sm:pb-32 lg:pt-32 lg:pb-36 bg-hero-gradient border-b border-white/10">
-      <!-- 3D Background Layer -->
-      <div class="absolute inset-0 overflow-hidden pointer-events-none perspective-hero select-none" aria-hidden="true">
+    <!-- Hero Section (min-height calc(100vh - 72px)) -->
+    <section id="hero-section" class="relative overflow-hidden flex items-center justify-center pt-16 pb-24 sm:pt-24 sm:pb-32 lg:pt-32 lg:pb-36 bg-hero-gradient border-b border-white/10" style="min-height: calc(100vh - 72px);">
+      <!-- Parallax Background Layer (0.3x speed) -->
+      <div id="hero-backdrop" class="hero-parallax-layer absolute inset-0 overflow-hidden pointer-events-none perspective-hero select-none" aria-hidden="true" style="will-change: transform;">
         <div class="hero-blob hero-blob-1 opacity-70"></div>
         <div class="hero-blob hero-blob-2 opacity-65"></div>
         <div class="hero-blob hero-blob-3 opacity-60"></div>
@@ -83,8 +83,8 @@
           <div class="gyro-ring gyro-ring-1"></div>
         </div>
 
-        <!-- Floating Hologram Badges -->
-        <div class="hidden xl:block absolute left-8 top-28 float-card-3d-left preserve-3d">
+        <!-- Floating Hologram Badges (Fixed relative to hero, slow float, no horizontal scroll) -->
+        <div class="hidden xl:block absolute left-8 top-28 float-card-3d-left preserve-3d hero-float-card pointer-events-none">
           <div class="glass-dark border border-white/20 rounded-2xl px-4 py-3 shadow-lg backdrop-blur-md flex items-center gap-3">
             <div class="w-8 h-8 rounded-xl bg-emerald-500/20 border border-emerald-400/40 flex items-center justify-center text-emerald-300 font-bold text-xs">
               98%
@@ -96,7 +96,7 @@
           </div>
         </div>
 
-        <div class="hidden xl:block absolute right-8 top-36 float-card-3d-right preserve-3d">
+        <div class="hidden xl:block absolute right-8 top-36 float-card-3d-right preserve-3d hero-float-card pointer-events-none">
           <div class="glass-dark border border-white/20 rounded-2xl px-4 py-3 shadow-lg backdrop-blur-md flex items-center gap-3">
             <div class="w-8 h-8 rounded-xl bg-brand-500/20 border border-brand-400/40 flex items-center justify-center text-brand-200 font-bold text-xs">
               50k+
@@ -176,8 +176,8 @@
       </div>
     </section>
 
-    <!-- AI Career Agent Hero Feature Card -->
-    <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 pb-2">
+    <!-- AI Career Agent Hero Feature Card (Fades & slides up 24px on scroll) -->
+    <section id="ai-agent-section" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 pb-2 reveal-on-scroll">
       <div class="relative overflow-hidden rounded-2xl bg-gradient-to-r from-slate-900 via-brand-950 to-indigo-950 border border-brand-500/30 p-6 sm:p-8 text-white shadow-xl">
         <div class="absolute -right-10 -bottom-10 w-64 h-64 bg-brand-500/15 rounded-full blur-3xl pointer-events-none"></div>
         <div class="relative z-10 flex flex-col md:flex-row items-center justify-between gap-6">
@@ -214,8 +214,8 @@
       </div>
     </section>
 
-    <!-- Resources Section -->
-    <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
+    <!-- Resources Section (Fades & slides up 24px on scroll) -->
+    <section id="resources-section" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6 reveal-on-scroll">
       <div class="bg-white rounded-xl p-6 sm:p-8 border border-slate-200 shadow-sm flex items-center gap-3">
         <div class="w-12 h-12 rounded-lg bg-brand-600 flex items-center justify-center text-white shadow-md">
           <i data-lucide="book-open" class="w-6 h-6"></i>
@@ -296,14 +296,19 @@
     </section>
   </div>
 
+  <!-- Round Back-to-Top Button (Appears after 600px of scroll) -->
+  <button id="back-to-top-btn" class="fixed bottom-24 right-7 z-40 w-11 h-11 rounded-full bg-brand-600 hover:bg-brand-700 text-white shadow-lg flex items-center justify-center cursor-pointer transition-all duration-300 opacity-0 pointer-events-none translate-y-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2" aria-label="Back to top" title="Back to top">
+    <i data-lucide="arrow-up" class="w-5 h-5"></i>
+  </button>
+
   <!-- Footer Placeholder -->
   <div id="footer-container"></div>
 
   <!-- Scripts -->
-  <script src="data/mock-data.js?v=2.1"></script>
-  <script src="js/utils.js?v=2.1"></script>
-  <script src="js/auth.js?v=2.1"></script>
-  <script src="js/nav.js?v=2.1"></script>
-  <script src="js/home.js?v=2.1"></script>
+  <script src="data/mock-data.js?v=2.4"></script>
+  <script src="js/utils.js?v=2.4"></script>
+  <script src="js/auth.js?v=2.4"></script>
+  <script src="js/nav.js?v=2.4"></script>
+  <script src="js/home.js?v=2.4"></script>
 </body>
 </html>

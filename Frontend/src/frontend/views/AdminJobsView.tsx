@@ -552,3 +552,4 @@ export function AdminJobsView() {
     </div>
   );
 }
+

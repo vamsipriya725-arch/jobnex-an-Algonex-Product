@@ -13,3 +13,4 @@ export const Route = createFileRoute("/jobs/$id")({
   }),
   component: JobDetailsView,
 });
+

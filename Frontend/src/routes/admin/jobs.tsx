@@ -13,3 +13,4 @@ export const Route = createFileRoute("/admin/jobs")({
   }),
   component: AdminJobsView,
 });
+

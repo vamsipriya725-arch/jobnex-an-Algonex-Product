@@ -1,67 +1,70 @@
-<header class="sticky top-0 z-50 border-b border-slate-200/90 bg-white/95 backdrop-blur-md transition-all shadow-xs">
-  <div class="max-w-[1440px] mx-auto px-4 sm:px-6">
-    <div class="flex items-center justify-between gap-4 h-[72px]">
-      <!-- Logo -->
-      <a href="index.html" id="nav-logo-link" class="flex shrink-0 items-center gap-3">
-        <div class="w-10 h-10 rounded-xl bg-brand-600 flex items-center justify-center text-white shadow-sm">
-          <i data-lucide="briefcase" class="w-5 h-5"></i>
-        </div>
-        <div class="flex flex-col">
-          <span class="font-bold text-2xl leading-6 text-slate-900 tracking-tight">
-            Job<span class="text-brand-600">Nex</span>
-          </span>
-          <p class="text-[11px] leading-4 font-semibold text-slate-400 whitespace-nowrap">
-            Career Network
-          </p>
-        </div>
+<!-- Scroll Progress Bar (3px violet at the very top above navbar) -->
+<div id="scroll-progress-bar" style="position: fixed; top: 0; left: 0; height: 3px; background-color: #646ca6; z-index: 60; width: 0%; transition: width 75ms ease-out;" aria-hidden="true"></div>
+
+<!-- Sticky Navbar (Height 72px -> 60px on scroll > 40px with 200ms transition) -->
+<header id="main-header" style="position: sticky; top: 0; z-index: 50; width: 100%; transition: background-color 200ms ease, box-shadow 200ms ease, backdrop-filter 200ms ease, -webkit-backdrop-filter 200ms ease;" class="bg-white border-b border-slate-200/90 shadow-none">
+  <div id="navbar-inner-container" style="max-width: 1440px; padding: 0 20px; display: flex; justify-content: space-between; align-items: center; gap: 12px; margin: 0 auto; width: 100%; height: 72px; transition: height 200ms ease;">
+    <!-- Logo (Left) -->
+    <a href="index.html" id="nav-logo-link" class="flex shrink-0 items-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 rounded-xl relative z-10" aria-label="JobNex Home">
+      <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-brand-600 flex items-center justify-center text-white shadow-xs shrink-0">
+        <i data-lucide="briefcase" class="w-4 h-4 sm:w-5 sm:h-5"></i>
+      </div>
+      <div class="flex flex-col">
+        <span class="font-bold text-xl sm:text-2xl leading-none text-slate-900 tracking-tight">
+          Job<span class="text-brand-600">Nex</span>
+        </span>
+        <p class="text-[10px] sm:text-[11px] leading-tight font-semibold text-slate-400 whitespace-nowrap">
+          Career Network
+        </p>
+      </div>
+    </a>
+
+    <!-- Desktop Navigation Menu (Center) -->
+    <!-- Collapses into hamburger drawer below 1100px; responsive font & gap clamps to prevent overflow -->
+    <nav id="desktop-nav-menu" class="hidden min-[1100px]:flex items-center justify-center flex-1 min-w-0" style="font-size: clamp(11.5px, 0.78vw, 13.5px); gap: clamp(3px, 0.6vw, 10px); white-space: nowrap; overflow: hidden;" aria-label="Main navigation">
+      <a id="nav-home" href="index.html" class="nav-item-link px-2 py-1 font-medium text-slate-600 hover:text-slate-900 rounded-lg transition-colors whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500">Home</a>
+      <a id="nav-jobs" href="pages/jobs.html" class="nav-item-link px-2 py-1 font-medium text-slate-600 hover:text-slate-900 rounded-lg transition-colors whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500">Jobs</a>
+      <a id="nav-builder" href="pages/resume-builder.html" class="nav-item-link px-2 py-1 font-medium text-slate-600 hover:text-slate-900 rounded-lg transition-colors whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500">Resume Builder</a>
+      <a id="nav-interview" href="pages/interview-prep.html" class="nav-item-link px-2 py-1 font-medium text-slate-600 hover:text-slate-900 rounded-lg transition-colors whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500">Interview Prep</a>
+      <a id="nav-skills" href="pages/skill-gap.html" class="nav-item-link px-2 py-1 font-medium text-slate-600 hover:text-slate-900 rounded-lg transition-colors whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500">Skill Gap</a>
+      <a id="nav-autoapply" href="pages/auto-apply.html" class="nav-item-link px-2 py-1 font-medium text-slate-600 hover:text-slate-900 rounded-lg transition-colors whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500">Auto-Apply</a>
+      <a id="nav-referral" href="pages/cold-referral.html" class="nav-item-link px-2 py-1 font-medium text-slate-600 hover:text-slate-900 rounded-lg transition-colors whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500">Referral</a>
+      <a id="nav-dashboard" href="pages/dashboard.html" class="nav-item-link px-2 py-1 font-medium text-slate-600 hover:text-slate-900 rounded-lg transition-colors whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500">Dashboard</a>
+      <a id="nav-privacy" href="pages/resume-privacy.html" class="nav-item-link px-2 py-1 font-medium text-slate-600 hover:text-slate-900 rounded-lg transition-colors whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500">Resume & Privacy</a>
+      <a id="nav-admin" href="pages/admin-jobs.html" class="hidden nav-item-link px-2 py-1 font-semibold rounded-lg text-purple-700 bg-purple-50 hover:bg-purple-100 transition-colors border border-purple-200/60 shadow-2xs whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500">Admin</a>
+      <a id="nav-ai" href="pages/ai-assistant.html" class="nav-item-link flex shrink-0 items-center gap-1 px-2 py-1 font-semibold whitespace-nowrap rounded-lg text-brand-700 bg-brand-50 hover:bg-brand-100 hover:text-brand-800 transition-colors border border-brand-200/60 shadow-2xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500">
+        <i data-lucide="bot" class="w-3.5 h-3.5 text-brand-600"></i>
+        <span>AI Agent</span>
       </a>
+    </nav>
 
-      <!-- Desktop Links -->
-      <nav class="hidden lg:flex items-center gap-1.5" aria-label="Main navigation">
-        <a id="nav-home" href="index.html" class="px-2.5 py-1.5 text-xs font-medium text-slate-600 hover:text-slate-900 rounded-md">Home</a>
-        <a id="nav-jobs" href="pages/jobs.html" class="px-2.5 py-1.5 text-xs font-medium text-slate-600 hover:text-slate-900 rounded-md">Jobs</a>
-        <a id="nav-builder" href="pages/resume-builder.html" class="px-2.5 py-1.5 text-xs font-medium text-slate-600 hover:text-slate-900 rounded-md">Resume Builder</a>
-        <a id="nav-interview" href="pages/interview-prep.html" class="px-2.5 py-1.5 text-xs font-medium text-slate-600 hover:text-slate-900 rounded-md">Interview Prep</a>
-        <a id="nav-skills" href="pages/skill-gap.html" class="px-2.5 py-1.5 text-xs font-medium text-slate-600 hover:text-slate-900 rounded-md">Skill Gap</a>
-        <a id="nav-autoapply" href="pages/auto-apply.html" class="px-2.5 py-1.5 text-xs font-medium text-slate-600 hover:text-slate-900 rounded-md">Auto-Apply</a>
-        <a id="nav-referral" href="pages/cold-referral.html" class="px-2.5 py-1.5 text-xs font-medium text-slate-600 hover:text-slate-900 rounded-md">Referral</a>
-        <a id="nav-dashboard" href="pages/dashboard.html" class="px-2.5 py-1.5 text-xs font-medium text-slate-600 hover:text-slate-900 rounded-md">Dashboard</a>
-        <a id="nav-privacy" href="pages/resume-privacy.html" class="px-2.5 py-1.5 text-xs font-medium text-slate-600 hover:text-slate-900 rounded-md">Resume & Privacy</a>
-        <a id="nav-admin" href="pages/admin-jobs.html" class="hidden px-2.5 py-1.5 text-xs font-semibold rounded-md text-purple-700 bg-purple-50 hover:bg-purple-100 transition-colors border border-purple-200/60 shadow-xs">Admin</a>
-        <a id="nav-ai" href="pages/ai-assistant.html" class="flex shrink-0 items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold whitespace-nowrap rounded-md text-brand-700 bg-brand-50 hover:bg-brand-100 hover:text-brand-800 transition-colors border border-brand-200/60 shadow-xs">
-          <i data-lucide="bot" class="w-4 h-4 text-brand-600"></i>
-          <span>AI Agent</span>
-        </a>
-      </nav>
-
-      <!-- Auth Controls -->
-      <div id="nav-auth-section" class="flex shrink-0 items-center gap-2 sm:gap-3">
+    <!-- Auth Controls & Hamburger (Right) -->
+    <div class="flex items-center gap-2 shrink-0 relative z-10">
+      <div id="nav-auth-section" class="flex items-center gap-2">
         <!-- Rendered by updateNavbarUser() in nav.js -->
       </div>
 
-      <!-- Mobile Hamburger Button -->
-      <div class="flex items-center gap-2 lg:hidden">
-        <button id="mobile-menu-btn" type="button" class="p-2 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-100 cursor-pointer">
-          <i data-lucide="menu" class="w-6 h-6"></i>
-        </button>
-      </div>
+      <!-- Hamburger Button (visible below 1100px) -->
+      <button id="mobile-menu-btn" type="button" class="min-[1100px]:hidden p-2 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-100 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500" aria-label="Toggle navigation menu" aria-expanded="false">
+        <i data-lucide="menu" class="w-6 h-6"></i>
+      </button>
     </div>
   </div>
 
-  <!-- Mobile Dropdown -->
-  <div id="mobile-menu-dropdown" class="hidden lg:hidden bg-white border-b border-slate-200 px-4 pt-2 pb-5 space-y-2 shadow-lg">
-    <div class="grid grid-cols-2 gap-2 pt-2">
-      <a id="mobile-nav-home" href="index.html" class="px-3 py-2 text-xs font-semibold rounded-lg bg-slate-100 text-slate-800">Home</a>
-      <a id="mobile-nav-jobs" href="pages/jobs.html" class="px-3 py-2 text-xs font-semibold rounded-lg bg-slate-100 text-slate-800">Jobs</a>
-      <a id="mobile-nav-builder" href="pages/resume-builder.html" class="px-3 py-2 text-xs font-semibold rounded-lg bg-slate-100 text-slate-800">Resume Builder</a>
-      <a id="mobile-nav-interview" href="pages/interview-prep.html" class="px-3 py-2 text-xs font-semibold rounded-lg bg-slate-100 text-slate-800">Interview Prep</a>
-      <a id="mobile-nav-skills" href="pages/skill-gap.html" class="px-3 py-2 text-xs font-semibold rounded-lg bg-slate-100 text-slate-800">Skill Gap</a>
-      <a id="mobile-nav-autoapply" href="pages/auto-apply.html" class="px-3 py-2 text-xs font-semibold rounded-lg bg-slate-100 text-slate-800">Auto-Apply</a>
-      <a id="mobile-nav-referral" href="pages/cold-referral.html" class="px-3 py-2 text-xs font-semibold rounded-lg bg-slate-100 text-slate-800">Referral</a>
-      <a id="mobile-nav-dashboard" href="pages/dashboard.html" class="px-3 py-2 text-xs font-semibold rounded-lg bg-slate-100 text-slate-800">Dashboard</a>
-      <a id="mobile-nav-privacy" href="pages/resume-privacy.html" class="px-3 py-2 text-xs font-semibold rounded-lg bg-slate-100 text-slate-800">Resume & Privacy</a>
-      <a id="mobile-nav-admin" href="pages/admin-jobs.html" class="hidden px-3 py-2 text-xs font-semibold rounded-lg bg-purple-50 text-purple-800 border border-purple-200">Admin</a>
-      <a id="mobile-nav-ai" href="pages/ai-assistant.html" class="col-span-2 flex items-center gap-2 px-3 py-2 text-xs font-semibold rounded-lg bg-brand-50 text-brand-700 hover:bg-brand-100 transition-colors border border-brand-200/60">
+  <!-- Mobile Dropdown / Drawer (Below 1100px) -->
+  <div id="mobile-menu-dropdown" class="hidden min-[1100px]:hidden bg-white border-b border-slate-200 px-4 pt-3 pb-5 space-y-2 shadow-xl animate-in fade-in">
+    <div class="grid grid-cols-2 gap-2">
+      <a id="mobile-nav-home" href="index.html" class="px-3 py-2 text-xs font-semibold rounded-lg bg-slate-100 text-slate-800 focus-visible:ring-2 focus-visible:ring-brand-500">Home</a>
+      <a id="mobile-nav-jobs" href="pages/jobs.html" class="px-3 py-2 text-xs font-semibold rounded-lg bg-slate-100 text-slate-800 focus-visible:ring-2 focus-visible:ring-brand-500">Jobs</a>
+      <a id="mobile-nav-builder" href="pages/resume-builder.html" class="px-3 py-2 text-xs font-semibold rounded-lg bg-slate-100 text-slate-800 focus-visible:ring-2 focus-visible:ring-brand-500">Resume Builder</a>
+      <a id="mobile-nav-interview" href="pages/interview-prep.html" class="px-3 py-2 text-xs font-semibold rounded-lg bg-slate-100 text-slate-800 focus-visible:ring-2 focus-visible:ring-brand-500">Interview Prep</a>
+      <a id="mobile-nav-skills" href="pages/skill-gap.html" class="px-3 py-2 text-xs font-semibold rounded-lg bg-slate-100 text-slate-800 focus-visible:ring-2 focus-visible:ring-brand-500">Skill Gap</a>
+      <a id="mobile-nav-autoapply" href="pages/auto-apply.html" class="px-3 py-2 text-xs font-semibold rounded-lg bg-slate-100 text-slate-800 focus-visible:ring-2 focus-visible:ring-brand-500">Auto-Apply</a>
+      <a id="mobile-nav-referral" href="pages/cold-referral.html" class="px-3 py-2 text-xs font-semibold rounded-lg bg-slate-100 text-slate-800 focus-visible:ring-2 focus-visible:ring-brand-500">Referral</a>
+      <a id="mobile-nav-dashboard" href="pages/dashboard.html" class="px-3 py-2 text-xs font-semibold rounded-lg bg-slate-100 text-slate-800 focus-visible:ring-2 focus-visible:ring-brand-500">Dashboard</a>
+      <a id="mobile-nav-privacy" href="pages/resume-privacy.html" class="px-3 py-2 text-xs font-semibold rounded-lg bg-slate-100 text-slate-800 focus-visible:ring-2 focus-visible:ring-brand-500">Resume & Privacy</a>
+      <a id="mobile-nav-admin" href="pages/admin-jobs.html" class="hidden px-3 py-2 text-xs font-semibold rounded-lg bg-purple-50 text-purple-800 border border-purple-200 focus-visible:ring-2 focus-visible:ring-brand-500">Admin</a>
+      <a id="mobile-nav-ai" href="pages/ai-assistant.html" class="col-span-2 flex items-center gap-2 px-3 py-2 text-xs font-semibold rounded-lg bg-brand-50 text-brand-700 hover:bg-brand-100 transition-colors border border-brand-200/60 focus-visible:ring-2 focus-visible:ring-brand-500">
         <i data-lucide="bot" class="w-4 h-4 text-brand-600"></i>
         <span>AI Agent</span>
         <span class="ml-auto inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-brand-200 text-brand-800">AI</span>
