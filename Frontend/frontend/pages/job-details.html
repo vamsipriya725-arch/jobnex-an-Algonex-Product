@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="View job details, requirements, compensation, and apply directly on JobNex." />
+  <title>Job Details | JobNex</title>
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'Inter', 'sans-serif'],
+          },
+          colors: {
+            brand: {
+              50: '#f4f5fb',
+              100: '#eaebf6',
+              200: '#d5d9ee',
+              300: '#bac0e1',
+              400: '#9ba3d2',
+              500: '#7c85be',
+              600: '#646ca6',
+              700: '#505787',
+              800: '#3e4268',
+              900: '#2e3049',
+              950: '#1f2030',
+            },
+            royal: '#646ca6',
+            'royal-deep': '#505787',
+            cream: '#eaebf6',
+            sage: '#bac0e1',
+            navy: '#3e4268',
+          }
+        }
+      }
+    };
+  </script>
+
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <!-- Project Styles -->
+  <link rel="stylesheet" href="../css/styles.css" />
+  <style>
+    .custom-scrollbar::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-track {
+      background: #f1f5f9;
+      border-radius: 9999px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 9999px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+      background: #94a3b8;
+    }
+  </style>
+</head>
+<body class="bg-[#eaebf6] text-[#2b2e3e] flex flex-col min-h-screen">
+  <!-- Reusable Navigation -->
+  <div id="navbar-container"></div>
+
+  <!-- Main Container -->
+  <main class="flex-1 max-w-[1280px] mx-auto w-full px-4 sm:px-6 py-6 sm:py-8 space-y-6">
+    <!-- Breadcrumb & Back Action -->
+    <div class="flex items-center justify-between">
+      <a id="back-to-jobs-btn" href="jobs.html" class="inline-flex items-center gap-2 text-xs font-semibold text-slate-600 hover:text-brand-600 bg-white px-3.5 py-2 rounded-xl border border-slate-200/90 shadow-2xs hover:shadow-xs transition-all">
+        <i data-lucide="arrow-left" class="w-4 h-4"></i>
+        <span>Back to Jobs Directory</span>
+      </a>
+      <div id="job-status-pill" class="hidden">
+        <!-- Rendered dynamically -->
+      </div>
+    </div>
+
+    <!-- Loading State Skeleton -->
+    <div id="job-details-loading" class="bg-white rounded-2xl p-6 sm:p-8 border border-slate-200 shadow-xs space-y-6 animate-pulse">
+      <div class="flex items-start gap-5">
+        <div class="w-16 h-16 rounded-2xl bg-slate-200 shrink-0"></div>
+        <div class="space-y-3 flex-1">
+          <div class="h-6 bg-slate-200 rounded-md w-2/5"></div>
+          <div class="h-4 bg-slate-200 rounded-md w-1/4"></div>
+          <div class="flex gap-2">
+            <div class="h-6 bg-slate-200 rounded-lg w-20"></div>
+            <div class="h-6 bg-slate-200 rounded-lg w-24"></div>
+            <div class="h-6 bg-slate-200 rounded-lg w-28"></div>
+          </div>
+        </div>
+      </div>
+      <div class="h-px bg-slate-100"></div>
+      <div class="space-y-4">
+        <div class="h-4 bg-slate-200 rounded w-full"></div>
+        <div class="h-4 bg-slate-200 rounded w-5/6"></div>
+        <div class="h-4 bg-slate-200 rounded w-4/6"></div>
+      </div>
+    </div>
+
+    <!-- Error / Not Found State -->
+    <div id="job-details-error" class="hidden bg-white rounded-2xl p-10 sm:p-12 border border-slate-200 shadow-xs text-center space-y-4">
+      <div class="w-14 h-14 mx-auto rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center">
+        <i data-lucide="alert-circle" class="w-7 h-7"></i>
+      </div>
+      <div class="space-y-1">
+        <h2 id="error-title" class="text-lg font-bold text-slate-900">Job Posting Not Found</h2>
+        <p id="error-msg" class="text-xs sm:text-sm text-slate-500 max-w-md mx-auto">
+          The job listing you are looking for may have expired, been deactivated by the recruiter, or the link might be incorrect.
+        </p>
+      </div>
+      <div class="pt-2 flex items-center justify-center gap-3">
+        <a href="jobs.html" class="btn-polish bg-brand-600 hover:bg-brand-700 text-white font-semibold text-xs px-5 py-2.5 rounded-xl inline-flex items-center gap-2">
+          <i data-lucide="search" class="w-4 h-4"></i>
+          <span>Explore Active Roles</span>
+        </a>
+      </div>
+    </div>
+
+    <!-- Job Content (Hidden initially until loaded) -->
+    <div id="job-details-content" class="hidden space-y-6">
+      <!-- Header / Hero Banner Card -->
+      <section class="bg-white rounded-2xl p-6 sm:p-8 border border-slate-200/90 shadow-xs">
+        <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+          <div class="flex items-start gap-4 sm:gap-5">
+            <div id="job-company-logo-container" class="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-slate-100 border border-slate-200 shrink-0 flex items-center justify-center overflow-hidden shadow-xs">
+              <!-- Injected dynamically -->
+            </div>
+            <div class="space-y-1.5 flex-1 min-w-0">
+              <div class="flex flex-wrap items-center gap-2.5">
+                <h1 id="job-title" class="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">Job Title</h1>
+                <span id="job-badge-active" class="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+                  <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                  Active
+                </span>
+                <span id="job-type-badge" class="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-700 border border-slate-200">
+                  Full-time
+                </span>
+              </div>
+
+              <div class="flex flex-wrap items-center gap-2 text-xs sm:text-sm font-semibold text-brand-700">
+                <span id="job-company-name">Company Name</span>
+                <span class="text-slate-300">•</span>
+                <span id="job-department-name" class="text-slate-600 font-medium">Engineering</span>
+              </div>
+
+              <!-- Key Attributes Row -->
+              <div class="flex flex-wrap items-center gap-x-5 gap-y-2 pt-2 text-xs text-slate-600">
+                <div class="flex items-center gap-1.5">
+                  <i data-lucide="map-pin" class="w-4 h-4 text-slate-400"></i>
+                  <span id="job-locations" class="font-medium text-slate-800">Locations</span>
+                </div>
+                <div class="flex items-center gap-1.5">
+                  <i data-lucide="briefcase" class="w-4 h-4 text-slate-400"></i>
+                  <span id="job-experience" class="font-medium text-slate-800">3 - 6 Years</span>
+                </div>
+                <div class="flex items-center gap-1.5">
+                  <i data-lucide="banknote" class="w-4 h-4 text-slate-400"></i>
+                  <span id="job-salary" class="font-bold text-amber-700">₹18,00,000 - ₹28,00,000</span>
+                </div>
+                <div class="flex items-center gap-1.5">
+                  <i data-lucide="laptop" class="w-4 h-4 text-slate-400"></i>
+                  <span id="job-work-mode" class="font-medium text-slate-800">Hybrid</span>
+                </div>
+                <div class="flex items-center gap-1.5">
+                  <i data-lucide="clock" class="w-4 h-4 text-slate-400"></i>
+                  <span id="job-posted-date" class="text-slate-500">Posted recently</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- CTAs -->
+          <div class="flex sm:flex-row lg:flex-col items-stretch sm:items-center lg:items-end justify-between gap-3 pt-3 lg:pt-0 border-t lg:border-t-0 border-slate-100 shrink-0">
+            <div class="flex items-center gap-2">
+              <button id="job-bookmark-btn" type="button" class="p-2.5 rounded-xl border border-slate-200 text-slate-400 hover:text-rose-500 hover:border-rose-200 hover:bg-rose-50 cursor-pointer transition-all" title="Save Job">
+                <i data-lucide="bookmark" class="w-5 h-5"></i>
+              </button>
+              <button id="job-share-btn" type="button" class="p-2.5 rounded-xl border border-slate-200 text-slate-600 hover:text-brand-600 hover:border-brand-200 hover:bg-brand-50 cursor-pointer transition-all" title="Share Job">
+                <i data-lucide="share-2" class="w-5 h-5"></i>
+              </button>
+            </div>
+            <button id="job-primary-apply-btn" type="button" class="btn-polish bg-brand-600 hover:bg-brand-700 text-white font-bold text-xs sm:text-sm px-6 py-3 rounded-xl cursor-pointer shadow-md inline-flex items-center justify-center gap-2">
+              <span>Apply Now</span>
+              <i data-lucide="external-link" class="w-4 h-4"></i>
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- 2-Column Body Layout -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+        <!-- Left: Detailed Job Requirements (2 Columns) -->
+        <div class="lg:col-span-2 space-y-6">
+          <!-- Job Description -->
+          <div class="bg-white rounded-2xl p-6 sm:p-7 border border-slate-200/90 shadow-xs space-y-4">
+            <h2 class="text-sm font-bold text-slate-900 uppercase tracking-wider flex items-center gap-2">
+              <i data-lucide="file-text" class="w-4 h-4 text-brand-600"></i>
+              <span>Role Overview & Responsibilities</span>
+            </h2>
+            <div id="job-description-body" class="text-xs sm:text-sm text-slate-700 leading-relaxed whitespace-pre-line space-y-3">
+              <!-- Rendered dynamically -->
+            </div>
+          </div>
+
+          <!-- Key Skills -->
+          <div class="bg-white rounded-2xl p-6 sm:p-7 border border-slate-200/90 shadow-xs space-y-4">
+            <h2 class="text-sm font-bold text-slate-900 uppercase tracking-wider flex items-center gap-2">
+              <i data-lucide="layers" class="w-4 h-4 text-brand-600"></i>
+              <span>Key Skills & Technologies</span>
+            </h2>
+            <div id="job-skills-container" class="flex flex-wrap gap-2">
+              <!-- Tags injected dynamically -->
+            </div>
+          </div>
+
+          <!-- Qualifications & Requirements -->
+          <div class="bg-white rounded-2xl p-6 sm:p-7 border border-slate-200/90 shadow-xs space-y-4">
+            <h2 class="text-sm font-bold text-slate-900 uppercase tracking-wider flex items-center gap-2">
+              <i data-lucide="graduation-cap" class="w-4 h-4 text-brand-600"></i>
+              <span>Eligibility & Education</span>
+            </h2>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+              <div class="p-3.5 bg-slate-50 rounded-xl border border-slate-200/80">
+                <span class="block text-slate-400 font-semibold mb-1">Education Required</span>
+                <span id="job-education-val" class="font-bold text-slate-800">Any Graduate</span>
+              </div>
+              <div class="p-3.5 bg-slate-50 rounded-xl border border-slate-200/80">
+                <span class="block text-slate-400 font-semibold mb-1">Experience Criteria</span>
+                <span id="job-exp-val" class="font-bold text-slate-800">3 - 6 Years</span>
+              </div>
+              <div class="p-3.5 bg-slate-50 rounded-xl border border-slate-200/80">
+                <span class="block text-slate-400 font-semibold mb-1">Role / Department</span>
+                <span id="job-dept-val" class="font-bold text-slate-800">Engineering</span>
+              </div>
+              <div class="p-3.5 bg-slate-50 rounded-xl border border-slate-200/80">
+                <span class="block text-slate-400 font-semibold mb-1">Total Openings</span>
+                <span id="job-openings-val" class="font-bold text-slate-800">1</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right: Summary Sidebar (1 Column) -->
+        <aside class="space-y-6">
+          <!-- Job Summary Box -->
+          <div class="bg-white rounded-2xl p-6 border border-slate-200/90 shadow-xs space-y-4">
+            <h3 class="text-xs font-bold text-slate-900 uppercase tracking-wider">Job Summary</h3>
+            <div class="space-y-3 text-xs divide-y divide-slate-100">
+              <div class="flex items-center justify-between pt-2">
+                <span class="text-slate-500">Job ID</span>
+                <span id="side-job-id" class="font-mono font-semibold text-slate-700">job-101</span>
+              </div>
+              <div class="flex items-center justify-between pt-2">
+                <span class="text-slate-500">Employment Type</span>
+                <span id="side-job-type" class="font-semibold text-slate-800">Full-time</span>
+              </div>
+              <div class="flex items-center justify-between pt-2">
+                <span class="text-slate-500">Work Mode</span>
+                <span id="side-work-mode" class="font-semibold text-slate-800">Hybrid</span>
+              </div>
+              <div class="flex items-center justify-between pt-2">
+                <span class="text-slate-500">Apply By</span>
+                <span id="side-last-date" class="font-semibold text-rose-600">Not specified</span>
+              </div>
+              <div class="flex items-center justify-between pt-2">
+                <span class="text-slate-500">Total Applicants</span>
+                <span id="side-applicants-count" class="font-semibold text-brand-700">12 candidates</span>
+              </div>
+            </div>
+
+            <div class="pt-3">
+              <button id="job-secondary-apply-btn" type="button" class="w-full btn-polish bg-brand-600 hover:bg-brand-700 text-white font-bold text-xs py-3 rounded-xl cursor-pointer shadow-xs inline-flex items-center justify-center gap-2">
+                <span>Apply for this Position</span>
+                <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- Trust & Safe Hiring Card -->
+          <div class="bg-brand-50/70 rounded-2xl p-5 border border-brand-200/60 space-y-2.5 text-xs text-brand-900">
+            <div class="flex items-center gap-2 font-bold text-brand-800">
+              <i data-lucide="shield-check" class="w-4 h-4 text-brand-600 shrink-0"></i>
+              <span>JobNex Verified Employer</span>
+            </div>
+            <p class="text-[11px] text-brand-800/80 leading-relaxed">
+              JobNex does not charge candidates any processing or examination fees. Always apply through official company links.
+            </p>
+          </div>
+        </aside>
+      </div>
+    </div>
+  </main>
+
+  <!-- Apply Modal Dialog -->
+  <div id="apply-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in">
+    <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 space-y-5">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+        <div>
+          <h3 id="modal-job-title" class="text-base font-bold text-slate-900">Apply for Job</h3>
+          <p id="modal-job-company" class="text-xs text-slate-500">Company Name</p>
+        </div>
+        <button id="modal-close-btn" type="button" class="text-slate-400 hover:text-slate-800 p-1 cursor-pointer">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <form id="modal-apply-form" class="space-y-4">
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">Attached Resume</label>
+          <div class="flex items-center justify-between p-3 bg-brand-50 rounded-xl border border-brand-200 text-xs">
+            <div class="flex items-center gap-2 text-brand-800 font-semibold">
+              <i data-lucide="file-text" class="w-4 h-4 text-brand-600"></i>
+              <span id="jobs-modal-resume-name">Active_Resume.pdf</span>
+            </div>
+            <span class="text-[10px] text-emerald-700 font-bold bg-emerald-100 px-2 py-0.5 rounded-full">Vector Ready</span>
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">Cover Note / Key Highlights</label>
+          <textarea rows="4" placeholder="Briefly highlight why your background aligns with this role..." class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs text-slate-800 outline-none focus:border-brand-500"></textarea>
+        </div>
+
+        <div class="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
+          <button id="modal-cancel-btn" type="button" class="px-4 py-2 text-xs font-semibold text-slate-600 hover:text-slate-900 cursor-pointer">
+            Cancel
+          </button>
+          <button type="submit" class="btn-polish bg-brand-600 hover:bg-brand-700 text-white font-semibold text-xs px-5 py-2.5 rounded-xl cursor-pointer">
+            Submit Application
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Reusable Footer -->
+  <div id="footer-container"></div>
+
+  <!-- Scripts -->
+  <script src="../data/mock-data.js"></script>
+  <script src="../js/utils.js"></script>
+  <script src="../js/auth.js"></script>
+  <script src="../js/nav.js"></script>
+  <script src="../js/job-details.js"></script>
+</body>
+</html>

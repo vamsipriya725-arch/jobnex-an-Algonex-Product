@@ -49,6 +49,14 @@ app.include_router(resume_router)
 app.include_router(filter_router)
 app.include_router(ats_resume_router)
 
+# Jobs Management (JobNex Careers & Admin Postings)
+try:
+    from job_management import router as jobs_management_router
+    app.include_router(jobs_management_router)
+    logger.info('Successfully mounted Job Management router (/api/jobs)')
+except Exception as e:
+    logger.warning('Could not include job_management router: %s', e)
+
 # Community jobs (users upload jobs for others)
 try:
     from community_jobs import router as community_jobs_router
@@ -60,7 +68,7 @@ try:
     from resume_builder import router as resume_builder_router, get_job_status, cancel_job_endpoint
     app.include_router(resume_builder_router)
     # Direct alias endpoints matching exact requirement GET /api/jobs/:id and POST /api/jobs/:id/cancel
-    app.add_api_route("/api/jobs/{job_id}", get_job_status, methods=["GET"], tags=["Job Status"])
+    # GET /api/jobs/{job_id} handled comprehensively with upload fallback by jobs_management_router
     app.add_api_route("/api/jobs/{job_id}/cancel", cancel_job_endpoint, methods=["POST"], tags=["Job Status"])
     logger.info("Successfully mounted Resume Builder router and /api/jobs aliases")
 except Exception as e:
@@ -109,6 +117,7 @@ except Exception as e:
 # Mount Frontend static files for unified access
 try:
     from fastapi.staticfiles import StaticFiles
+    from fastapi.responses import FileResponse
     frontend_dir = backend_dir.parent / "Frontend"
     if (frontend_dir / "frontend").exists():
         app.mount("/frontend", StaticFiles(directory=str(frontend_dir / "frontend"), html=True), name="frontend_portal")
@@ -116,6 +125,28 @@ try:
         app.mount("/static", StaticFiles(directory=str(frontend_dir)), name="frontend_static")
 except Exception as e:
     logger.warning("Could not mount static frontend files: %s", e)
+
+# Direct HTML page routes for /jobs, /admin/jobs, and /jobs/{job_id}
+@app.get("/jobs", include_in_schema=False)
+def serve_jobs_page():
+    p = backend_dir.parent / "Frontend" / "frontend" / "pages" / "jobs.html"
+    if p.exists():
+        return FileResponse(p)
+    raise HTTPException(status_code=404, detail="jobs.html not found")
+
+@app.get("/jobs/{job_id}", include_in_schema=False)
+def serve_job_details_page(job_id: str):
+    p = backend_dir.parent / "Frontend" / "frontend" / "pages" / "job-details.html"
+    if p.exists():
+        return FileResponse(p)
+    raise HTTPException(status_code=404, detail="job-details.html not found")
+
+@app.get("/admin/jobs", include_in_schema=False)
+def serve_admin_jobs_page():
+    p = backend_dir.parent / "Frontend" / "frontend" / "pages" / "admin-jobs.html"
+    if p.exists():
+        return FileResponse(p)
+    raise HTTPException(status_code=404, detail="admin-jobs.html not found")
 
 app.add_middleware(
     CORSMiddleware,

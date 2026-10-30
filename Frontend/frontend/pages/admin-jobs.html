@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="JobNex Recruiter & Admin Job Posting Portal. Post jobs, bulk import CSV, and manage applicant pipelines." />
+  <title>Admin Job Portal | JobNex</title>
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'Inter', 'sans-serif'],
+          },
+          colors: {
+            brand: {
+              50: '#f4f5fb',
+              100: '#eaebf6',
+              200: '#d5d9ee',
+              300: '#bac0e1',
+              400: '#9ba3d2',
+              500: '#7c85be',
+              600: '#646ca6',
+              700: '#505787',
+              800: '#3e4268',
+              900: '#2e3049',
+              950: '#1f2030',
+            },
+            royal: '#646ca6',
+            'royal-deep': '#505787',
+            cream: '#eaebf6',
+            sage: '#bac0e1',
+          }
+        }
+      }
+    };
+  </script>
+
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <!-- Project Styles -->
+  <link rel="stylesheet" href="../css/styles.css" />
+</head>
+<body class="bg-[#eaebf6] text-[#2b2e3e] flex flex-col min-h-screen">
+  <!-- Reusable Navigation -->
+  <div id="navbar-container"></div>
+
+  <!-- Toast Notification Container -->
+  <div id="toast-container" class="fixed top-20 right-6 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+  <!-- Unauthorized State (Shown if role is not admin) -->
+  <div id="unauthorized-view" class="hidden flex-1 max-w-xl mx-auto w-full px-4 py-16 text-center">
+    <div class="bg-white rounded-2xl p-8 border border-slate-200/90 shadow-sm space-y-5">
+      <div class="w-16 h-16 rounded-2xl bg-amber-100 text-amber-700 mx-auto flex items-center justify-center">
+        <i data-lucide="shield-alert" class="w-8 h-8"></i>
+      </div>
+      <div class="space-y-2">
+        <h2 class="text-xl font-bold text-slate-900">Admin & Recruiter Access Only</h2>
+        <p class="text-xs sm:text-sm text-slate-500">
+          This portal is protected and only accessible to users with verified <strong>ADMIN</strong> or <strong>RECRUITER</strong> privileges.
+        </p>
+      </div>
+      <div class="pt-3 flex flex-col sm:flex-row items-center justify-center gap-3">
+        <button id="btn-switch-admin-demo" class="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-semibold text-xs transition-colors shadow-sm cursor-pointer flex items-center justify-center gap-2">
+          <i data-lucide="key" class="w-4 h-4"></i>
+          <span>Switch to Recruiter Admin Role</span>
+        </button>
+        <a href="../index.html" class="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs transition-colors">
+          Return to Home
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Admin Portal -->
+  <main id="admin-main-view" class="flex-1 max-w-[1440px] mx-auto w-full px-4 sm:px-6 py-6 space-y-8">
+    <!-- Header Banner -->
+    <div class="bg-gradient-to-r from-purple-900 via-indigo-900 to-slate-900 text-white rounded-2xl p-6 sm:p-8 shadow-sm relative overflow-hidden">
+      <div class="absolute -right-10 -bottom-10 w-60 h-60 bg-purple-500/10 rounded-full blur-3xl pointer-events-none"></div>
+      <div class="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <div class="space-y-1.5">
+          <div class="inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-purple-500/20 text-purple-200 border border-purple-400/30 text-[11px] font-semibold tracking-wide uppercase">
+            <i data-lucide="shield-check" class="w-3.5 h-3.5"></i>
+            <span>Recruiter Operations Hub</span>
+          </div>
+          <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight">Job Posting & Candidate Pipeline</h1>
+          <p class="text-xs sm:text-sm text-purple-200/80 max-w-2xl">
+            Post verified tech roles, manage active candidate listings, and bulk import corporate vacancies with automated field parsing.
+          </p>
+        </div>
+        <div class="flex items-center gap-3 shrink-0">
+          <a href="#manage-jobs-section" class="px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-semibold backdrop-blur-sm border border-white/20 transition-all flex items-center gap-2">
+            <i data-lucide="layers" class="w-4 h-4"></i>
+            <span>Manage Posted Jobs</span>
+          </a>
+          <a href="jobs.html" target="_blank" class="px-4 py-2.5 rounded-xl bg-brand-500 hover:bg-brand-600 text-white text-xs font-semibold shadow-sm transition-all flex items-center gap-2">
+            <i data-lucide="external-link" class="w-4 h-4"></i>
+            <span>View Public Jobs Directory</span>
+          </a>
+        </div>
+      </div>
+
+      <!-- Quick Metrics Strip -->
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-6 pt-6 border-t border-white/10 text-left">
+        <div>
+          <span class="text-[11px] uppercase tracking-wider text-purple-300 font-semibold">Active Postings</span>
+          <p id="stat-active-count" class="text-xl sm:text-2xl font-bold text-white mt-0.5">--</p>
+        </div>
+        <div>
+          <span class="text-[11px] uppercase tracking-wider text-purple-300 font-semibold">Drafts</span>
+          <p id="stat-draft-count" class="text-xl sm:text-2xl font-bold text-white mt-0.5">--</p>
+        </div>
+        <div>
+          <span class="text-[11px] uppercase tracking-wider text-purple-300 font-semibold">Total Vacancies</span>
+          <p id="stat-openings-count" class="text-xl sm:text-2xl font-bold text-white mt-0.5">--</p>
+        </div>
+        <div>
+          <span class="text-[11px] uppercase tracking-wider text-purple-300 font-semibold">Applicants Count</span>
+          <p id="stat-applicants-count" class="text-xl sm:text-2xl font-bold text-white mt-0.5">--</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Navigation Tabs Between Form, Bulk, and List -->
+    <div class="flex items-center gap-2 border-b border-slate-300/80 pb-2">
+      <button id="tab-btn-post" class="px-4 py-2 text-xs sm:text-sm font-semibold rounded-lg bg-brand-600 text-white shadow-xs cursor-pointer flex items-center gap-2">
+        <i data-lucide="plus-circle" class="w-4 h-4"></i>
+        <span>Section A: Post a Job</span>
+      </button>
+      <button id="tab-btn-bulk" class="px-4 py-2 text-xs sm:text-sm font-semibold rounded-lg bg-white text-slate-700 hover:bg-slate-100 border border-slate-200 cursor-pointer flex items-center gap-2">
+        <i data-lucide="upload-cloud" class="w-4 h-4"></i>
+        <span>Section B: Bulk CSV Upload</span>
+      </button>
+      <button id="tab-btn-manage" class="px-4 py-2 text-xs sm:text-sm font-semibold rounded-lg bg-white text-slate-700 hover:bg-slate-100 border border-slate-200 cursor-pointer flex items-center gap-2">
+        <i data-lucide="table-2" class="w-4 h-4"></i>
+        <span>Section C: Manage Jobs</span>
+      </button>
+    </div>
+
+    <!-- ====================================================================== -->
+    <!-- SECTION A: POST A JOB FORM (Naukri Recruiter Style) -->
+    <!-- ====================================================================== -->
+    <section id="section-post-job" class="bg-white rounded-2xl border border-slate-200/90 shadow-sm p-6 sm:p-8 space-y-6">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-slate-100">
+        <div>
+          <h2 id="form-header-title" class="text-lg sm:text-xl font-bold text-slate-900 flex items-center gap-2">
+            <i data-lucide="briefcase" class="w-5 h-5 text-brand-600"></i>
+            <span>Post a New Job Vacancy</span>
+          </h2>
+          <p class="text-xs text-slate-500 mt-0.5">Fill in the comprehensive requisition details matching recruiter standards.</p>
+        </div>
+        <div id="editing-indicator" class="hidden items-center gap-2 px-3 py-1.5 rounded-lg bg-amber-50 border border-amber-200 text-amber-800 text-xs font-semibold">
+          <span>Editing Job: <strong id="editing-job-id-text">--</strong></span>
+          <button id="btn-cancel-edit" type="button" class="text-xs text-amber-700 hover:text-amber-900 underline cursor-pointer ml-1">Cancel Edit</button>
+        </div>
+      </div>
+
+      <form id="job-post-form" class="space-y-6" novalidate>
+        <!-- Basic Role Details -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+          <!-- Job Title -->
+          <div class="space-y-1.5">
+            <label class="block text-xs font-bold text-slate-700">
+              Job Title <span class="text-red-500">*</span>
+            </label>
+            <input id="input-title" type="text" required placeholder="e.g. Senior Backend Engineer (FastAPI / Python)" class="w-full text-xs sm:text-sm px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50/50 focus:bg-white focus:border-brand-500 outline-none transition-all" />
+            <p id="error-title" class="hidden text-[11px] text-red-500 font-medium"></p>
+          </div>
+
+          <!-- Company Name -->
+          <div class="space-y-1.5">
+            <label class="block text-xs font-bold text-slate-700">
+              Company Name <span class="text-red-500">*</span>
+            </label>
+            <input id="input-company" type="text" required placeholder="e.g. Algonex AI Innovations" class="w-full text-xs sm:text-sm px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50/50 focus:bg-white focus:border-brand-500 outline-none transition-all" />
+            <p id="error-company" class="hidden text-[11px] text-red-500 font-medium"></p>
+          </div>
+
+          <!-- Company Logo URL -->
+          <div class="space-y-1.5">
+            <label class="block text-xs font-bold text-slate-700 flex items-center justify-between">
+              <span>Company Logo URL (Optional)</span>
+              <span class="text-[10px] text-slate-400 font-normal">HTTP / HTTPS image link</span>
+            </label>
+            <div class="flex items-center gap-2">
+              <input id="input-logo" type="url" placeholder="https://example.com/logo.png" class="flex-1 text-xs sm:text-sm px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50/50 focus:bg-white focus:border-brand-500 outline-none transition-all" />
+              <div id="logo-preview-box" class="w-10 h-10 rounded-xl border border-slate-200 bg-slate-100 flex items-center justify-center shrink-0 overflow-hidden">
+                <i data-lucide="image" class="w-4 h-4 text-slate-400"></i>
+              </div>
+            </div>
+          </div>
+
+          <!-- Role / Department -->
+          <div class="space-y-1.5">
+            <label class="block text-xs font-bold text-slate-700">
+              Role / Department <span class="text-red-500">*</span>
+            </label>
+            <select id="select-department" class="w-full text-xs sm:text-sm px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50/50 focus:bg-white focus:border-brand-500 outline-none transition-all">
+              <option value="Engineering" selected>Engineering & Software</option>
+              <option value="AI & Research">AI, Machine Learning & Data</option>
+              <option value="Product">Product Management</option>
+              <option value="Design">UI/UX & Creative Design</option>
+              <option value="Cloud & DevOps">Cloud Architecture & DevOps</option>
+              <option value="QA & Testing">Quality Assurance & SDET</option>
+              <option value="Cybersecurity">Cybersecurity & SecOps</option>
+              <option value="Operations">Operations & Business</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Locations & Employment Type -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+          <!-- Locations (Tag Input) -->
+          <div class="space-y-1.5 md:col-span-2">
+            <label class="block text-xs font-bold text-slate-700 flex items-center justify-between">
+              <span>Locations (Multiple Allowed) <span class="text-red-500">*</span></span>
+              <span class="text-[10px] text-slate-400 font-normal">Press Enter or comma to add</span>
+            </label>
+            <div id="location-chips-container" class="min-h-[44px] flex flex-wrap items-center gap-1.5 p-2 rounded-xl border border-slate-200 bg-slate-50/50 focus-within:bg-white focus-within:border-brand-500 transition-all">
+              <input id="input-location-tag" type="text" placeholder="Type city (e.g. Bengaluru) and press Enter..." class="flex-1 min-w-[140px] text-xs sm:text-sm px-2 py-1 bg-transparent outline-none text-slate-800" />
+            </div>
+            <!-- Quick Location Suggestions -->
+            <div class="flex flex-wrap items-center gap-1.5 pt-1">
+              <span class="text-[10px] font-semibold text-slate-400">Quick add:</span>
+              <button type="button" class="quick-loc-btn text-[10px] px-2 py-0.5 rounded-md bg-slate-100 hover:bg-slate-200 text-slate-600 transition-colors">Bengaluru</button>
+              <button type="button" class="quick-loc-btn text-[10px] px-2 py-0.5 rounded-md bg-slate-100 hover:bg-slate-200 text-slate-600 transition-colors">Hyderabad</button>
+              <button type="button" class="quick-loc-btn text-[10px] px-2 py-0.5 rounded-md bg-slate-100 hover:bg-slate-200 text-slate-600 transition-colors">Pune</button>
+              <button type="button" class="quick-loc-btn text-[10px] px-2 py-0.5 rounded-md bg-slate-100 hover:bg-slate-200 text-slate-600 transition-colors">Delhi-NCR</button>
+              <button type="button" class="quick-loc-btn text-[10px] px-2 py-0.5 rounded-md bg-slate-100 hover:bg-slate-200 text-slate-600 transition-colors">Remote</button>
+            </div>
+            <p id="error-locations" class="hidden text-[11px] text-red-500 font-medium"></p>
+          </div>
+
+          <!-- Work Mode -->
+          <div class="space-y-1.5">
+            <label class="block text-xs font-bold text-slate-700">
+              Work Mode <span class="text-red-500">*</span>
+            </label>
+            <select id="select-work-mode" class="w-full text-xs sm:text-sm px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50/50 focus:bg-white focus:border-brand-500 outline-none transition-all">
+              <option value="Office">In-Office</option>
+              <option value="Hybrid" selected>Hybrid</option>
+              <option value="Remote">100% Remote</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Job Type, Experience, Openings, Salary -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+          <!-- Job Type -->
+          <div class="space-y-1.5">
+            <label class="block text-xs font-bold text-slate-700">
+              Job Type <span class="text-red-500">*</span>
+            </label>
+            <select id="select-job-type" class="w-full text-xs sm:text-sm px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50/50 focus:bg-white focus:border-brand-500 outline-none transition-all">
+              <option value="Full-time" selected>Full-time</option>
+              <option value="Part-time">Part-time</option>
+              <option value="Internship">Internship</option>
+              <option value="Contract">Contract</option>
+            </select>
+          </div>
+
+          <!-- Experience Range (Min - Max) -->
+          <div class="space-y-1.5">
+            <label class="block text-xs font-bold text-slate-700">
+              Experience (Years) <span class="text-red-500">*</span>
+            </label>
+            <div class="flex items-center gap-2">
+              <input id="input-exp-min" type="number" min="0" max="30" value="2" placeholder="Min" class="w-1/2 text-xs sm:text-sm px-3 py-2.5 rounded-xl border border-slate-200 bg-slate-50/50 focus:bg-white focus:border-brand-500 outline-none text-center" />
+              <span class="text-xs text-slate-400 font-bold">to</span>
+              <input id="input-exp-max" type="number" min="0" max="30" value="5" placeholder="Max" class="w-1/2 text-xs sm:text-sm px-3 py-2.5 rounded-xl border border-slate-200 bg-slate-50/50 focus:bg-white focus:border-brand-500 outline-none text-center" />
+            </div>
+            <p id="error-exp" class="hidden text-[11px] text-red-500 font-medium"></p>
+          </div>
+
+          <!-- Openings -->
+          <div class="space-y-1.5">
+            <label class="block text-xs font-bold text-slate-700">
+              Number of Openings <span class="text-red-500">*</span>
+            </label>
+            <input id="input-openings" type="number" min="1" max="500" value="1" class="w-full text-xs sm:text-sm px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50/50 focus:bg-white focus:border-brand-500 outline-none" />
+          </div>
+
+          <!-- Salary Range -->
+          <div class="space-y-1.5">
+            <label class="block text-xs font-bold text-slate-700 flex items-center justify-between">
+              <span>Salary Range</span>
+              <label class="flex items-center gap-1 text-[11px] font-normal text-slate-500 cursor-pointer">
+                <input id="cb-salary-not-disclosed" type="checkbox" class="rounded text-brand-600 focus:ring-0" />
+                <span>Not Disclosed</span>
+              </label>
+            </label>
+            <input id="input-salary" type="text" placeholder="e.g. ₹15,00,000 - ₹24,00,000" class="w-full text-xs sm:text-sm px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50/50 focus:bg-white focus:border-brand-500 outline-none" />
+          </div>
+        </div>
+
+        <!-- Key Skills & Education -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+          <!-- Key Skills Tag Input -->
+          <div class="space-y-1.5">
+            <label class="block text-xs font-bold text-slate-700 flex items-center justify-between">
+              <span>Key Skills Required <span class="text-red-500">*</span></span>
+              <span class="text-[10px] text-slate-400 font-normal">Press Enter or comma</span>
+            </label>
+            <div id="skills-chips-container" class="min-h-[44px] flex flex-wrap items-center gap-1.5 p-2 rounded-xl border border-slate-200 bg-slate-50/50 focus-within:bg-white focus-within:border-brand-500 transition-all">
+              <input id="input-skill-tag" type="text" placeholder="Type skill (e.g. Python) and press Enter..." class="flex-1 min-w-[140px] text-xs sm:text-sm px-2 py-1 bg-transparent outline-none text-slate-800" />
+            </div>
+            <!-- Quick Skills Suggestions -->
+            <div class="flex flex-wrap items-center gap-1.5 pt-1">
+              <span class="text-[10px] font-semibold text-slate-400">Popular:</span>
+              <button type="button" class="quick-skill-btn text-[10px] px-2 py-0.5 rounded-md bg-brand-50 hover:bg-brand-100 text-brand-700 transition-colors">Python</button>
+              <button type="button" class="quick-skill-btn text-[10px] px-2 py-0.5 rounded-md bg-brand-50 hover:bg-brand-100 text-brand-700 transition-colors">FastAPI</button>
+              <button type="button" class="quick-skill-btn text-[10px] px-2 py-0.5 rounded-md bg-brand-50 hover:bg-brand-100 text-brand-700 transition-colors">React</button>
+              <button type="button" class="quick-skill-btn text-[10px] px-2 py-0.5 rounded-md bg-brand-50 hover:bg-brand-100 text-brand-700 transition-colors">TypeScript</button>
+              <button type="button" class="quick-skill-btn text-[10px] px-2 py-0.5 rounded-md bg-brand-50 hover:bg-brand-100 text-brand-700 transition-colors">Docker</button>
+              <button type="button" class="quick-skill-btn text-[10px] px-2 py-0.5 rounded-md bg-brand-50 hover:bg-brand-100 text-brand-700 transition-colors">AWS</button>
+              <button type="button" class="quick-skill-btn text-[10px] px-2 py-0.5 rounded-md bg-brand-50 hover:bg-brand-100 text-brand-700 transition-colors">SQL</button>
+            </div>
+            <p id="error-skills" class="hidden text-[11px] text-red-500 font-medium"></p>
+          </div>
+
+          <!-- Education Required -->
+          <div class="space-y-1.5">
+            <label class="block text-xs font-bold text-slate-700">
+              Education Required <span class="text-red-500">*</span>
+            </label>
+            <input id="input-education" type="text" value="B.Tech / B.E / MCA in Computer Science or related" placeholder="e.g. Any Graduate, B.Tech, MCA, etc." class="w-full text-xs sm:text-sm px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50/50 focus:bg-white focus:border-brand-500 outline-none transition-all" />
+          </div>
+        </div>
+
+        <!-- Description -->
+        <div class="space-y-1.5">
+          <label class="block text-xs font-bold text-slate-700 flex items-center justify-between">
+            <span>Job Description & Responsibilities <span class="text-red-500">*</span></span>
+            <span id="char-count-text" class="text-[10px] text-slate-400 font-normal">0 characters</span>
+          </label>
+          <textarea id="textarea-description" rows="5" required placeholder="Describe the role, day-to-day responsibilities, ideal candidate background, and technical expectations..." class="w-full text-xs sm:text-sm p-3.5 rounded-xl border border-slate-200 bg-slate-50/50 focus:bg-white focus:border-brand-500 outline-none leading-relaxed transition-all"></textarea>
+          <p id="error-description" class="hidden text-[11px] text-red-500 font-medium"></p>
+        </div>
+
+        <!-- Application Deadlines and Link / Email -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+          <!-- Apply Last Date -->
+          <div class="space-y-1.5">
+            <label class="block text-xs font-bold text-slate-700">
+              Apply Last Date
+            </label>
+            <input id="input-last-date" type="date" class="w-full text-xs sm:text-sm px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50/50 focus:bg-white focus:border-brand-500 outline-none" />
+          </div>
+
+          <!-- Apply URL -->
+          <div class="space-y-1.5">
+            <label class="block text-xs font-bold text-slate-700">
+              Apply URL / Career Link
+            </label>
+            <input id="input-apply-link" type="url" placeholder="https://careers.company.com/job/123" class="w-full text-xs sm:text-sm px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50/50 focus:bg-white focus:border-brand-500 outline-none" />
+          </div>
+
+          <!-- Apply Email -->
+          <div class="space-y-1.5">
+            <label class="block text-xs font-bold text-slate-700">
+              Apply Email Address
+            </label>
+            <input id="input-apply-email" type="email" placeholder="hiring@company.com" class="w-full text-xs sm:text-sm px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50/50 focus:bg-white focus:border-brand-500 outline-none" />
+          </div>
+        </div>
+
+        <!-- Action Buttons (Save Draft vs Publish) -->
+        <div class="pt-4 border-t border-slate-100 flex flex-wrap items-center justify-between gap-4">
+          <div class="flex items-center gap-2">
+            <button id="btn-reset-form" type="button" class="px-4 py-2.5 rounded-xl text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors">
+              Reset Fields
+            </button>
+          </div>
+          <div class="flex items-center gap-3">
+            <button id="btn-save-draft" type="button" class="btn-polish px-5 py-2.5 rounded-xl border border-slate-300 text-slate-700 hover:bg-slate-100 text-xs font-semibold shadow-xs flex items-center gap-2 cursor-pointer">
+              <i data-lucide="file-edit" class="w-4 h-4 text-slate-500"></i>
+              <span>Save as Draft</span>
+            </button>
+            <button id="btn-publish" type="button" class="btn-polish px-6 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold shadow-sm flex items-center gap-2 cursor-pointer">
+              <i data-lucide="check" class="w-4 h-4"></i>
+              <span id="btn-publish-text">Publish Job</span>
+            </button>
+          </div>
+        </div>
+      </form>
+    </section>
+
+    <!-- ====================================================================== -->
+    <!-- SECTION B: BULK UPLOAD (CSV / Excel format) -->
+    <!-- ====================================================================== -->
+    <section id="section-bulk-upload" class="hidden bg-white rounded-2xl border border-slate-200/90 shadow-sm p-6 sm:p-8 space-y-6">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-slate-100">
+        <div>
+          <h2 class="text-lg sm:text-xl font-bold text-slate-900 flex items-center gap-2">
+            <i data-lucide="upload-cloud" class="w-5 h-5 text-indigo-600"></i>
+            <span>Bulk Job Upload via CSV</span>
+          </h2>
+          <p class="text-xs text-slate-500 mt-0.5">Import multiple vacancies in one batch. Preview rows and check for errors before committing.</p>
+        </div>
+        <a id="btn-download-template" href="http://127.0.0.1:8000/api/jobs/template" download="jobnex_bulk_jobs_template.csv" class="btn-polish px-4 py-2.5 rounded-xl bg-purple-50 text-purple-700 hover:bg-purple-100 border border-purple-200/60 text-xs font-semibold flex items-center gap-2 shrink-0">
+          <i data-lucide="download" class="w-4 h-4 text-purple-600"></i>
+          <span>Download Sample CSV Template</span>
+        </a>
+      </div>
+
+      <!-- Drag & Drop Zone -->
+      <div id="csv-dropzone" class="border-2 border-dashed border-slate-300 hover:border-brand-500 bg-slate-50/50 hover:bg-brand-50/30 rounded-2xl p-8 text-center transition-all cursor-pointer group">
+        <input id="input-csv-file" type="file" accept=".csv" class="hidden" />
+        <div class="space-y-3 max-w-sm mx-auto">
+          <div class="w-12 h-12 rounded-xl bg-indigo-100 text-indigo-600 mx-auto flex items-center justify-center group-hover:scale-110 transition-transform">
+            <i data-lucide="file-spreadsheet" class="w-6 h-6"></i>
+          </div>
+          <div>
+            <p class="text-xs sm:text-sm font-semibold text-slate-800">
+              Click to select or drag & drop CSV file here
+            </p>
+            <p class="text-[11px] text-slate-400 mt-0.5">Accepts comma-delimited .csv files following JobNex requisition schema</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Bulk Preview Container (Appears after file selection) -->
+      <div id="bulk-preview-wrapper" class="hidden space-y-4 pt-2">
+        <div class="flex items-center justify-between bg-slate-50 p-3.5 rounded-xl border border-slate-200 text-xs">
+          <div class="flex items-center gap-2">
+            <i data-lucide="file-check-2" class="w-4 h-4 text-brand-600"></i>
+            <span class="font-bold text-slate-800" id="preview-filename">jobs.csv</span>
+            <span id="preview-summary-badge" class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-100 text-emerald-800">0 Valid Rows</span>
+          </div>
+          <button id="btn-import-valid-jobs" class="btn-polish px-5 py-2 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-bold text-xs shadow-sm flex items-center gap-1.5 cursor-pointer">
+            <i data-lucide="check" class="w-4 h-4"></i>
+            <span>Commit & Import Valid Jobs</span>
+          </button>
+        </div>
+
+        <!-- Table Container with Slim Scrollbar -->
+        <div class="overflow-x-auto border border-slate-200 rounded-xl max-h-[360px] overflow-y-auto">
+          <table class="w-full text-left text-xs">
+            <thead class="bg-slate-100 sticky top-0 z-10 border-b border-slate-200 font-bold text-slate-700">
+              <tr>
+                <th class="p-3"># Row</th>
+                <th class="p-3">Title</th>
+                <th class="p-3">Company</th>
+                <th class="p-3">Locations</th>
+                <th class="p-3">Exp</th>
+                <th class="p-3">Work Mode</th>
+                <th class="p-3">Status / Errors</th>
+              </tr>
+            </thead>
+            <tbody id="bulk-preview-tbody" class="divide-y divide-slate-100 text-slate-800">
+              <!-- Dynamically populated -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ====================================================================== -->
+    <!-- SECTION C: MANAGE JOBS TABLE -->
+    <!-- ====================================================================== -->
+    <section id="manage-jobs-section" class="bg-white rounded-2xl border border-slate-200/90 shadow-sm p-6 sm:p-8 space-y-6">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100">
+        <div>
+          <h2 class="text-lg sm:text-xl font-bold text-slate-900 flex items-center gap-2">
+            <i data-lucide="layers" class="w-5 h-5 text-purple-600"></i>
+            <span>Manage Posted Jobs</span>
+          </h2>
+          <p class="text-xs text-slate-500 mt-0.5">Filter by status, search vacancies, edit requisitions, or toggle active listings.</p>
+        </div>
+        <div class="flex items-center gap-2">
+          <button id="btn-refresh-jobs" class="p-2 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors cursor-pointer" title="Refresh Table">
+            <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Controls: Search & Status Filters -->
+      <div class="flex flex-col md:flex-row md:items-center justify-between gap-3">
+        <!-- Status Filter Tabs -->
+        <div class="flex items-center gap-1.5 overflow-x-auto pb-1">
+          <button class="status-filter-tab px-3.5 py-1.5 rounded-lg text-xs font-bold bg-slate-900 text-white cursor-pointer" data-status="All">All (<span id="count-all">0</span>)</button>
+          <button class="status-filter-tab px-3.5 py-1.5 rounded-lg text-xs font-semibold text-slate-600 hover:bg-slate-100 cursor-pointer" data-status="Active">Active (<span id="count-active">0</span>)</button>
+          <button class="status-filter-tab px-3.5 py-1.5 rounded-lg text-xs font-semibold text-slate-600 hover:bg-slate-100 cursor-pointer" data-status="Draft">Draft (<span id="count-draft">0</span>)</button>
+        </div>
+
+        <!-- Search Input -->
+        <div class="flex items-center gap-2 px-3 py-1.5 rounded-xl border border-slate-200 bg-slate-50 focus-within:bg-white focus-within:border-brand-500 w-full md:w-72">
+          <i data-lucide="search" class="w-4 h-4 text-slate-400 shrink-0"></i>
+          <input id="input-manage-search" type="text" placeholder="Search title, company, skills..." class="w-full text-xs outline-none bg-transparent" />
+        </div>
+      </div>
+
+      <!-- Jobs Table with Slim Scrollbar -->
+      <div class="border border-slate-200 rounded-xl overflow-hidden shadow-xs">
+        <div class="overflow-x-auto max-h-[460px] overflow-y-auto">
+          <table class="w-full text-left text-xs border-collapse">
+            <thead class="bg-slate-50 sticky top-0 z-10 border-b border-slate-200 font-bold text-slate-700">
+              <tr>
+                <th class="p-3.5 whitespace-nowrap">Role & Company</th>
+                <th class="p-3.5 whitespace-nowrap">Location & Mode</th>
+                <th class="p-3.5 whitespace-nowrap">Experience & Salary</th>
+                <th class="p-3.5 whitespace-nowrap">Status</th>
+                <th class="p-3.5 whitespace-nowrap">Applicants</th>
+                <th class="p-3.5 whitespace-nowrap">Posted Date</th>
+                <th class="p-3.5 whitespace-nowrap text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="manage-jobs-tbody" class="divide-y divide-slate-100 text-slate-800">
+              <tr>
+                <td colspan="7" class="p-8 text-center text-slate-400">Loading jobs...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Delete Confirmation Modal -->
+  <div id="delete-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-xs p-4">
+    <div class="bg-white rounded-2xl p-6 max-w-sm w-full space-y-4 shadow-xl border border-slate-200">
+      <div class="w-12 h-12 rounded-xl bg-red-100 text-red-600 flex items-center justify-center mx-auto">
+        <i data-lucide="alert-triangle" class="w-6 h-6"></i>
+      </div>
+      <div class="text-center space-y-1">
+        <h3 class="text-base font-bold text-slate-900">Delete Job Posting?</h3>
+        <p class="text-xs text-slate-500">
+          Are you sure you want to permanently remove <strong id="delete-modal-job-title" class="text-slate-800">this role</strong>? This action cannot be undone.
+        </p>
+      </div>
+      <div class="flex items-center gap-2 pt-2">
+        <button id="btn-cancel-delete" class="flex-1 py-2 rounded-xl border border-slate-200 text-slate-700 text-xs font-semibold hover:bg-slate-100 transition-colors cursor-pointer">
+          Cancel
+        </button>
+        <button id="btn-confirm-delete" class="flex-1 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold transition-colors cursor-pointer">
+          Delete Job
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Reusable Footer -->
+  <div id="footer-container"></div>
+
+  <!-- Scripts -->
+  <script src="../js/utils.js"></script>
+  <script src="../js/auth.js"></script>
+  <script src="../js/nav.js"></script>
+  <script src="../js/admin-jobs.js"></script>
+</body>
+</html>

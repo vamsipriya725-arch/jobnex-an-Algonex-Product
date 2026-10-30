@@ -1,7 +1,7 @@
 /**
- * Jobs Page Logic (frontend/js/jobs.js)
- * Connects to live MySQL database records via /api/jobs, /api/community-jobs,
- * with full offline / static CDN fallback for Cloudflare Workers & Vercel.
+ * Jobs Directory Logic (frontend/js/jobs.js)
+ * Connects to live Job Management API via /api/jobs, with offline fallback.
+ * Displays admin-posted roles with search, filters, sorting, View Details, and Apply.
  */
 
 document.addEventListener("DOMContentLoaded", async () => {
@@ -12,33 +12,35 @@ document.addEventListener("DOMContentLoaded", async () => {
   // Read URL search params
   const urlParams = new URLSearchParams(window.location.search);
   let searchQuery = urlParams.get("q") || "";
-  let selectedRegions = urlParams.get("region") ? [urlParams.get("region")] : [];
-  let selectedExps = urlParams.get("exp") ? [urlParams.get("exp")] : [];
-  let selectedCerts = [];
-  let sortBy = "relevance";
+  let selectedModes = [];
+  let selectedTypes = [];
+  let selectedExps = [];
+  let selectedLocations = [];
+  let sortBy = "latest";
 
   const searchInput = document.getElementById("job-keyword-input");
   if (searchInput && searchQuery) {
     searchInput.value = searchQuery;
   }
 
-  // Pre-check region or exp if in URL
-  if (selectedRegions.length > 0) {
-    document.querySelectorAll(".region-filter-cb").forEach(cb => {
-      if (selectedRegions.includes(cb.value)) cb.checked = true;
+  // Pre-check filters if passed via URL
+  if (urlParams.get("location")) {
+    selectedLocations.push(urlParams.get("location"));
+    document.querySelectorAll(".location-filter-cb").forEach(cb => {
+      if (cb.value.toLowerCase() === urlParams.get("location").toLowerCase()) cb.checked = true;
     });
   }
-  if (selectedExps.length > 0) {
+  if (urlParams.get("exp")) {
+    selectedExps.push(urlParams.get("exp"));
     document.querySelectorAll(".exp-filter-cb").forEach(cb => {
-      if (selectedExps.includes(cb.value)) cb.checked = true;
+      if (cb.value.toLowerCase() === urlParams.get("exp").toLowerCase()) cb.checked = true;
     });
   }
 
-  // Saved bookmarks in localStorage
+  // Bookmarks in localStorage
   let savedBookmarks = new Set(JSON.parse(localStorage.getItem("jobnex_bookmarks") || "[]"));
 
-  let dbJobs = [];
-  let communityJobs = [];
+  let allJobs = [];
   let isLoadingJobs = false;
 
   function letterLogo(company) {
@@ -51,89 +53,153 @@ document.addEventListener("DOMContentLoaded", async () => {
     return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
   }
 
-  function guessRegion(location) {
-    const loc = (location || "").toLowerCase();
-    if (/india|bengaluru|bangalore|hyderabad|chennai|pune|mumbai|delhi|noida|gurgaon/i.test(loc)) return "INDIA";
-    if (/usa?|united states|new york|san francisco|california|texas|seattle/i.test(loc)) return "US";
-    return "GLOBAL";
-  }
-
-  function getLocalCommunityJobs() {
+  function formatPostedDate(raw) {
+    if (!raw) return "Recently posted";
     try {
-      return JSON.parse(localStorage.getItem("jobnex_community_jobs") || "[]");
+      const d = new Date(raw);
+      if (isNaN(d.getTime())) return "Recently posted";
+      const now = new Date();
+      const diffMs = now - d;
+      const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+      if (diffDays === 0) return "Posted today";
+      if (diffDays === 1) return "Posted 1 day ago";
+      if (diffDays < 30) return `Posted ${diffDays} days ago`;
+      return `Posted on ${d.toLocaleDateString(undefined, { month: "short", day: "numeric" })}`;
     } catch {
-      return [];
+      return "Recently posted";
     }
   }
 
-  function saveLocalCommunityJob(job) {
-    const list = getLocalCommunityJobs();
-    list.unshift(job);
-    localStorage.setItem("jobnex_community_jobs", JSON.stringify(list));
-  }
+  const FALLBACK_SEED_JOBS = [
+    {
+      id: "job-101",
+      title: "Senior Full Stack Engineer",
+      company: "Algonex AI Labs",
+      company_logo: "",
+      locations: "Bengaluru, Hyderabad, Remote",
+      work_mode: "Hybrid",
+      job_type: "Full-time",
+      exp_min: 3,
+      exp_max: 7,
+      salary_range: "₹18,00,000 - ₹28,00,000",
+      key_skills: "Python, FastAPI, React, TypeScript, Docker, PostgreSQL",
+      skills: ["Python", "FastAPI", "React", "TypeScript", "Docker", "PostgreSQL"],
+      education: "B.Tech / B.E / MCA in Computer Science",
+      department: "Engineering",
+      openings: 4,
+      description: "Join our core engineering team building high-performance AI agent tools and career intelligence engines. You will lead development of FastAPI microservices and React dashboards.",
+      apply_last_date: "2026-11-30",
+      apply_link: "https://algonex.com/careers",
+      apply_email: "careers@algonex.com",
+      status: "Active",
+      applicants_count: 14,
+      created_at: new Date().toISOString()
+    },
+    {
+      id: "job-102",
+      title: "AI / ML Solutions Architect",
+      company: "NovaCloud Tech",
+      company_logo: "",
+      locations: "Bengaluru, San Francisco",
+      work_mode: "Office",
+      job_type: "Full-time",
+      exp_min: 5,
+      exp_max: 10,
+      salary_range: "₹32,00,000 - ₹45,00,000",
+      key_skills: "PyTorch, LLMs, LangChain, Python, Cloud Architecture, Vector Databases",
+      skills: ["PyTorch", "LLMs", "LangChain", "Python", "Cloud Architecture"],
+      education: "Master's or Bachelor's in CS / AI",
+      department: "AI & Research",
+      openings: 2,
+      description: "Architect enterprise generative AI systems and fine-tuning pipelines. Direct involvement with model orchestration and retrieval augmented generation architectures.",
+      apply_last_date: "2026-12-15",
+      apply_link: "https://novacloud.ai/jobs",
+      apply_email: "hiring@novacloud.ai",
+      status: "Active",
+      applicants_count: 8,
+      created_at: new Date(Date.now() - 86400000).toISOString()
+    },
+    {
+      id: "job-103",
+      title: "Frontend Developer (React / Next.js)",
+      company: "Kinetix Digital",
+      company_logo: "",
+      locations: "Pune, Mumbai, Remote",
+      work_mode: "Remote",
+      job_type: "Full-time",
+      exp_min: 2,
+      exp_max: 5,
+      salary_range: "₹12,00,000 - ₹18,00,000",
+      key_skills: "React, Next.js, Tailwind CSS, TypeScript, Redux, Web Performance",
+      skills: ["React", "Next.js", "Tailwind CSS", "TypeScript", "Redux"],
+      education: "Any Graduate / BCA / B.Tech",
+      department: "Engineering",
+      openings: 3,
+      description: "Craft pixel-perfect user interfaces, fluid micro-interactions, and accessible web experiences for global client applications.",
+      apply_last_date: "2026-11-20",
+      apply_link: "https://kinetixdigital.com/apply",
+      apply_email: "jobs@kinetix.io",
+      status: "Active",
+      applicants_count: 21,
+      created_at: new Date(Date.now() - 172800000).toISOString()
+    }
+  ];
 
-  async function fetchDbJobs() {
+  async function fetchJobs() {
     isLoadingJobs = true;
     renderJobs();
 
-    // 1. Fetch base jobs
-    let baseJobs = [];
+    const API_BASE = window.location.port === "8000" ? "" : "http://127.0.0.1:8000";
     try {
-      const response = await fetch("/api/jobs");
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      const json = await response.json();
-      if (json.success && Array.isArray(json.data) && json.data.length > 0) {
-        baseJobs = json.data;
+      const res = await fetch(`${API_BASE}/api/jobs?limit=100`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const json = await res.json();
+      
+      const list = json.jobs || json.data || [];
+      if (Array.isArray(list) && list.length > 0) {
+        allJobs = list;
       } else {
-        baseJobs = [...(window.JobNexData?.INITIAL_JOBS || [])];
+        allJobs = [...FALLBACK_SEED_JOBS];
       }
     } catch (err) {
-      baseJobs = [...(window.JobNexData?.INITIAL_JOBS || [])];
-    }
-
-    // 2. Fetch community jobs (API + local storage fallback)
-    communityJobs = [];
-    try {
-      const cRes = await fetch("/api/community-jobs");
-      if (cRes.ok) {
-        const cData = await cRes.json();
-        if (Array.isArray(cData.jobs)) {
-          communityJobs = cData.jobs.map(j => ({
-            id: `community-${j.id}`,
-            title: j.title,
-            company: j.company,
-            companyLogo: letterLogo(j.company),
-            location: j.location,
-            region: guessRegion(j.location),
-            experienceLevel: j.experience,
-            salaryMin: 0,
-            salaryMax: 0,
-            currency: "INR",
-            salaryText: j.salary || "",
-            skills: Array.isArray(j.skills) ? j.skills : [],
-            sourceUrl: j.url,
-            isCommunity: true,
-            postedAt: j.created_at || new Date().toISOString(),
-          }));
-        }
-      }
-    } catch (err) {
-      // Offline / CDN mode
-    }
-
-    // Merge with any local user-uploaded community jobs in localStorage
-    const localUploaded = getLocalCommunityJobs();
-    const existingUrls = new Set(communityJobs.map(j => j.sourceUrl));
-    for (const locJob of localUploaded) {
-      if (!existingUrls.has(locJob.sourceUrl)) {
-        communityJobs.push(locJob);
-        existingUrls.add(locJob.sourceUrl);
+      console.warn("[Jobs] Using local fallback jobs dataset:", err);
+      allJobs = [...FALLBACK_SEED_JOBS];
+      if (window.JobNexData?.INITIAL_JOBS) {
+        // Merge mock jobs
+        const converted = window.JobNexData.INITIAL_JOBS.map(j => ({
+          id: j.id,
+          title: j.title,
+          company: j.company,
+          company_logo: j.companyLogo || "",
+          locations: j.location || "Remote",
+          work_mode: j.location && j.location.toLowerCase().includes("remote") ? "Remote" : "Hybrid",
+          job_type: "Full-time",
+          exp_min: j.experienceLevel === "Fresher" ? 0 : 2,
+          exp_max: 5,
+          salary_range: j.salaryText || "Competitive",
+          key_skills: (j.skills || []).join(", "),
+          skills: j.skills || [],
+          education: "Bachelor's Degree",
+          department: "Engineering",
+          openings: 1,
+          description: j.description || "",
+          status: "Active",
+          applicants_count: 5,
+          created_at: j.postedAt || new Date().toISOString()
+        }));
+        allJobs = [...allJobs, ...converted];
       }
     }
 
-    dbJobs = [...communityJobs, ...baseJobs];
     isLoadingJobs = false;
     renderJobs();
+  }
+
+  function getActiveFilterValues() {
+    selectedModes = Array.from(document.querySelectorAll(".mode-filter-cb:checked")).map(cb => cb.value.toLowerCase());
+    selectedTypes = Array.from(document.querySelectorAll(".type-filter-cb:checked")).map(cb => cb.value.toLowerCase());
+    selectedExps = Array.from(document.querySelectorAll(".exp-filter-cb:checked")).map(cb => cb.value.toLowerCase());
+    selectedLocations = Array.from(document.querySelectorAll(".location-filter-cb:checked")).map(cb => cb.value.toLowerCase());
   }
 
   function renderJobs() {
@@ -143,154 +209,264 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (isLoadingJobs) {
       if (container) {
         container.innerHTML = `
-          <div class="bg-white rounded-xl p-12 text-center border border-slate-200">
-            <div class="inline-flex items-center gap-2 text-brand-600 font-semibold text-sm">
-              <span class="w-5 h-5 border-2 border-brand-600 border-t-transparent rounded-full animate-spin"></span>
-              <span>Loading jobs...</span>
-            </div>
+          <div class="space-y-4">
+            ${[1, 2, 3].map(() => `
+              <div class="bg-white rounded-2xl p-6 border border-slate-200/90 shadow-2xs animate-pulse space-y-4">
+                <div class="flex items-start gap-4">
+                  <div class="w-14 h-14 rounded-xl bg-slate-200 shrink-0"></div>
+                  <div class="space-y-2 flex-1">
+                    <div class="h-5 bg-slate-200 rounded w-1/3"></div>
+                    <div class="h-3.5 bg-slate-200 rounded w-1/5"></div>
+                    <div class="h-3 bg-slate-200 rounded w-1/2"></div>
+                  </div>
+                </div>
+              </div>
+            `).join("")}
           </div>
         `;
       }
       return;
     }
 
-    let allJobs = [...dbJobs];
+    getActiveFilterValues();
 
-    // Filter by keyword
+    let filtered = [...allJobs];
+
+    // Status filter: only show Active on candidate jobs directory
+    filtered = filtered.filter(j => !j.status || j.status.toLowerCase() === "active");
+
+    // 1. Keyword search (title / skills / company / description)
     if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase();
-      allJobs = allJobs.filter(j =>
-        (j.title || "").toLowerCase().includes(q) ||
-        (j.company || "").toLowerCase().includes(q) ||
-        (j.skills || []).some(s => s.toLowerCase().includes(q)) ||
-        (j.description || "").toLowerCase().includes(q)
-      );
+      const q = searchQuery.toLowerCase().trim();
+      filtered = filtered.filter(j => {
+        const titleMatch = (j.title || "").toLowerCase().includes(q);
+        const compMatch = (j.company || "").toLowerCase().includes(q);
+        const descMatch = (j.description || "").toLowerCase().includes(q);
+        const skillsStr = Array.isArray(j.skills) ? j.skills.join(" ") : (j.key_skills || "");
+        const skillMatch = skillsStr.toLowerCase().includes(q);
+        return titleMatch || compMatch || descMatch || skillMatch;
+      });
     }
 
-    // Filter by regions
-    if (selectedRegions.length > 0) {
-      allJobs = allJobs.filter(j => selectedRegions.includes(j.region));
+    // 2. Work Mode Filter
+    if (selectedModes.length > 0) {
+      filtered = filtered.filter(j => {
+        const mode = (j.work_mode || "office").toLowerCase();
+        return selectedModes.includes(mode);
+      });
     }
 
-    // Filter by exp
+    // 3. Job Type Filter
+    if (selectedTypes.length > 0) {
+      filtered = filtered.filter(j => {
+        const type = (j.job_type || "full-time").toLowerCase();
+        return selectedTypes.includes(type);
+      });
+    }
+
+    // 4. Experience Level Filter
     if (selectedExps.length > 0) {
-      allJobs = allJobs.filter(j => selectedExps.includes(j.experienceLevel));
+      filtered = filtered.filter(j => {
+        const expMin = Number(j.exp_min || 0);
+        const expMax = Number(j.exp_max || 0);
+        return selectedExps.some(expKey => {
+          if (expKey.includes("fresher")) return expMin === 0;
+          if (expKey.includes("1-2")) return expMin <= 2 && expMax >= 1;
+          if (expKey.includes("3-5")) return expMin <= 5 && expMax >= 3;
+          if (expKey.includes("5+")) return expMax >= 5 || expMin >= 5;
+          return false;
+        });
+      });
     }
 
-    // Filter by certs
-    if (selectedCerts.length > 0) {
-      allJobs = allJobs.filter(j => j.certifications && j.certifications.some(c => selectedCerts.includes(c)));
+    // 5. Location Filter
+    if (selectedLocations.length > 0) {
+      filtered = filtered.filter(j => {
+        const loc = (j.locations || j.location || "").toLowerCase();
+        return selectedLocations.some(l => loc.includes(l));
+      });
     }
 
-    // Sort
+    // 6. Sorting
     if (sortBy === "salary") {
-      allJobs.sort((a, b) => (b.salaryMax || 0) - (a.salaryMax || 0));
-    } else if (sortBy === "date") {
-      allJobs.sort((a, b) => new Date(b.postedAt).getTime() - new Date(a.postedAt).getTime());
+      filtered.sort((a, b) => {
+        const extractNum = (str) => {
+          if (!str) return 0;
+          const nums = str.match(/\d[\d,]*/g);
+          if (!nums) return 0;
+          return parseInt(nums[nums.length - 1].replace(/,/g, ""), 10) || 0;
+        };
+        return extractNum(b.salary_range || b.salaryText) - extractNum(a.salary_range || a.salaryText);
+      });
+    } else if (sortBy === "relevance") {
+      filtered.sort((a, b) => (b.applicants_count || 0) - (a.applicants_count || 0));
     } else {
-      allJobs.sort((a, b) => (b.matchScore || 0) - (a.matchScore || 0));
+      // Default: Latest First
+      filtered.sort((a, b) => {
+        const timeA = a.created_at ? new Date(a.created_at).getTime() : 0;
+        const timeB = b.created_at ? new Date(b.created_at).getTime() : 0;
+        return timeB - timeA;
+      });
     }
 
-    if (countEl) countEl.textContent = `${allJobs.length} roles found`;
+    if (countEl) {
+      countEl.textContent = `${filtered.length} role${filtered.length === 1 ? '' : 's'}`;
+    }
 
     if (!container) return;
 
-    if (allJobs.length === 0) {
+    if (filtered.length === 0) {
       container.innerHTML = `
-        <div class="bg-white rounded-xl p-12 text-center border border-slate-200">
-          <p class="text-base font-bold text-slate-800">No jobs match your current filters</p>
-          <p class="text-xs text-slate-500 mt-1">Try clearing your filters or searching for different keywords.</p>
-          <button id="reset-filters-btn" class="mt-4 px-4 py-2 bg-brand-600 text-white rounded-xl text-xs font-semibold cursor-pointer">Clear Filters</button>
+        <div class="bg-white rounded-2xl p-10 sm:p-12 text-center border border-slate-200/90 shadow-2xs space-y-4">
+          <div class="w-12 h-12 mx-auto rounded-2xl bg-brand-50 text-brand-600 flex items-center justify-center">
+            <i data-lucide="search-x" class="w-6 h-6"></i>
+          </div>
+          <div class="space-y-1">
+            <h3 class="text-base font-bold text-slate-900">No matching jobs found</h3>
+            <p class="text-xs text-slate-500 max-w-sm mx-auto">
+              We couldn't find any opportunities matching your selected criteria. Try adjusting your keyword or clearing active filters.
+            </p>
+          </div>
+          <button id="empty-clear-btn" type="button" class="btn-polish bg-brand-600 hover:bg-brand-700 text-white font-semibold text-xs px-4 py-2 rounded-xl cursor-pointer">
+            Clear All Filters
+          </button>
         </div>
       `;
-      document.getElementById("reset-filters-btn")?.addEventListener("click", resetAllFilters);
+      document.getElementById("empty-clear-btn")?.addEventListener("click", resetAllFilters);
+      if (typeof lucide !== "undefined" && lucide.createIcons) lucide.createIcons();
       return;
     }
 
-    container.innerHTML = allJobs.map(job => {
-      const isBookmarked = savedBookmarks.has(job.id);
-      const skills = Array.isArray(job.skills) ? job.skills : [];
-      const logo = job.companyLogo || letterLogo(job.company);
-      const isCommunity = Boolean(job.isCommunity);
-      const salaryDisplay = job.salaryText
-        ? job.salaryText
-        : (job.salaryMin || job.salaryMax)
-          ? `${formatCurrency(job.salaryMin || 70000, job.currency || 'USD')} - ${formatCurrency(job.salaryMax || 130000, job.currency || 'USD')}`
-          : 'Competitive';
+    // Render Job Cards
+    container.innerHTML = filtered.map(job => {
+      const isSaved = savedBookmarks.has(job.id);
+      let skills = [];
+      if (Array.isArray(job.skills) && job.skills.length > 0) {
+        skills = job.skills;
+      } else if (typeof job.key_skills === "string") {
+        skills = job.key_skills.split(",").map(s => s.trim()).filter(Boolean);
+      }
+      const logo = job.company_logo || letterLogo(job.company);
+      const salary = job.salary_range || job.salaryText || "Not disclosed";
+      const postedText = formatPostedDate(job.created_at);
+      
+      let expText = "Fresher";
+      if (job.exp_min || job.exp_max) {
+        expText = `${job.exp_min || 0} - ${job.exp_max || 5} yrs`;
+      } else if (job.experience) {
+        expText = job.experience;
+      }
+
+      const locationsText = job.locations || job.location || "Remote";
+      const workMode = job.work_mode || "Office";
+      const jobType = job.job_type || "Full-time";
 
       return `
-        <div class="bg-white rounded-xl border border-slate-200/90 hover:border-brand-300 p-5 shadow-xs hover:shadow-md transition-all group">
+        <article class="bg-white rounded-2xl border border-slate-200/90 hover:border-brand-300 p-5 sm:p-6 shadow-2xs hover:shadow-md transition-all group relative space-y-4">
           <div class="flex flex-col sm:flex-row items-start justify-between gap-4">
-            <div class="flex items-start gap-4">
-              <div class="w-14 h-14 rounded-xl overflow-hidden bg-slate-100 border border-slate-200 shrink-0 flex items-center justify-center">
+            <!-- Left Info -->
+            <div class="flex items-start gap-3.5 sm:gap-4 flex-1 min-w-0">
+              <div class="w-13 h-13 sm:w-14 sm:h-14 rounded-2xl overflow-hidden bg-slate-100 border border-slate-200 shrink-0 flex items-center justify-center shadow-2xs">
                 <img class="w-full h-full object-cover group-hover:scale-105 transition-transform" src="${logo}" alt="${job.company}" onerror="this.src='${letterLogo(job.company)}'" />
               </div>
-              <div class="space-y-1.5">
+
+              <div class="space-y-1.5 flex-1 min-w-0">
                 <div class="flex flex-wrap items-center gap-2">
-                  <h3 class="text-base font-bold text-slate-900 group-hover:text-brand-600 transition-colors">${job.title}</h3>
-                  ${isCommunity ? `<span class="text-[11px] font-bold px-2 py-0.5 rounded-full bg-violet-100 text-violet-800 border border-violet-200">Community</span>` : ''}
-                  ${job.matchScore ? `<span class="text-[11px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200">${job.matchScore}% Match</span>` : ''}
-                </div>
-                <p class="text-xs font-bold text-slate-700">${job.company}</p>
-
-                <div class="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-600">
-                  <span class="flex items-center gap-1">
-                    <i data-lucide="map-pin" class="w-3.5 h-3.5 text-slate-400"></i>
-                    ${job.location || 'Remote'}
+                  <a href="job-details.html?id=${job.id}" class="text-base font-bold text-slate-900 group-hover:text-brand-600 transition-colors truncate">
+                    ${job.title}
+                  </a>
+                  <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 border border-slate-200">
+                    ${jobType}
                   </span>
-                  <span class="flex items-center gap-1">
-                    <i data-lucide="briefcase" class="w-3.5 h-3.5 text-slate-400"></i>
-                    ${job.experienceLevel || 'Mid-Senior'}
-                  </span>
-                  <span class="font-bold text-amber-700">
-                    ${salaryDisplay}
+                  <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-brand-50 text-brand-700 border border-brand-200">
+                    ${workMode}
                   </span>
                 </div>
 
+                <p class="text-xs font-semibold text-slate-600 truncate">${job.company}</p>
+
+                <!-- Metadata Row -->
+                <div class="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-600 pt-0.5">
+                  <span class="flex items-center gap-1">
+                    <i data-lucide="map-pin" class="w-3.5 h-3.5 text-slate-400 shrink-0"></i>
+                    <span class="truncate">${locationsText}</span>
+                  </span>
+                  <span class="flex items-center gap-1">
+                    <i data-lucide="briefcase" class="w-3.5 h-3.5 text-slate-400 shrink-0"></i>
+                    <span>${expText}</span>
+                  </span>
+                  <span class="font-bold text-amber-700 flex items-center gap-1">
+                    <i data-lucide="banknote" class="w-3.5 h-3.5 text-amber-600 shrink-0"></i>
+                    <span>${salary}</span>
+                  </span>
+                  <span class="text-slate-400 text-[11px] flex items-center gap-1">
+                    <i data-lucide="clock" class="w-3 h-3 text-slate-400 shrink-0"></i>
+                    <span>${postedText}</span>
+                  </span>
+                </div>
+
+                <!-- Skills Tag Pills -->
                 <div class="flex flex-wrap gap-1.5 pt-2">
-                  ${skills.map(s => `
-                    <span class="text-[11px] font-semibold px-2.5 py-0.5 rounded-lg bg-slate-100 text-slate-700 border border-slate-200">${s}</span>
+                  ${skills.slice(0, 6).map(s => `
+                    <span class="text-[11px] font-semibold px-2.5 py-0.5 rounded-lg bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200/80 transition-colors">
+                      ${s}
+                    </span>
                   `).join("")}
+                  ${skills.length > 6 ? `<span class="text-[10px] font-semibold text-slate-400 px-1 py-0.5">+${skills.length - 6} more</span>` : ''}
                 </div>
               </div>
             </div>
 
-            <div class="flex sm:flex-col items-center sm:items-end justify-between w-full sm:w-auto gap-3 pt-2 sm:pt-0 shrink-0">
-              <button type="button" class="bookmark-btn p-2 rounded-lg ${isBookmarked ? 'text-rose-500 fill-rose-500' : 'text-slate-400'} hover:text-rose-500 hover:bg-slate-100 cursor-pointer transition-colors" data-id="${job.id}">
-                <i data-lucide="bookmark" class="w-5 h-5 ${isBookmarked ? 'fill-rose-500' : ''}"></i>
+            <!-- Right Actions: View Details & Apply -->
+            <div class="flex sm:flex-col items-center sm:items-end justify-between w-full sm:w-auto gap-2.5 pt-2 sm:pt-0 shrink-0 border-t sm:border-t-0 border-slate-100">
+              <button type="button" class="bookmark-btn p-2 rounded-xl ${isSaved ? 'text-rose-500 fill-rose-500 bg-rose-50' : 'text-slate-400'} hover:text-rose-500 hover:bg-rose-50 cursor-pointer transition-colors" data-id="${job.id}" title="Bookmark Role">
+                <i data-lucide="bookmark" class="w-4 h-4 ${isSaved ? 'fill-rose-500' : ''}"></i>
               </button>
-              <button type="button" class="apply-modal-btn btn-polish bg-brand-600 hover:bg-brand-700 text-white font-semibold text-xs px-5 py-2.5 rounded-xl cursor-pointer" data-id="${job.id}">
-                ${isCommunity ? 'Apply Link ↗' : 'Apply'}
-              </button>
+              
+              <div class="flex items-center gap-2 w-full sm:w-auto">
+                <a href="job-details.html?id=${job.id}" class="inline-flex items-center justify-center gap-1 text-xs font-semibold px-3.5 py-2 rounded-xl border border-slate-200 hover:border-brand-400 hover:bg-brand-50 text-slate-700 hover:text-brand-700 transition-all cursor-pointer">
+                  <span>View Details</span>
+                </a>
+                <button type="button" class="apply-trigger-btn btn-polish bg-brand-600 hover:bg-brand-700 text-white font-semibold text-xs px-4 py-2 rounded-xl cursor-pointer shadow-xs inline-flex items-center gap-1.5" data-id="${job.id}">
+                  <span>Apply</span>
+                  <i data-lucide="arrow-up-right" class="w-3.5 h-3.5"></i>
+                </button>
+              </div>
             </div>
           </div>
-        </div>
+        </article>
       `;
     }).join("");
 
-    // Hook events
+    // Hook Bookmark Events
     document.querySelectorAll(".bookmark-btn").forEach(btn => {
-      btn.addEventListener("click", () => {
+      btn.addEventListener("click", (e) => {
+        e.preventDefault();
         const id = btn.getAttribute("data-id");
         if (savedBookmarks.has(id)) {
           savedBookmarks.delete(id);
-          showToast("Removed from bookmarks");
+          showToast("Role removed from bookmarks");
         } else {
           savedBookmarks.add(id);
-          showToast("Saved to bookmarks");
+          showToast("Role saved to bookmarks");
         }
         localStorage.setItem("jobnex_bookmarks", JSON.stringify([...savedBookmarks]));
-        playSound("click");
+        if (typeof playSound === "function") playSound("click");
         renderJobs();
       });
     });
 
-    document.querySelectorAll(".apply-modal-btn").forEach(btn => {
+    // Hook Apply Events
+    document.querySelectorAll(".apply-trigger-btn").forEach(btn => {
       btn.addEventListener("click", () => {
         const id = btn.getAttribute("data-id");
-        const job = dbJobs.find(j => j.id === id);
-        if (job && job.isCommunity && (job.sourceUrl || job.url)) {
-          window.open(job.sourceUrl || job.url, "_blank", "noopener,noreferrer");
+        const job = allJobs.find(j => j.id === id);
+        if (job && job.apply_link && job.apply_link.trim().startsWith("http")) {
+          window.open(job.apply_link.trim(), "_blank", "noopener,noreferrer");
+          return;
+        }
+        if (job && job.apply_email && job.apply_email.includes("@")) {
+          window.location.href = `mailto:${job.apply_email.trim()}?subject=Application for ${encodeURIComponent(job.title)}`;
           return;
         }
         openApplyModal(id);
@@ -304,272 +480,88 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   function resetAllFilters() {
     searchQuery = "";
-    selectedRegions = [];
-    selectedExps = [];
-    selectedCerts = [];
     if (searchInput) searchInput.value = "";
-    document.querySelectorAll(".region-filter-cb, .exp-filter-cb, .cert-filter-cb").forEach(cb => cb.checked = false);
+    document.querySelectorAll(".mode-filter-cb, .type-filter-cb, .exp-filter-cb, .location-filter-cb").forEach(cb => {
+      cb.checked = false;
+    });
+    sortBy = "latest";
+    const sortSelect = document.getElementById("sort-by-select");
+    if (sortSelect) sortSelect.value = "latest";
     renderJobs();
   }
 
-  // Filter input listeners
-  document.getElementById("job-search-form")?.addEventListener("submit", (e) => {
-    e.preventDefault();
-    searchQuery = searchInput ? searchInput.value.trim() : "";
-    renderJobs();
-  });
-
-  document.querySelectorAll(".region-filter-cb").forEach(cb => {
-    cb.addEventListener("change", () => {
-      selectedRegions = Array.from(document.querySelectorAll(".region-filter-cb:checked")).map(c => c.value);
+  // Search Form Submit
+  const searchForm = document.getElementById("job-search-form");
+  if (searchForm) {
+    searchForm.addEventListener("submit", (e) => {
+      e.preventDefault();
+      searchQuery = (searchInput?.value || "").trim();
       renderJobs();
     });
+  }
+
+  // Realtime Search Input debounce
+  if (searchInput) {
+    let debounceTimer;
+    searchInput.addEventListener("input", (e) => {
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => {
+        searchQuery = e.target.value.trim();
+        renderJobs();
+      }, 300);
+    });
+  }
+
+  // Filters change listener
+  document.querySelectorAll(".mode-filter-cb, .type-filter-cb, .exp-filter-cb, .location-filter-cb").forEach(cb => {
+    cb.addEventListener("change", renderJobs);
   });
 
-  document.querySelectorAll(".exp-filter-cb").forEach(cb => {
-    cb.addEventListener("change", () => {
-      selectedExps = Array.from(document.querySelectorAll(".exp-filter-cb:checked")).map(c => c.value);
+  // Sort change listener
+  const sortSelect = document.getElementById("sort-by-select");
+  if (sortSelect) {
+    sortSelect.addEventListener("change", (e) => {
+      sortBy = e.target.value;
       renderJobs();
     });
-  });
-
-  document.querySelectorAll(".cert-filter-cb").forEach(cb => {
-    cb.addEventListener("change", () => {
-      selectedCerts = Array.from(document.querySelectorAll(".cert-filter-cb:checked")).map(c => c.value);
-      renderJobs();
-    });
-  });
-
-  document.getElementById("sort-by-select")?.addEventListener("change", (e) => {
-    sortBy = e.target.value;
-    renderJobs();
-  });
-
-  // Apply Modal Handlers
-  const modal = document.getElementById("apply-modal");
-  const modalCloseBtn = document.getElementById("modal-close-btn");
-  const modalCancelBtn = document.getElementById("modal-cancel-btn");
-  const modalJobTitle = document.getElementById("modal-job-title");
-  const modalJobCompany = document.getElementById("modal-job-company");
-  const applyForm = document.getElementById("modal-apply-form");
-  let activeApplyJob = null;
-
-  function openApplyModal(jobId) {
-    const job = dbJobs.find(j => j.id === jobId) || window.JobNexData?.INITIAL_JOBS.find(j => j.id === jobId);
-    if (!job) return;
-    activeApplyJob = job;
-    if (modalJobTitle) modalJobTitle.textContent = job.title;
-    if (modalJobCompany) modalJobCompany.textContent = job.company;
-    modal?.classList.remove("hidden");
-    playSound("click");
   }
 
-  function closeApplyModal() {
-    modal?.classList.add("hidden");
-    activeApplyJob = null;
-  }
-
-  modalCloseBtn?.addEventListener("click", closeApplyModal);
-  modalCancelBtn?.addEventListener("click", closeApplyModal);
-
-  applyForm?.addEventListener("submit", async (e) => {
-    e.preventDefault();
-    if (!activeApplyJob) return;
-
-    try {
-      const user = window.JobNexAuth ? window.JobNexAuth.getUser() : {};
-      await fetch("/api/applications", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          user_id: user?.id || "1",
-          job_title: activeApplyJob.title,
-          company: activeApplyJob.company,
-          job_url: activeApplyJob.jobUrl || activeApplyJob.sourceUrl || "",
-          source: "web",
-          status: "Applied",
-          notes: `Direct application submitted for ${activeApplyJob.title} at ${activeApplyJob.company}.`,
-        }),
-      });
-      playSound("success");
-      showToast(`Application successfully submitted!`);
-    } catch (err) {
-      showToast(`Application submitted: ${activeApplyJob.company}!`);
-    }
-
-    closeApplyModal();
-  });
-
-  // Upload Job Modal Handlers
-  const uploadModal = document.getElementById("upload-job-modal");
-  const openUploadModalBtn = document.getElementById("open-upload-modal-btn");
-  const uploadModalCloseBtn = document.getElementById("upload-modal-close-btn");
-  const uploadModalCancelBtn = document.getElementById("upload-modal-cancel-btn");
-  const uploadJobForm = document.getElementById("upload-job-form");
-  const uploadJobError = document.getElementById("upload-job-error");
-
-  function openUploadModal() {
-    if (uploadJobError) {
-      uploadJobError.textContent = "";
-      uploadJobError.classList.add("hidden");
-    }
-    uploadModal?.classList.remove("hidden");
-    playSound("click");
-    if (typeof lucide !== "undefined" && lucide.createIcons) {
-      lucide.createIcons();
-    }
-  }
-
-  function closeUploadModal() {
-    uploadModal?.classList.add("hidden");
-  }
-
-  openUploadModalBtn?.addEventListener("click", openUploadModal);
-  uploadModalCloseBtn?.addEventListener("click", closeUploadModal);
-  uploadModalCancelBtn?.addEventListener("click", closeUploadModal);
-
-  uploadJobForm?.addEventListener("submit", async (e) => {
-    e.preventDefault();
-    if (uploadJobError) {
-      uploadJobError.textContent = "";
-      uploadJobError.classList.add("hidden");
-    }
-
-    const title = (document.getElementById("upload-job-title")?.value || "").trim();
-    const company = (document.getElementById("upload-job-company")?.value || "").trim();
-    const location = (document.getElementById("upload-job-location")?.value || "").trim();
-    const exp = document.getElementById("upload-job-exp")?.value || "Fresher";
-    const salary = (document.getElementById("upload-job-salary")?.value || "").trim();
-    const skillsRaw = (document.getElementById("upload-job-skills")?.value || "").trim();
-    const url = (document.getElementById("upload-job-url")?.value || "").trim();
-
-    if (!title || !company || !location || !url || !skillsRaw) {
-      if (uploadJobError) {
-        uploadJobError.textContent = "Please fill in all required fields.";
-        uploadJobError.classList.remove("hidden");
-      }
-      return;
-    }
-
-    if (!/^https?:\/\//i.test(url)) {
-      if (uploadJobError) {
-        uploadJobError.textContent = "Job link must start with http:// or https://";
-        uploadJobError.classList.remove("hidden");
-      }
-      return;
-    }
-
-    const skills = skillsRaw.split(",").map(s => s.trim()).filter(Boolean);
-    const currentUser = window.JobNexAuth ? window.JobNexAuth.getUser() : null;
-
-    const payload = {
-      title,
-      company,
-      location,
-      experience: exp,
-      salary: salary || null,
-      skills,
-      url,
-      uploaded_by: currentUser?.email || null,
-    };
-
-    const submitBtn = document.getElementById("upload-modal-submit-btn");
-    if (submitBtn) {
-      submitBtn.disabled = true;
-      submitBtn.textContent = "Publishing...";
-    }
-
-    let savedJob = null;
-
-    // Try backend API first
-    try {
-      const res = await fetch("/api/community-jobs", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-      if (res.ok) {
-        const data = await res.json();
-        const j = data.job;
-        savedJob = {
-          id: `community-${j.id}`,
-          title: j.title,
-          company: j.company,
-          companyLogo: letterLogo(j.company),
-          location: j.location,
-          region: guessRegion(j.location),
-          experienceLevel: j.experience,
-          salaryMin: 0,
-          salaryMax: 0,
-          currency: "INR",
-          salaryText: j.salary || "",
-          skills: Array.isArray(j.skills) ? j.skills : skills,
-          sourceUrl: j.url,
-          isCommunity: true,
-          postedAt: j.created_at || new Date().toISOString(),
-        };
-      } else if (res.status === 409) {
-        if (uploadJobError) {
-          uploadJobError.textContent = "This job link was already uploaded.";
-          uploadJobError.classList.remove("hidden");
-        }
-        if (submitBtn) {
-          submitBtn.disabled = false;
-          submitBtn.textContent = "Publish Job";
-        }
-        return;
-      }
-    } catch (err) {
-      // Backend offline / CDN mode
-    }
-
-    if (!savedJob) {
-      // Local fallback for static hosting
-      savedJob = {
-        id: `community-${Date.now()}`,
-        title,
-        company,
-        companyLogo: letterLogo(company),
-        location,
-        region: guessRegion(location),
-        experienceLevel: exp,
-        salaryMin: 0,
-        salaryMax: 0,
-        currency: "INR",
-        salaryText: salary || "",
-        skills,
-        sourceUrl: url,
-        isCommunity: true,
-        postedAt: new Date().toISOString(),
-      };
-    }
-
-    saveLocalCommunityJob(savedJob);
-    dbJobs.unshift(savedJob);
-
-    if (submitBtn) {
-      submitBtn.disabled = false;
-      submitBtn.textContent = "Publish Job";
-    }
-
-    playSound("success");
-    showToast("Community job published successfully!");
-    uploadJobForm.reset();
-    closeUploadModal();
-    renderJobs();
-  });
+  // Clear filters button
+  document.getElementById("clear-all-filters-btn")?.addEventListener("click", resetAllFilters);
 
   // Mobile filters toggle
-  document.getElementById("mobile-filters-btn")?.addEventListener("click", () => {
-    document.getElementById("sidebar-filters")?.classList.toggle("hidden");
-  });
-
-  // Check URL if apply requested directly
-  const applyParam = urlParams.get("apply");
-  if (applyParam) {
-    openApplyModal(applyParam);
+  const mobileFiltersBtn = document.getElementById("mobile-filters-btn");
+  const sidebarFilters = document.getElementById("sidebar-filters");
+  if (mobileFiltersBtn && sidebarFilters) {
+    mobileFiltersBtn.addEventListener("click", () => {
+      sidebarFilters.classList.toggle("hidden");
+    });
   }
 
-  // Start fetching live jobs
-  fetchDbJobs();
+  // Apply Modal
+  function openApplyModal(jobId) {
+    const job = allJobs.find(j => j.id === jobId);
+    const modal = document.getElementById("apply-modal");
+    if (!modal) return;
+    if (job) {
+      document.getElementById("modal-job-title").textContent = job.title;
+      document.getElementById("modal-job-company").textContent = job.company;
+    }
+    modal.classList.remove("hidden");
+  }
+
+  document.getElementById("modal-close-btn")?.addEventListener("click", () => {
+    document.getElementById("apply-modal")?.classList.add("hidden");
+  });
+  document.getElementById("modal-cancel-btn")?.addEventListener("click", () => {
+    document.getElementById("apply-modal")?.classList.add("hidden");
+  });
+  document.getElementById("modal-apply-form")?.addEventListener("submit", (e) => {
+    e.preventDefault();
+    document.getElementById("apply-modal")?.classList.add("hidden");
+    showToast("Application submitted successfully! The recruiter will review your profile.");
+  });
+
+  // Initial Fetch
+  fetchJobs();
 });

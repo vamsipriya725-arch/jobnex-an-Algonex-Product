@@ -112,12 +112,20 @@ export function JobCard({
               />
             </Button>
 
-            <Button
-              onClick={() => onApply(job)}
-              className="btn-polish h-auto bg-primary hover:bg-royal-deep text-primary-foreground font-semibold text-xs px-5 py-2.5"
-            >
-              Apply
-            </Button>
+            <div className="flex items-center gap-2">
+              <a
+                href={`/jobs/${job.id}`}
+                className="inline-flex items-center justify-center text-xs font-semibold px-3 py-2 rounded-md border border-slate-200 hover:bg-slate-50 text-slate-700 hover:text-slate-900 transition-colors"
+              >
+                View Details
+              </a>
+              <Button
+                onClick={() => onApply(job)}
+                className="btn-polish h-auto bg-primary hover:bg-royal-deep text-primary-foreground font-semibold text-xs px-5 py-2.5"
+              >
+                Apply
+              </Button>
+            </div>
           </div>
         </div>
       </motion.div>

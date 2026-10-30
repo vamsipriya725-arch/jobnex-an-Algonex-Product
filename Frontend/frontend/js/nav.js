@@ -4,7 +4,7 @@
  */
 
 function updateNavbarUser() {
-  const user = window.JobNexAuth?.getUser() || { name: "Candidate", email: "", avatar: "" };
+  const user = window.JobNexAuth?.getUser() || { name: "Candidate", email: "", avatar: "", role: "JOB_SEEKER" };
   const loggedIn = window.JobNexAuth?.isLoggedIn() !== false;
 
   const authSection = document.getElementById("nav-auth-section");
@@ -13,6 +13,27 @@ function updateNavbarUser() {
   const isInsidePages = window.location.pathname.includes("/pages/");
   const loginUrl = isInsidePages ? "login.html" : "pages/login.html";
   const resumeUrl = isInsidePages ? "resume-privacy.html" : "pages/resume-privacy.html";
+
+  // Check admin role
+  const isAdmin = user && (user.role === "ADMIN" || user.role === "RECRUITER" || (user.email && user.email.toLowerCase().includes("admin")));
+
+  // Show/hide admin navbar button
+  const adminDesktop = document.getElementById("nav-admin");
+  const adminMobile = document.getElementById("mobile-nav-admin");
+  if (adminDesktop) {
+    if (isAdmin) {
+      adminDesktop.classList.remove("hidden");
+    } else {
+      adminDesktop.classList.add("hidden");
+    }
+  }
+  if (adminMobile) {
+    if (isAdmin) {
+      adminMobile.classList.remove("hidden");
+    } else {
+      adminMobile.classList.add("hidden");
+    }
+  }
 
   if (loggedIn) {
     const displayName = (user.name && user.name !== "Google Verified Candidate") ? user.name : (user.email ? user.email.split("@")[0] : "Candidate");
@@ -33,14 +54,30 @@ function updateNavbarUser() {
           </div>
           <div class="flex flex-col text-left leading-tight max-w-[120px] sm:max-w-[160px]">
             <span class="text-xs font-semibold text-slate-900 group-hover:text-brand-600 truncate">${displayName}</span>
-            ${displayEmail ? `<span class="text-[10px] text-slate-500 font-normal truncate">${displayEmail}</span>` : ""}
+            <div class="flex items-center gap-1">
+              ${isAdmin ? '<span class="inline-block px-1 py-0.2 rounded text-[9px] font-bold bg-purple-100 text-purple-700">Admin</span>' : ''}
+              ${displayEmail ? `<span class="text-[10px] text-slate-500 font-normal truncate">${displayEmail}</span>` : ""}
+            </div>
           </div>
         </a>
+        <button id="toggle-admin-role-btn" class="hidden sm:inline-flex items-center text-[10px] font-medium px-2 py-1 rounded border border-slate-200 hover:bg-slate-100 text-slate-600 cursor-pointer transition-colors" title="Toggle Admin Mode for Testing">
+          ${isAdmin ? "Exit Admin" : "Admin Mode"}
+        </button>
         <button id="sign-out-btn" class="h-8 px-2 text-xs text-slate-500 hover:text-red-600 font-medium cursor-pointer transition-colors" title="Sign out">
           Sign out
         </button>
       </div>
     `;
+
+    document.getElementById("toggle-admin-role-btn")?.addEventListener("click", () => {
+      const current = window.JobNexAuth?.getUser();
+      const newRole = isAdmin ? "JOB_SEEKER" : "ADMIN";
+      window.JobNexAuth?.setUser({ ...current, role: newRole });
+      updateNavbarUser();
+      // Reload page to reflect role changes on current view
+      window.location.reload();
+    });
+
     document.getElementById("sign-out-btn")?.addEventListener("click", () => {
       window.JobNexAuth?.logout();
       window.location.href = isInsidePages ? "login.html" : "pages/login.html";
@@ -67,6 +104,7 @@ function initNav(activePageName) {
   // Update navigation links dynamically
   const links = [
     { id: "nav-home", href: homePrefix + "index.html", key: "home" },
+    { id: "nav-jobs", href: prefix + "jobs.html", key: "jobs" },
     { id: "nav-builder", href: prefix + "resume-builder.html", key: "resume-builder" },
     { id: "nav-interview", href: prefix + "interview-prep.html", key: "interview-prep" },
     { id: "nav-skills", href: prefix + "skill-gap.html", key: "skill-gap" },
@@ -74,6 +112,7 @@ function initNav(activePageName) {
     { id: "nav-referral", href: prefix + "cold-referral.html", key: "cold-referral" },
     { id: "nav-dashboard", href: prefix + "dashboard.html", key: "dashboard" },
     { id: "nav-privacy", href: prefix + "resume-privacy.html", key: "resume-privacy" },
+    { id: "nav-admin", href: prefix + "admin-jobs.html", key: "admin-jobs" },
     { id: "nav-ai", href: prefix + "ai-assistant.html", key: "ai-assistant" },
   ];
 
@@ -82,9 +121,15 @@ function initNav(activePageName) {
     if (el) {
       el.href = l.href;
       if (l.key === activePageName) {
-        el.className = "flex shrink-0 items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold whitespace-nowrap rounded-md bg-brand-600 text-white shadow-xs";
+        if (l.id === "nav-admin") {
+          el.className = "flex shrink-0 items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold whitespace-nowrap rounded-md bg-purple-700 text-white shadow-xs";
+        } else {
+          el.className = "flex shrink-0 items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold whitespace-nowrap rounded-md bg-brand-600 text-white shadow-xs";
+        }
       } else if (l.id === "nav-ai") {
         el.className = "flex shrink-0 items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold whitespace-nowrap rounded-md text-brand-700 bg-brand-50 hover:bg-brand-100 hover:text-brand-800 transition-colors border border-brand-200/60 shadow-xs";
+      } else if (l.id === "nav-admin") {
+        el.className = "flex shrink-0 items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold whitespace-nowrap rounded-md text-purple-700 bg-purple-50 hover:bg-purple-100 hover:text-purple-800 transition-colors border border-purple-200/60 shadow-xs";
       } else {
         el.className = "flex shrink-0 items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium whitespace-nowrap rounded-md text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors";
       }
@@ -97,6 +142,8 @@ function initNav(activePageName) {
         mobileEl.className = "flex items-center gap-2 px-3 py-2 text-xs font-semibold rounded-lg bg-brand-600 text-white shadow-xs" + (l.id === "nav-ai" ? " col-span-2" : "");
       } else if (l.id === "nav-ai") {
         mobileEl.className = "col-span-2 flex items-center gap-2 px-3 py-2 text-xs font-semibold rounded-lg bg-brand-50 text-brand-700 hover:bg-brand-100 transition-colors border border-brand-200/60";
+      } else if (l.id === "nav-admin") {
+        mobileEl.className = "flex items-center gap-2 px-3 py-2 text-xs font-semibold rounded-lg text-purple-700 bg-purple-50 hover:bg-purple-100 transition-colors border border-purple-200";
       } else {
         mobileEl.className = "flex items-center gap-2 px-3 py-2 text-xs font-semibold rounded-lg text-slate-700 bg-slate-100 hover:bg-slate-200 transition-colors";
       }

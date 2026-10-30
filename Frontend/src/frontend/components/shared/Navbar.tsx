@@ -35,14 +35,18 @@ export const Navbar: React.FC = () => {
     return null;
   }
 
+  const isAdmin = currentUser?.role === "ADMIN" || currentUser?.role === "RECRUITER";
+
   const navLinks = [
     { name: "Home", href: "/", icon: Home },
+    { name: "Jobs", href: "/jobs", icon: Briefcase },
     { name: "Interview Prep", href: "/interview-prep", icon: BrainCircuit },
     { name: "Skill Gap", href: "/skill-gap", icon: BarChart3 },
     { name: "Auto-Apply", href: "/auto-apply", icon: Zap },
     { name: "Referral", href: "/cold-referral", icon: Send },
     { name: "Dashboard", href: "/dashboard", icon: UserCheck },
     { name: "Resume & Privacy", href: "/resume-privacy", icon: ShieldCheck },
+    ...(isAdmin ? [{ name: "Admin", href: "/admin/jobs", icon: ShieldCheck }] : []),
   ];
 
   return (
