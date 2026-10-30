@@ -82,9 +82,9 @@ body {
 }
 
 .glass-dark {
-  background: rgba(31, 32, 48, 0.85);
-  backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(43, 46, 62, 0.88);
+  backdrop-filter: blur(14px);
+  border: 1px solid var(--color-brand-400);
 }
 
 /* Custom Slim Scrollbars */
@@ -147,7 +147,19 @@ body {
   border: 1px solid #f6cfd7;
 }
 
-/* 3D Transform Utilities for Hero */
+/* ==========================================================================
+   Hero Section Gradients & Perspective Canvas (CRITICAL DARK HERO BANNER)
+   ========================================================================== */
+.bg-hero-gradient,
+#hero-section {
+  background: linear-gradient(160deg, #3e4268 0%, #2b2e3e 100%) !important;
+}
+
+.perspective-hero {
+  perspective: 1200px;
+  perspective-origin: 50% 50%;
+}
+
 .preserve-3d {
   transform-style: preserve-3d;
 }
@@ -158,10 +170,16 @@ body {
   perspective: 1200px;
 }
 
-/* Hero Kinetic Layer FX */
+.hero-blob {
+  position: absolute;
+  border-radius: 9999px;
+  filter: blur(60px);
+  opacity: 0.5;
+}
+
 .hero-blob-1 {
-  width: 32rem;
-  height: 32rem;
+  width: 34rem;
+  height: 34rem;
   left: -10%;
   top: -30%;
   background: radial-gradient(circle, #646ca6 0%, transparent 70%);
@@ -265,12 +283,12 @@ body {
 }
 
 .float-card-3d-left {
-  animation: float-slow-3d 8s ease-in-out infinite;
+  animation: float-slow-3d 9s ease-in-out infinite;
   transform-origin: center center;
 }
 
 .float-card-3d-right {
-  animation: float-slow-3d 9s ease-in-out infinite reverse;
+  animation: float-slow-3d 11s ease-in-out infinite reverse;
   transform-origin: center center;
 }
 
