@@ -75,7 +75,7 @@ export const Navbar: React.FC = () => {
       className="fixed top-0 left-0 h-[3px] bg-brand-600 z-[60] transition-all duration-75 pointer-events-none"
     />
     <header
-      className={`sticky top-0 z-50 border-b border-border transition-all duration-200 ${
+      className={`fixed top-0 left-0 right-0 w-full z-50 border-b border-border transition-all duration-200 ${
         scrolled
           ? "bg-white/90 backdrop-blur-md shadow-[0_4px_20px_rgba(0,0,0,0.08)]"
           : "bg-white shadow-none"
@@ -217,6 +217,7 @@ export const Navbar: React.FC = () => {
         </div>
       )}
     </header>
+    <div className="h-[72px] w-full" aria-hidden="true" />
     </>
   );
 };
