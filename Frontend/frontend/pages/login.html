@@ -477,6 +477,8 @@
   <script src="../data/mock-data.js"></script>
   <script src="../js/utils.js"></script>
   <script src="../js/auth.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="../js/supabase.js"></script>
 
   <script>
     let soundEnabled = true;
@@ -928,82 +930,139 @@
         }
 
         submitBtn.disabled = true;
-        submitBtn.textContent = mode === "signup" ? "Saving to MySQL..." : "Checking MySQL...";
+        submitBtn.textContent = mode === "signup" ? "Creating account..." : "Signing in...";
 
         const isRegister = (mode === "signup");
-        const endpoint = isRegister ? "/auth/register" : "/auth/login";
         const candidateName = name || email.split("@")[0].replace(/[._-]/g, " ");
         const formattedName = candidateName.charAt(0).toUpperCase() + candidateName.slice(1);
-        const payload = isRegister
-          ? { email: email, password: pass, full_name: formattedName }
-          : { email: email, password: pass };
 
-        const targetUrls = [
-          `http://127.0.0.1:8000${endpoint}`,
-          `http://127.0.0.1:3000${endpoint}`,
-          endpoint
-        ];
-
-        let successData = null;
+        let successUser = null;
         let lastErrorMsg = "";
 
-        for (const url of targetUrls) {
+        // 1. Authenticate with Supabase Auth (PostgreSQL)
+        const sbClient = window.JobNexSupabase ? window.JobNexSupabase.getClient() : null;
+        if (sbClient && sbClient.auth) {
           try {
-            const res = await fetch(url, {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify(payload)
-            });
-
-            if (res.ok) {
-              successData = await res.json();
-              break;
+            if (isRegister) {
+              const { data, error } = await sbClient.auth.signUp({
+                email: email,
+                password: pass,
+                options: {
+                  data: {
+                    full_name: formattedName,
+                    phone: "",
+                    role: "seeker"
+                  }
+                }
+              });
+              if (error) {
+                lastErrorMsg = error.message;
+              } else if (data && data.user) {
+                successUser = {
+                  id: data.user.id,
+                  email: data.user.email || email,
+                  full_name: formattedName,
+                  role: "JOB_SEEKER"
+                };
+              }
             } else {
-              const errBody = await res.json().catch(() => ({}));
-              if (res.status === 409) {
-                lastErrorMsg = "This email is already registered in MySQL. Click 'Login' below.";
-                break;
-              } else if (res.status === 401 || res.status === 403) {
-                lastErrorMsg = "Incorrect email or password. Please verify and try again.";
-                break;
-              } else {
-                lastErrorMsg = errBody.detail || errBody.message || `Server returned error (${res.status})`;
+              const { data, error } = await sbClient.auth.signInWithPassword({
+                email: email,
+                password: pass
+              });
+              if (error) {
+                lastErrorMsg = error.message;
+              } else if (data && data.user) {
+                const meta = data.user.user_metadata || {};
+                successUser = {
+                  id: data.user.id,
+                  email: data.user.email || email,
+                  full_name: meta.full_name || meta.name || formattedName,
+                  role: (meta.role || "seeker").toUpperCase() === "RECRUITER" ? "RECRUITER" : "JOB_SEEKER"
+                };
               }
             }
-          } catch (netErr) {
-            lastErrorMsg = "Backend server is not running (http://127.0.0.1:8000). Run 'python run.py' so data can be stored in MySQL.";
+          } catch (sbEx) {
+            console.warn("Supabase auth attempt:", sbEx.message);
           }
         }
 
-        if (!successData) {
+        // 2. Fallback to API if Supabase project keys are unconfigured or local demo mode
+        if (!successUser) {
+          const endpoint = isRegister ? "/auth/register" : "/auth/login";
+          const payload = isRegister
+            ? { email: email, password: pass, full_name: formattedName }
+            : { email: email, password: pass };
+
+          const targetUrls = [
+            `http://127.0.0.1:8000${endpoint}`,
+            `http://127.0.0.1:3000${endpoint}`,
+            endpoint
+          ];
+
+          for (const url of targetUrls) {
+            try {
+              const res = await fetch(url, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload)
+              });
+
+              if (res.ok) {
+                const sData = await res.json();
+                successUser = sData.user || {
+                  id: `u-${Date.now()}`,
+                  email: email,
+                  full_name: formattedName,
+                  role: "JOB_SEEKER"
+                };
+                if (sData.access_token) {
+                  localStorage.setItem("jobnex_access_token", sData.access_token);
+                }
+                break;
+              } else {
+                const errBody = await res.json().catch(() => ({}));
+                if (res.status === 409) {
+                  lastErrorMsg = "This email is already registered. Click 'Login' below.";
+                  break;
+                } else if (res.status === 401 || res.status === 403) {
+                  lastErrorMsg = "Incorrect email or password. Please verify and try again.";
+                  break;
+                } else {
+                  lastErrorMsg = errBody.detail || errBody.message || `Authentication error (${res.status})`;
+                }
+              }
+            } catch (netErr) {
+              lastErrorMsg = "Cannot connect to auth service. Please check your credentials.";
+            }
+          }
+        }
+
+        if (!successUser) {
           submitBtn.disabled = false;
           submitBtn.textContent = isRegister ? "Create account" : "Login";
-          showAuthError(lastErrorMsg);
+          showAuthError(lastErrorMsg || "Authentication failed.");
           return;
         }
 
-        // Successfully synced to MySQL!
+        // Character reaction: VICTORY DANCE on success!
         playSound("success");
-        if (successData.access_token) {
-          localStorage.setItem("jobnex_access_token", successData.access_token);
-        }
 
-        const userRecord = successData.user || {};
-        const displayName = userRecord.full_name || formattedName;
-        const avatarUrl = userRecord.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=2563eb&color=fff&bold=true`;
+        const displayName = successUser.full_name || formattedName;
+        const avatarUrl = successUser.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=2563eb&color=fff&bold=true`;
 
         if (window.JobNexAuth) {
           window.JobNexAuth.login({
-            id: String(userRecord.id || `u-${Date.now()}`),
+            id: String(successUser.id || `u-${Date.now()}`),
             name: displayName,
-            email: userRecord.email || email,
+            email: successUser.email || email,
             avatar: avatarUrl,
-            role: "JOB_SEEKER"
+            role: successUser.role || "JOB_SEEKER"
           });
         }
 
         toast.textContent = isRegister 
-          ? `Account stored in MySQL users table! Welcome, ${displayName}!`
+          ? `Account created! Welcome, ${displayName}!`
           : `Signed in as ${displayName}! Redirecting…`;
         toast.style.display = "block";
         submitBtn.textContent = "Redirecting...";
@@ -1021,6 +1080,29 @@
         }
         setTimeout(navigateToNext, 800);
       });
+
+      // Supabase Google OAuth handler
+      const btnGoogle = document.getElementById("btn-google");
+      if (btnGoogle) {
+        btnGoogle.addEventListener("click", async () => {
+          const sbClient = window.JobNexSupabase ? window.JobNexSupabase.getClient() : null;
+          if (sbClient && sbClient.auth) {
+            try {
+              const { error } = await sbClient.auth.signInWithOAuth({
+                provider: 'google',
+                options: {
+                  redirectTo: window.location.origin + (window.location.pathname.includes('/pages/') ? '/index.html' : '/index.html')
+                }
+              });
+              if (error) {
+                showAuthError(error.message);
+              }
+            } catch (ex) {
+              console.warn("Supabase Google OAuth fallback:", ex);
+            }
+          }
+        });
+      }
 
       const GOOGLE_CLIENT_ID = "530050814425-2hvfcnoba5ujoo0tsel740sru1meob4g.apps.googleusercontent.com";
 
@@ -1050,7 +1132,7 @@
         const userAvatar = payload.picture || `https://ui-avatars.com/api/?name=${encodeURIComponent(userName)}&background=2563eb&color=fff&bold=true`;
         const googleSub = payload.sub || "";
 
-        toast.textContent = `Welcome ${userName}! Saving your account to MySQL…`;
+        toast.textContent = `Welcome ${userName}! Signing in with Google…`;
         toast.style.display = "block";
 
         // Store immediately in JobNexAuth with user's real Google photo and email
@@ -1065,7 +1147,7 @@
           });
         }
 
-        // Persist to MySQL Workbench users and candidate_profiles tables
+        // Persist to Supabase profiles
         const syncPayload = {
           credential: response.credential,
           email: userEmail,

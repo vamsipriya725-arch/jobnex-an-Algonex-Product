@@ -1,6 +1,6 @@
 /**
  * JobNex - Resume Analysis & Privacy Script
- * Integrated with Google Gemini AI Studio (gemini-3.5-flash) and MySQL Workbench Storage.
+ * Integrated with Google Gemini AI Studio and Supabase Storage.
  * Supports live backend endpoints and seamless client-side direct Gemini API execution.
  */
 
@@ -351,7 +351,7 @@ Senior Software Engineer | TechNex Solutions (2022 - Present)
     return null;
   }
 
-  // Persist Analysis Record to MySQL Workbench Database
+  // Persist Analysis Record to Database
   async function persistAnalysisToMySQL(data, resumeText, jdText) {
     const currentUser = window.JobNexAuth?.getUser();
     const userEmail = currentUser?.email || "";
@@ -382,7 +382,7 @@ Senior Software Engineer | TechNex Solutions (2022 - Present)
         });
         if (resp.ok) {
           const resJson = await resp.json();
-          console.log("Saved to MySQL Workbench table resume_analyzer:", resJson);
+          console.log("Saved analysis record:", resJson);
           return resJson;
         }
       } catch (err) {
@@ -646,7 +646,7 @@ ${activeJd}
       lastTailoredResumeResult = analysisData;
       persistAnalysisToMySQL(analysisData, resume, activeJd);
       if (window.JobNexUtils) window.JobNexUtils.playSound("success");
-      showToast(`Analysis complete! Stored in MySQL Workbench (resume_analyzer) - Match: ${analysisData.matched_score}%`);
+      showToast(`Analysis complete! Stored in database - Match: ${analysisData.matched_score}%`);
 
       isAnalyzing = false;
       analyzeBtn.disabled = false;

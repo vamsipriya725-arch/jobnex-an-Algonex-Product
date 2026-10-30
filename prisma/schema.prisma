@@ -1,0 +1,74 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model Profile {
+  id           String        @id @default(uuid()) @db.Uuid
+  full_name    String?
+  email        String?
+  phone        String?
+  role         String?       @default("seeker")
+  avatar_url   String?
+  created_at   DateTime?     @default(now()) @db.Timestamptz(6)
+  applications Application[]
+  resumes      Resume[]
+
+  @@map("profiles")
+}
+
+model Job {
+  id              String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  title           String
+  company         String
+  location        String
+  work_mode       String?       @default("Office")
+  job_type        String?       @default("Full-time")
+  experience      String?
+  salary          String?       @default("Not disclosed")
+  skills          String[]      @default([])
+  education       String?
+  department      String?
+  openings        Int?          @default(1)
+  description     String
+  apply_last_date DateTime?     @db.Timestamptz(6)
+  apply_link      String?
+  status          String?       @default("Active")
+  created_at      DateTime?     @default(now()) @db.Timestamptz(6)
+  applications    Application[]
+
+  @@map("jobs")
+}
+
+model Application {
+  id         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id    String    @db.Uuid
+  job_id     String    @db.Uuid
+  job_title  String?
+  company    String?
+  status     String?   @default("APPLIED")
+  notes      String?
+  created_at DateTime? @default(now()) @db.Timestamptz(6)
+  user       Profile   @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  job        Job       @relation(fields: [job_id], references: [id], onDelete: Cascade)
+
+  @@unique([user_id, job_id])
+  @@map("applications")
+}
+
+model Resume {
+  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id     String    @db.Uuid
+  file_url    String
+  parsed_json Json?     @default("{}")
+  created_at  DateTime? @default(now()) @db.Timestamptz(6)
+  user        Profile   @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@map("resumes")
+}
+

@@ -36,14 +36,6 @@ ACCESS_TOKEN_MINUTES = int(os.getenv("ACCESS_TOKEN_MINUTES", "60"))
 GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID", "")
 GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET", "")
 
-# MySQL Workbench Connection Details
-DB_USER = os.getenv("DB_USER") or os.getenv("MYSQL_USER") or "root"
-raw_db_password = os.getenv("DB_PASSWORD") or os.getenv("MYSQL_PASSWORD") or "Algonex@2003"
-DB_PASSWORD = urllib.parse.quote_plus(raw_db_password)
-DB_HOST = os.getenv("DB_HOST") or os.getenv("MYSQL_HOST") or "127.0.0.1"
-DB_PORT = os.getenv("DB_PORT") or os.getenv("MYSQL_PORT") or "3306"
-DB_NAME = os.getenv("DB_NAME") or os.getenv("MYSQL_DATABASE") or "jobnex" 
-
 FRONTEND_ORIGINS = [
     "http://127.0.0.1:8000",
     "http://localhost:8000",
@@ -55,17 +47,27 @@ FRONTEND_ORIGINS = [
     "http://localhost:5501",
     "http://localhost:5173",
     "http://127.0.0.1:5173",
+    "*"
 ]
-DATABASE_URL = os.getenv(
-    "DATABASE_URL",
-    f"mysql+pymysql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}",
-)
 
-# ---------- Database ----------
-engine = create_engine(
-    DATABASE_URL,
-    connect_args={"check_same_thread": False} if DATABASE_URL.startswith("sqlite") else {"connect_timeout": int(os.getenv("DB_CONNECT_TIMEOUT", "2"))},
-)
+# Database Connection Details (PostgreSQL or SQLite auto-fallback)
+DB_PATH = Path(__file__).resolve().parent / "jobnex.db"
+raw_db_url = os.getenv("DATABASE_URL", "")
+
+if not raw_db_url or "[YOUR-PASSWORD]" in raw_db_url or "YOUR_PASSWORD" in raw_db_url:
+    DATABASE_URL = f"sqlite:///{DB_PATH}"
+else:
+    DATABASE_URL = raw_db_url
+
+try:
+    engine = create_engine(
+        DATABASE_URL,
+        connect_args={"check_same_thread": False} if DATABASE_URL.startswith("sqlite") else {"connect_timeout": int(os.getenv("DB_CONNECT_TIMEOUT", "2"))},
+    )
+except Exception:
+    DATABASE_URL = f"sqlite:///{DB_PATH}"
+    engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
+
 SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False)
 Base = declarative_base()
 
@@ -84,7 +86,13 @@ class User(Base):
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
 
-Base.metadata.create_all(bind=engine)
+try:
+    Base.metadata.create_all(bind=engine)
+except Exception:
+    DATABASE_URL = f"sqlite:///{DB_PATH}"
+    engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
+    SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False)
+    Base.metadata.create_all(bind=engine)
 
 
 def get_db():

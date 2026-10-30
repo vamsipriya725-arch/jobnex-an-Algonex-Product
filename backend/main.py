@@ -74,7 +74,7 @@ try:
 except Exception as e:
     logger.warning("Could not include resume_builder router: %s", e)
 
-# Mount Auth router (MySQL users table for register, login, me)
+# Mount Auth router (users table for register, login, me)
 try:
     if str(backend_dir.parent) not in sys.path:
         sys.path.insert(0, str(backend_dir.parent))
@@ -112,7 +112,7 @@ try:
     from application_dashboard import create_router as create_dashboard_router
     app.include_router(create_dashboard_router())
 except Exception as e:
-    logger.warning("Could not connect to MySQL for dashboard router: %s", e)
+    logger.warning("Could not initialize dashboard router: %s", e)
 
 # Mount Frontend static files for unified access
 try:
@@ -723,7 +723,7 @@ def get_daily_jobs(
         ) from error
 
 
-# Retrieve all registered users from MySQL Workbench
+# Retrieve all registered users from database / profiles
 @app.get("/api/users")
 def get_all_users():
     conn = None
@@ -738,14 +738,14 @@ def get_all_users():
                 u["created_at"] = str(u["created_at"])
         return {"success": True, "count": len(users), "users": users}
     except Exception as e:
-        logger.exception("Failed to query users from MySQL: %s", e)
+        logger.exception("Failed to query users: %s", e)
         raise HTTPException(status_code=500, detail=str(e))
     finally:
         if cur: cur.close()
         if conn and getattr(conn, "is_connected", lambda: True)(): conn.close()
 
 
-# Save resume analysis directly into MySQL Workbench table resume_analyzer
+# Save resume analysis record
 class SaveAnalysisRequest(BaseModel):
     user_email: Optional[str] = None
     resume_text: str
@@ -781,18 +781,18 @@ def save_analysis(req: SaveAnalysisRequest):
             "success": True,
             "id": cur.lastrowid,
             "user_email": req.user_email,
-            "message": "Analysis successfully stored in MySQL Workbench table resume_analyzer",
+            "message": "Analysis successfully stored in database",
         }
     except Exception as e:
         if conn: conn.rollback()
-        logger.exception("Failed to save analysis to MySQL: %s", e)
+        logger.exception("Failed to save analysis: %s", e)
         raise HTTPException(status_code=500, detail=str(e))
     finally:
         if cur: cur.close()
         if conn and getattr(conn, "is_connected", lambda: True)(): conn.close()
 
 
-# Manage Candidate Profiles in MySQL
+# Manage Candidate Profiles
 class CandidateProfileIn(BaseModel):
     user_id: int = 1
     title: Optional[str] = "Full Stack Engineer"
@@ -826,10 +826,17 @@ def save_candidate_profile(p: CandidateProfileIn):
             p.user_id, p.title, p.bio, p.location, p.years_experience, p.resume_url, json.dumps(p.skills)
         ))
         conn.commit()
-        return {"success": True, "message": "Candidate profile saved to MySQL candidate_profiles"}
+        return {"success": True, "message": "Candidate profile saved successfully"}
     except Exception as e:
         if conn: conn.rollback()
         raise HTTPException(status_code=500, detail=str(e))
     finally:
         if cur: cur.close()
         if conn and getattr(conn, "is_connected", lambda: True)(): conn.close()
+@app.get("/api/config/supabase")
+def get_supabase_public_config():
+    """Returns public Supabase URL and ANON Key. Never exposes Service Role Key."""
+    return {
+        "supabase_url": os.getenv("SUPABASE_URL", "https://your-project-id.supabase.co"),
+        "supabase_anon_key": os.getenv("SUPABASE_ANON_KEY", "your_supabase_anon_key_here")
+    }

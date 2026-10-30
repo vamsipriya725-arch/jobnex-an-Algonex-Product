@@ -644,7 +644,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const user = getCurrentUser();
 
     try {
-      // 1. Call Backend API to compute dynamic course recommendations & persist to MySQL
+      // 1. Call Backend API to compute dynamic course recommendations
       const response = await fetch("/api/resources/recommend", {
         method: "POST",
         headers: { "Content-Type": "application/json" },

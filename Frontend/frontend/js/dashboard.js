@@ -110,7 +110,7 @@ document.addEventListener("DOMContentLoaded", () => {
           <td colspan="6" class="py-12 text-center text-slate-500">
             <div class="inline-flex items-center gap-2">
               <span class="w-4 h-4 border-2 border-brand-600 border-t-transparent rounded-full animate-spin"></span>
-              <span>Loading applications from MySQL Database...</span>
+              <span>Loading applications...</span>
             </div>
           </td>
         </tr>
@@ -128,7 +128,7 @@ document.addEventListener("DOMContentLoaded", () => {
         <tr>
           <td colspan="6" class="py-12 text-center text-slate-600">
             <p class="font-bold text-slate-800 text-sm">No applications found under "${activeTab}"</p>
-            <p class="text-xs text-slate-400 mt-1">Applications stored in your local MySQL database will appear here.</p>
+            <p class="text-xs text-slate-400 mt-1">Your submitted applications will appear here.</p>
           </td>
         </tr>
       `;
@@ -233,7 +233,7 @@ document.addEventListener("DOMContentLoaded", () => {
           const newStage = btn.getAttribute("data-stage");
           selectedApp.status = newStage;
 
-          // Sync stage update to MySQL database
+          // Sync stage update
           try {
             await fetch(`/api/applications/${selectedApp.id}/status`, {
               method: "PUT",
@@ -241,7 +241,7 @@ document.addEventListener("DOMContentLoaded", () => {
               body: JSON.stringify({ status: newStage, notes: `Stage updated to ${newStage}` }),
             });
           } catch (err) {
-            console.warn("Failed to persist status change to MySQL:", err);
+            console.warn("Failed to persist status change:", err);
           }
 
           // Add timeline entry
@@ -308,7 +308,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // Fetch live applications from MySQL database via Express API
+  // Fetch live applications via API
   async function loadApplications() {
     isLoading = true;
     renderTable();

@@ -1,7 +1,6 @@
 fastapi>=0.115.0
 uvicorn>=0.30.0
 pydantic>=2.0.0
-mysql-connector-python>=8.0.0
 python-dotenv>=1.0.0
 google-genai>=0.1.0
 requests
@@ -15,6 +14,7 @@ beautifulsoup4>=4.12.0
 bcrypt
 PyJWT
 google-auth
-sqlalchemy
-pymysql
+supabase>=2.0.0
 python-multipart>=0.0.12
+psycopg2-binary>=2.9.0
+psycopg>=3.1.0

@@ -170,7 +170,7 @@ document.addEventListener("DOMContentLoaded", () => {
           reason: `Matched ${regionSelect ? regionSelect.value : "Global"} criteria (${minMatch}% threshold)`,
         });
 
-        // Persist application to MySQL Workbench under user's email
+        // Persist application
         const appPayload = {
           user_id: user?.email || user?.id || "1",
           user_email: user?.email || "",
@@ -191,7 +191,7 @@ document.addEventListener("DOMContentLoaded", () => {
         renderLogs();
         if (window.JobNexUtils) window.JobNexUtils.playSound("success");
         showNotification(
-          `Auto-apply queue processed! Applications saved to MySQL Workbench (job_applications)!`
+          `Auto-apply queue processed! Applications saved successfully!`
         );
       }, 1400);
     });

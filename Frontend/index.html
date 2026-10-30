@@ -1003,7 +1003,7 @@
         }
 
         submitBtn.disabled = true;
-        submitBtn.textContent = mode === "signup" ? "Saving to MySQL..." : "Checking MySQL...";
+        submitBtn.textContent = mode === "signup" ? "Creating account..." : "Signing in...";
 
         const isRegister = (mode === "signup");
         const endpoint = isRegister ? "/auth/register" : "/auth/login";
@@ -1040,7 +1040,7 @@
             } else {
               const errBody = await res.json().catch(() => ({}));
               if (res.status === 409) {
-                lastErrorMsg = "This email is already registered in MySQL. Click 'Login' below.";
+                lastErrorMsg = "This email is already registered. Click 'Login' below.";
                 break;
               } else if (res.status === 401 || res.status === 403) {
                 lastErrorMsg = "Incorrect email or password. Please verify and try again.";
@@ -1050,7 +1050,7 @@
               }
             }
           } catch (netErr) {
-            lastErrorMsg = "Backend server is not running on port 8000. Start it with 'python run.py' to store data in MySQL.";
+            lastErrorMsg = "Backend server is not running on port 8000. Start it with 'python run.py'.";
           }
         }
 
@@ -1079,7 +1079,7 @@
         localStorage.setItem("jobnex_is_logged_in", "true");
 
         toast.textContent = isRegister
-          ? `Account saved in MySQL users table! Welcome, ${displayName}!`
+          ? `Account created! Welcome, ${displayName}!`
           : `Signed in as ${displayName}! Redirecting…`;
         toast.style.display = "block";
         submitBtn.textContent = "Redirecting...";

@@ -9,7 +9,7 @@ Features:
 - Admin DELETE /api/jobs/{id} (Delete job)
 - Admin POST /api/jobs/bulk (Bulk CSV / JSON upload with row validation)
 - Admin GET /api/jobs/template (Download sample CSV template)
-- Dual storage: MySQL table with auto-fallback to SQLite (jobs.db)
+- Dual storage: Supabase with auto-fallback to SQLite (jobs.db)
 """
 import io
 import csv
@@ -32,7 +32,7 @@ SQLITE_DB_PATH = Path(__file__).resolve().parent / "jobs.db"
 
 
 # --------------------------------------------------------------------------
-# Database Initialization & Helpers (MySQL with SQLite Auto-Fallback)
+# Database Initialization & Helpers (Supabase with SQLite Auto-Fallback)
 # --------------------------------------------------------------------------
 def _get_sqlite_conn():
     conn = sqlite3.connect(str(SQLITE_DB_PATH), check_same_thread=False)
@@ -41,7 +41,7 @@ def _get_sqlite_conn():
 
 
 def init_db():
-    """Initializes the jobs table in MySQL if connected, else in SQLite."""
+    """Initializes the jobs table in Supabase if connected, else in SQLite."""
     table_sql = """
     CREATE TABLE IF NOT EXISTS job_postings (
         id VARCHAR(64) PRIMARY KEY,
@@ -69,20 +69,14 @@ def init_db():
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
     """
-    # 1. Try MySQL
-    mysql_ok = False
+    # 1. Verify Supabase connection if configured
     try:
-        from database import get_connection
-        conn = get_connection()
-        cursor = conn.cursor()
-        cursor.execute(table_sql)
-        conn.commit()
-        cursor.close()
-        conn.close()
-        mysql_ok = True
-        logger.info("[Jobs] MySQL table verified successfully.")
+        from supabase_client import get_supabase
+        sb = get_supabase()
+        if sb:
+            logger.info("[Jobs] Supabase client verified for jobs management.")
     except Exception as e:
-        logger.info("[Jobs] MySQL unavailable (%s), using SQLite fallback.", e)
+        logger.info("[Jobs] Supabase not active (%s), using SQLite fallback.", e)
 
     # 2. Always ensure SQLite table exists for instant fallback
     try:
@@ -567,17 +561,29 @@ def create_job(
             conn.execute(insert_sql, params)
             conn.commit()
 
-        # Also mirror to MySQL if available
+        # Also mirror to Supabase if configured
         try:
-            from database import get_connection
-            m_conn = get_connection()
-            m_cur = m_conn.cursor()
-            m_cur.execute(insert_sql.replace("?", "%s"), params)
-            m_conn.commit()
-            m_cur.close()
-            m_conn.close()
-        except Exception:
-            pass
+            from supabase_client import get_supabase
+            sb = get_supabase()
+            if sb:
+                sb.table("jobs").upsert({
+                    "id": job_id,
+                    "title": job.title,
+                    "company": job.company,
+                    "location": ", ".join(job.locations),
+                    "work_mode": job.work_mode,
+                    "job_type": job.job_type,
+                    "experience": f"{job.exp_min}-{job.exp_max} years",
+                    "salary": job.salary_range,
+                    "skills": job.key_skills,
+                    "education": job.education,
+                    "department": job.department,
+                    "openings": job.openings,
+                    "description": job.description,
+                    "status": job.status,
+                }).execute()
+        except Exception as se:
+            logger.warning("[Jobs] Supabase mirror sync: %s", se)
 
         return {
             "status": "success",
@@ -634,17 +640,28 @@ def update_job(
             if cur.rowcount == 0:
                 raise HTTPException(status_code=404, detail=f"Job posting '{job_id}' not found.")
 
-        # Mirror update to MySQL if available
+        # Mirror update to Supabase if configured
         try:
-            from database import get_connection
-            m_conn = get_connection()
-            m_cur = m_conn.cursor()
-            m_cur.execute(update_sql.replace("?", "%s"), params)
-            m_conn.commit()
-            m_cur.close()
-            m_conn.close()
-        except Exception:
-            pass
+            from supabase_client import get_supabase
+            sb = get_supabase()
+            if sb:
+                sb.table("jobs").update({
+                    "title": job.title,
+                    "company": job.company,
+                    "location": ", ".join(job.locations),
+                    "work_mode": job.work_mode,
+                    "job_type": job.job_type,
+                    "experience": f"{job.exp_min}-{job.exp_max} years",
+                    "salary": job.salary_range,
+                    "skills": job.key_skills,
+                    "education": job.education,
+                    "department": job.department,
+                    "openings": job.openings,
+                    "description": job.description,
+                    "status": job.status,
+                }).eq("id", job_id).execute()
+        except Exception as se:
+            logger.warning("[Jobs] Supabase mirror update: %s", se)
 
         return {
             "status": "success",
@@ -679,15 +696,12 @@ def delete_job(
                 raise HTTPException(status_code=404, detail=f"Job posting '{job_id}' not found.")
 
         try:
-            from database import get_connection
-            m_conn = get_connection()
-            m_cur = m_conn.cursor()
-            m_cur.execute("DELETE FROM job_postings WHERE id = %s", (job_id,))
-            m_conn.commit()
-            m_cur.close()
-            m_conn.close()
-        except Exception:
-            pass
+            from supabase_client import get_supabase
+            sb = get_supabase()
+            if sb:
+                sb.table("jobs").delete().eq("id", job_id).execute()
+        except Exception as se:
+            logger.warning("[Jobs] Supabase mirror delete: %s", se)
 
         return {
             "status": "success",

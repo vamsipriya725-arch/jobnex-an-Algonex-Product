@@ -131,7 +131,7 @@ document.addEventListener("DOMContentLoaded", () => {
           }
           return data;
         } else if (res.status === 409 && isRegister) {
-          // If already registered in MySQL, log them in
+          // If already registered, log them in
           return await syncWithBackendAuth(email, password, name, chosenRole, false);
         }
       } catch (err) {
@@ -144,7 +144,7 @@ document.addEventListener("DOMContentLoaded", () => {
   async function loginAndRedirect(name, email, chosenRole, password, isRegister = false) {
     hideError();
     if (btnSubmitText) {
-      btnSubmitText.textContent = isRegister ? "Saving to MySQL..." : "Authenticating MySQL...";
+      btnSubmitText.textContent = isRegister ? "Creating account..." : "Signing in...";
     }
 
     const backendUser = await syncWithBackendAuth(email, password, name, chosenRole, isRegister);
@@ -186,7 +186,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (soundEnabled && window.JobNexUtils) window.JobNexUtils.playSound("success");
     if (window.JobNexUtils) {
       window.JobNexUtils.showToast(
-        `User synced in MySQL Workbench (users table)! Welcome, ${name}!`,
+        `Welcome, ${name}!`,
         "success"
       );
     }
@@ -212,7 +212,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // Demos (persist users into MySQL Workbench users table)
+  // Demos
   if (demoSandeep) {
     demoSandeep.addEventListener("click", () => {
       inputEmail.value = "candidate@jobnex.ai";

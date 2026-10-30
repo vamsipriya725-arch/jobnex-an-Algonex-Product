@@ -1,0 +1,21 @@
+{
+  "name": "jobnex",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "cd Frontend && vite dev",
+    "build": "cd Frontend && vite build",
+    "start": "python run.py",
+    "prisma:generate": "prisma generate",
+    "prisma:push": "prisma db push"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.118.0",
+    "@supabase/ssr": "^0.5.2",
+    "@supabase/server": "^0.1.0",
+    "@prisma/client": "^6.4.1"
+  },
+  "devDependencies": {
+    "prisma": "^6.4.1"
+  }
+}

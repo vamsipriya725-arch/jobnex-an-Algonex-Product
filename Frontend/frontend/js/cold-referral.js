@@ -122,7 +122,7 @@ document.addEventListener("DOMContentLoaded", () => {
           sentAt: "Just now",
         });
 
-        // Persist referral to MySQL Workbench table referral_emails
+        // Persist referral
         fetch("/api/referrals", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -142,7 +142,7 @@ document.addEventListener("DOMContentLoaded", () => {
         if (window.JobNexUtils) window.JobNexUtils.playSound("success");
 
         if (confirmBanner && confirmText) {
-          confirmText.textContent = `Confirmation message -> Email sent to ${recEmail} with ${resumeName} attached & stored in MySQL!`;
+          confirmText.textContent = `Confirmation message -> Email sent to ${recEmail} with ${resumeName} attached & stored!`;
           confirmBanner.classList.remove("hidden");
           setTimeout(() => {
             confirmBanner.classList.add("hidden");

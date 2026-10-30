@@ -4,6 +4,7 @@ Provides full per-user resume JSON persistence, active flag management,
 readiness evaluation, and undo-friendly state synchronization.
 """
 from __future__ import annotations
+import asyncio
 
 import hashlib
 import json
@@ -242,21 +243,24 @@ def init_resume_table():
                 id VARCHAR(64) PRIMARY KEY,
                 user_id VARCHAR(100) NOT NULL,
                 name VARCHAR(255) NOT NULL DEFAULT 'Untitled Resume',
-                is_active BOOLEAN NOT NULL DEFAULT FALSE,
+                is_active BOOLEAN NOT NULL DEFAULT 0,
                 readiness_score INT NOT NULL DEFAULT 0,
                 readiness_label VARCHAR(50) NOT NULL DEFAULT 'Poor',
-                content LONGTEXT NOT NULL,
+                content TEXT NOT NULL,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-                INDEX idx_user_id (user_id),
-                INDEX idx_user_active (user_id, is_active)
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
             """
         )
+        try:
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_resumes_user_id ON resumes(user_id)")
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_resumes_user_active ON resumes(user_id, is_active)")
+        except Exception:
+            pass
         conn.commit()
         cursor.close()
         conn.close()
-        logger.info("Resumes MySQL table verified.")
+        logger.info("Resumes table verified.")
     except Exception as e:
         logger.error("Failed to initialize resumes table: %s", e)
 
@@ -494,8 +498,8 @@ def create_resume(
 
         cursor.execute(
             """
-            INSERT INTO resumes (id, user_id, name, is_active, readiness_score, readiness_label, content)
-            VALUES (%s, %s, %s, %s, %s, %s, %s)
+            INSERT INTO resumes (id, user_id, name, is_active, readiness_score, readiness_label, content, file_url, parsed_json)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
             """,
             (
                 new_resume.id,
@@ -504,6 +508,8 @@ def create_resume(
                 new_resume.is_active,
                 new_resume.readiness_score,
                 new_resume.readiness_label,
+                raw_json,
+                f"/api/resumes/download/{new_resume.id}",
                 raw_json,
             ),
         )
@@ -3452,8 +3458,8 @@ async def run_upload_pipeline(job_id: str, temp_path: Path, filename: str, user_
 
         cursor.execute(
             """
-            INSERT INTO resumes (id, user_id, name, is_active, readiness_score, readiness_label, content)
-            VALUES (%s, %s, %s, %s, %s, %s, %s)
+            INSERT INTO resumes (id, user_id, name, is_active, readiness_score, readiness_label, content, file_url, parsed_json)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
             """,
             (
                 resume_obj.id,
@@ -3462,6 +3468,8 @@ async def run_upload_pipeline(job_id: str, temp_path: Path, filename: str, user_
                 resume_obj.is_active,
                 resume_obj.readiness_score,
                 resume_obj.readiness_label,
+                resume_obj.model_dump_json(),
+                f"/api/resumes/download/{resume_obj.id}",
                 resume_obj.model_dump_json(),
             ),
         )

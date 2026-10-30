@@ -107,21 +107,25 @@ const Auth = {
   logout() {
     try {
       localStorage.setItem("jobnex_is_logged_in", "false");
+      if (window.JobNexSupabase) {
+        const client = window.JobNexSupabase.getClient();
+        if (client && client.auth) {
+          client.auth.signOut().catch(() => {});
+        }
+      }
     } catch (e) {}
     if (typeof updateNavbarUser === "function") {
       updateNavbarUser();
     }
-    showToast("Signed out successfully.");
+    if (typeof showToast === "function") {
+      showToast("Signed out successfully.");
+    }
   },
 
-  // Initialize optional Supabase CDN client
+  // Initialize Supabase CDN client
   getSupabase() {
-    if (window.supabaseClient) return window.supabaseClient;
-    if (typeof supabase !== "undefined" && supabase.createClient) {
-      const url = "https://mock.supabase.co";
-      const key = "sb_publishable_mock_local_client_key";
-      window.supabaseClient = supabase.createClient(url, key);
-      return window.supabaseClient;
+    if (window.JobNexSupabase) {
+      return window.JobNexSupabase.getClient();
     }
     return null;
   }
