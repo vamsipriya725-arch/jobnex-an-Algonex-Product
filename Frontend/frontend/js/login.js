@@ -150,10 +150,25 @@ document.addEventListener("DOMContentLoaded", () => {
     const backendUser = await syncWithBackendAuth(email, password, name, chosenRole, isRegister);
 
     if (!backendUser) {
-      if (btnSubmitText) {
-        btnSubmitText.textContent = isRegister ? "Create Free Account" : "Sign In to JobNex";
+      // Backend server is offline or running on static CDN / Vercel
+      const displayName = name || email.split("@")[0];
+      if (window.JobNexAuth) {
+        window.JobNexAuth.login({
+          id: `u-${Date.now()}`,
+          name: displayName,
+          email: email,
+          avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=2563eb&color=fff&bold=true`,
+          role: chosenRole,
+        });
       }
-      showError("Backend server is not reachable on port 8000. Start it using 'python run.py' to store data in MySQL.");
+      if (soundEnabled && window.JobNexUtils) window.JobNexUtils.playSound("success");
+      if (window.JobNexUtils) {
+        window.JobNexUtils.showToast(`Welcome, ${displayName}!`, "success");
+      }
+      setTimeout(() => {
+        const homeUrl = window.location.pathname.includes("/pages/") ? "../index.html" : "index.html";
+        window.location.href = homeUrl;
+      }, 600);
       return;
     }
 

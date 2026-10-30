@@ -1,0 +1,38 @@
+{
+  "version": 2,
+  "cleanUrls": true,
+  "rewrites": [
+    {
+      "source": "/",
+      "destination": "/Frontend/frontend/index.html"
+    },
+    {
+      "source": "/frontend/(.*)",
+      "destination": "/Frontend/frontend/$1"
+    },
+    {
+      "source": "/pages/(.*)",
+      "destination": "/Frontend/frontend/pages/$1"
+    },
+    {
+      "source": "/js/(.*)",
+      "destination": "/Frontend/frontend/js/$1"
+    },
+    {
+      "source": "/css/(.*)",
+      "destination": "/Frontend/frontend/css/$1"
+    },
+    {
+      "source": "/assets/(.*)",
+      "destination": "/Frontend/frontend/assets/$1"
+    },
+    {
+      "source": "/components/(.*)",
+      "destination": "/Frontend/frontend/components/$1"
+    },
+    {
+      "source": "/data/(.*)",
+      "destination": "/Frontend/frontend/data/$1"
+    }
+  ]
+}
