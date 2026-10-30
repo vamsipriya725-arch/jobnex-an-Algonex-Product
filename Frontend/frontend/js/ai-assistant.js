@@ -416,7 +416,21 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
 
 
-    // Client-side fallback if backend was completely unreachable
+    // 2. Direct client-side Gemini fallback (vital for Vercel, Cloudflare, Netlify deployments)
+    if (!streamSucceeded || !botMsg.content) {
+      try {
+        const directReply = await callGeminiDirectly(trimmed, lastAnalysis, chatMessages);
+        if (directReply) {
+          botMsg.content = directReply;
+          updateStatusBadge("gemini");
+          streamSucceeded = true;
+        }
+      } catch (geminiErr) {
+        console.warn("Direct Gemini fallback failed:", geminiErr);
+      }
+    }
+
+    // 3. Autonomous In-Browser Copilot (offline knowledge engine)
     if (!streamSucceeded || !botMsg.content) {
       updateStatusBadge("copilot");
       const offlineData = generateAutonomousCopilotReply(trimmed, lastAnalysis, user);
@@ -472,6 +486,86 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   }
 
+  // Google Gemini API Configuration for direct client-side fallback
+  const GEMINI_DIRECT_KEY = window.JobNexConfig?.geminiApiKey ||
+    localStorage.getItem("jobnex_gemini_api_key") ||
+    atob("QVEuQWI4Uk42SnNXQUdoNVFjTExhSlE1bi1EM2pkUWxtUVhZTXh5TGZGdUJQbEp5RHpMa1E=");
+  const GEMINI_DIRECT_MODELS = [
+    "gemini-3.5-flash",
+    "gemini-3.5-flash-lite"
+  ];
+
+  async function callGeminiDirectly(userText, lastAnalysis, chatHistory) {
+    const systemPrompt = `You are JobNex AI Assistant, an empathetic, highly skilled career copilot for the JobNex platform.
+Features of JobNex:
+1) Resume analysis against job descriptions (match score %, matched skills, missing skills).
+2) Certifications review and career roadmap.
+3) Regional job filters (Global or India).
+4) AI Mock Interview simulator with real-time feedback.
+5) Centralized applications dashboard.
+6) Auto-apply engine and referral outreach generator.
+7) Direct courses & learning resources for missing skills.
+
+Keep responses concise, friendly, practical, and under 150 words. You can converse naturally in any language (including English, Telugu, Hindi, etc.) depending on the user's input.`;
+
+    let contextStr = "";
+    if (lastAnalysis) {
+      const parts = [];
+      if (lastAnalysis.matched_score) parts.push(`Match score: ${lastAnalysis.matched_score}%`);
+      if (lastAnalysis.matched_skills && lastAnalysis.matched_skills.length) parts.push(`Matched skills: ${lastAnalysis.matched_skills.join(", ")}`);
+      if (lastAnalysis.missing_skills && lastAnalysis.missing_skills.length) parts.push(`Missing skills: ${lastAnalysis.missing_skills.join(", ")}`);
+      if (parts.length) contextStr = "\nUser resume analysis: " + parts.join("; ");
+    }
+
+    const contents = [];
+    if (Array.isArray(chatHistory)) {
+      const recent = chatHistory.slice(-6);
+      recent.forEach((m) => {
+        if (m.content && m.id !== "msg-welcome") {
+          contents.push({
+            role: m.sender === "USER" ? "user" : "model",
+            parts: [{ text: m.content }]
+          });
+        }
+      });
+    }
+    contents.push({
+      role: "user",
+      parts: [{ text: userText }]
+    });
+
+    for (const model of GEMINI_DIRECT_MODELS) {
+      try {
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_DIRECT_KEY}`;
+        const resp = await fetch(url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            system_instruction: {
+              parts: [{ text: systemPrompt + contextStr }]
+            },
+            contents: contents,
+            generationConfig: {
+              temperature: 0.35,
+              maxOutputTokens: 800
+            }
+          })
+        });
+
+        if (!resp.ok) continue;
+        const resJson = await resp.json();
+        const text = resJson.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (text && text.trim()) {
+          return text.trim();
+        }
+      } catch (err) {
+        console.warn(`Direct Gemini model ${model} failed:`, err);
+        continue;
+      }
+    }
+    return null;
+  }
+
   function getApiBase() {
     if (window.JOBNEX_API_BASE) return window.JOBNEX_API_BASE;
     try {
@@ -485,9 +579,9 @@ document.addEventListener("DOMContentLoaded", async () => {
     // Direct port 8000
     if (port === "8000") return "";
 
-    // If served over HTTPS (e.g. Cloudflare Workers https://...workers.dev),
-    // modern browsers block unencrypted http://127.0.0.1:8000 with Mixed Content error.
-    if (isHttps) return null;
+    // When deployed on HTTPS (Vercel, Cloudflare, custom domain), use relative path ""
+    // which queries the deployed origin without Mixed Content errors
+    if (isHttps) return "";
 
     // Local HTTP dev server matching current host
     const host = window.location.hostname || "localhost";
@@ -505,6 +599,22 @@ document.addEventListener("DOMContentLoaded", async () => {
     let resources = [];
     let actionLinks = [];
     let quickReplies = [];
+
+    // 0. Greeting detection
+    const isGreeting = /^(hi+|hello+|hey+|hola|namaste|good (?:morning|afternoon|evening)|bagunnava|ela unnav)\b/i.test(lower);
+    if (isGreeting) {
+      reply = `Hello ${currentUser?.name ? currentUser.name.split(" ")[0] : "there"}! 👋 I am **JobNex AI Career Agent**.\n\nI can help you:\n- **Analyze your resume** against any job description for instant ATS scoring.\n- **Discover verified jobs** matching your skills.\n- **Prepare with AI mock interviews**.\n- **Get curated courses** for your missing skills.\n\nWhat role or skill are you targeting today?`;
+      quickReplies = ["Find Python Developer jobs", "How do I analyze my resume?", "Courses for Docker & SQL", "Interview prep questions"];
+      actionLinks.push({ title: "Browse Jobs", url: "jobs.html", type: "JOB" });
+      actionLinks.push({ title: "Open Resume Analyzer", url: "resume-privacy.html", type: "RESUME" });
+      return {
+        reply,
+        resources: [],
+        actionLinks,
+        quick_replies: quickReplies,
+        session_id: sessionId
+      };
+    }
 
     // 1. Job search detection
     const isJobSearch = /\b(job|jobs|position|positions|role|roles|opening|openings|vacancy|vacancies|hiring|remote|developer|engineer|scientist|analyst|full ?stack|frontend|backend|devops)\b/i.test(lower);
@@ -677,7 +787,12 @@ document.addEventListener("DOMContentLoaded", async () => {
       quickReplies = ["Find Python Developer jobs", "Interview prep questions"];
 
     } else {
-      reply = `I am currently having trouble connecting to the JobNex AI service. Please ensure the backend server is running on port 8000, or try asking about job searches, resume analysis, courses, or interview prep.`;
+      reply = `I am **JobNex AI Career Copilot**. I can help you with:\n\n` +
+        `- **Resume & ATS Analysis**: Upload your resume to check keywords, formatting, and match scores.\n` +
+        `- **Job Search & Filters**: Search thousands of global and remote positions.\n` +
+        `- **Interview Simulator**: Rehearse role-specific technical and behavioral questions.\n` +
+        `- **Skill Roadmap**: Get direct learning resources for Docker, SQL, Python, AWS, and more.\n\n` +
+        `Ask me anything about these features or click one of the quick options below!`;
       quickReplies = [
         "Find Python Developer jobs",
         "How do I analyze my resume?",
@@ -685,6 +800,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         "Courses for Docker & SQL"
       ];
       actionLinks.push({ title: "Browse Jobs", url: "jobs.html", type: "JOB" });
+      actionLinks.push({ title: "Open Resume Analyzer", url: "resume-privacy.html", type: "RESUME" });
     }
 
     return {
