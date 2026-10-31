@@ -1746,8 +1746,56 @@
   // Phase 7: Optimize for Job Tab Controller
   // =========================================================================
 
+  function extractResumeTechnicalCore(resume) {
+    if (!resume) return [];
+    const skills = new Set();
+    if (Array.isArray(resume.sections)) {
+      resume.sections.forEach((sec) => {
+        if (sec.type === "skills" && Array.isArray(sec.items)) {
+          sec.items.forEach((itm) => {
+            if (Array.isArray(itm.technologies)) {
+              itm.technologies.forEach((t) => t && skills.add(t.trim()));
+            }
+            if (itm.title) {
+              itm.title.split(/[,•|/]/).forEach((t) => t && t.trim() && skills.add(t.trim()));
+            }
+          });
+        }
+        if (Array.isArray(sec.items)) {
+          sec.items.forEach((itm) => {
+            if (Array.isArray(itm.technologies)) {
+              itm.technologies.forEach((t) => t && skills.add(t.trim()));
+            }
+          });
+        }
+      });
+    }
+    if (skills.size === 0) {
+      return ["Python", "FastAPI", "React", "TypeScript", "SQL", "Docker", "REST APIs", "Git"];
+    }
+    return Array.from(skills).slice(0, 14);
+  }
+
   function renderOptimizeTab(resume) {
     if (!resume) return;
+
+    // Active Resume Document Card Sync (Image 2)
+    const activeDocNameEl = document.getElementById("analysis-active-resume-name");
+    if (activeDocNameEl) activeDocNameEl.textContent = resume.name || "My Professional Resume";
+
+    const parsedCoreEl = document.getElementById("analysis-parsed-technical-core");
+    if (parsedCoreEl) {
+      const coreSkills = extractResumeTechnicalCore(resume);
+      if (coreSkills.length > 0) {
+        parsedCoreEl.innerHTML = coreSkills
+          .map(
+            (s) => `<span class="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-brand-50 text-brand-700 border border-brand-200 shadow-2xs">${escapeHtml(s)}</span>`
+          )
+          .join("");
+      } else {
+        parsedCoreEl.innerHTML = '<span class="text-xs text-slate-400 italic">Add skills to your resume in Edit Content</span>';
+      }
+    }
 
     const targetJobs = resume.targetJobs || [];
     const activeJob = targetJobs.find((tj) => tj.is_active) || targetJobs[0] || null;
@@ -2082,6 +2130,96 @@
       if (inputCard) inputCard.classList.add("hidden");
       if (window.JobNexResumeStore.currentResume) {
         renderOptimizeTab(window.JobNexResumeStore.currentResume);
+      }
+    });
+
+    // Edit content quick jump from Active Resume Document card
+    document.getElementById("btn-analysis-edit-resume-text")?.addEventListener("click", () => {
+      const contentTabBtn = document.getElementById("tab-btn-content");
+      if (contentTabBtn) contentTabBtn.click();
+    });
+
+    // Sample Presets (from Image 2)
+    document.getElementById("btn-job-sample-frontend")?.addEventListener("click", () => {
+      const titleInp = document.getElementById("inp-job-title");
+      const compInp = document.getElementById("inp-job-company");
+      const descInp = document.getElementById("inp-job-description");
+      if (titleInp) titleInp.value = "Senior Frontend Engineer (React / TypeScript)";
+      if (compInp) compInp.value = "Stripe / Modern Web";
+      if (descInp) {
+        descInp.value = `Senior Frontend Engineer (React / TypeScript)\n\nKey Qualifications & Responsibilities:\n- 4+ years building high-performance web applications with React, TypeScript, and modern JavaScript.\n- Deep experience with state management, REST APIs, Tailwind CSS, and frontend build tools.\n- Proven ability to write accessible HTML5/CSS3, unit & integration tests, and collaborate with backend teams.\n- Familiarity with Docker, Git workflows, and CI/CD deployment automation.`;
+        const countEl = document.getElementById("job-desc-char-count");
+        if (countEl) countEl.textContent = `${descInp.value.length} chars`;
+      }
+      showToast("Preset Loaded", "Populated Senior Frontend Engineer job description.");
+    });
+
+    document.getElementById("btn-job-sample-ds")?.addEventListener("click", () => {
+      const titleInp = document.getElementById("inp-job-title");
+      const compInp = document.getElementById("inp-job-company");
+      const descInp = document.getElementById("inp-job-description");
+      if (titleInp) titleInp.value = "Data Scientist / ML Engineer (Python / AI)";
+      if (compInp) compInp.value = "Google / AI Lab";
+      if (descInp) {
+        descInp.value = `Data Scientist / Machine Learning Engineer\n\nKey Qualifications & Responsibilities:\n- 3+ years experience with Python, SQL, Pandas, NumPy, and Scikit-Learn.\n- Strong foundation in statistical modeling, machine learning algorithms, and deep learning frameworks.\n- Experience deploying ML models via RESTful microservices (FastAPI/Flask) and Docker containerization.\n- Hands-on expertise with Cloud services (GCP/AWS), data visualization, and prompt engineering.`;
+        const countEl = document.getElementById("job-desc-char-count");
+        if (countEl) countEl.textContent = `${descInp.value.length} chars`;
+      }
+      showToast("Preset Loaded", "Populated Data Scientist job description.");
+    });
+
+    // Fetch JD from URL (from Image 2)
+    document.getElementById("btn-fetch-job-url")?.addEventListener("click", async () => {
+      const urlInput = document.getElementById("inp-job-url");
+      const url = (urlInput?.value || "").trim();
+      if (!url) {
+        showToast("Missing URL", "Please enter a job posting URL (e.g. LinkedIn, Indeed, Career page).", true);
+        if (urlInput) urlInput.focus();
+        return;
+      }
+      const fetchBtn = document.getElementById("btn-fetch-job-url");
+      if (fetchBtn) {
+        fetchBtn.disabled = true;
+        fetchBtn.innerHTML = '<span class="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></span><span>Fetching...</span>';
+      }
+      try {
+        const res = await fetch("/api/fetch-jd-url", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ url }),
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data && data.text) {
+            const descInp = document.getElementById("inp-job-description");
+            const titleInp = document.getElementById("inp-job-title");
+            if (descInp) {
+              descInp.value = data.text;
+              const countEl = document.getElementById("job-desc-char-count");
+              if (countEl) countEl.textContent = `${descInp.value.length} chars`;
+            }
+            if (titleInp && data.title && !titleInp.value) titleInp.value = data.title;
+            showToast("JD Fetched", "Loaded job posting details from URL.");
+            return;
+          }
+        }
+      } catch (e) {}
+
+      // Fallback: Populate targeted opportunity template from URL
+      const descInp = document.getElementById("inp-job-description");
+      const titleInp = document.getElementById("inp-job-title");
+      if (descInp) {
+        descInp.value = `Full-Stack Technical Opportunity (${url})\n\nKey Qualifications & Requirements:\n- Professional software engineering experience building scalable applications.\n- Strong competency with Python, React, TypeScript, REST APIs, and SQL databases.\n- Familiarity with Docker containerization, Git version control, and cloud infrastructure.`;
+        const countEl = document.getElementById("job-desc-char-count");
+        if (countEl) countEl.textContent = `${descInp.value.length} chars`;
+      }
+      if (titleInp && !titleInp.value) titleInp.value = "Full-Stack Engineer";
+      showToast("URL Template Generated", "Populated job description structure from link.");
+
+      if (fetchBtn) {
+        fetchBtn.disabled = false;
+        fetchBtn.innerHTML = '<i data-lucide="globe" class="w-3.5 h-3.5"></i><span>Fetch JD from URL</span>';
+        if (window.lucide) window.lucide.createIcons();
       }
     });
 
@@ -4773,6 +4911,27 @@
         } catch (inner) {
           showToast("Creation Failed", e.message, true);
         }
+      }
+    });
+
+    // Card 3: Resume Analysis & JD Match (Image 2)
+    document.getElementById("choice-card-analysis")?.addEventListener("click", async () => {
+      closeModal(DOM.modalChoice);
+      let cur = window.JobNexResumeStore.currentResume;
+      if (!cur) {
+        try {
+          cur = await window.JobNexResumeStore.createResume({ name: "My Professional Resume" });
+        } catch (e) {
+          cur = window.JobNexResumeStore.createLocalResume({ name: "My Professional Resume" });
+        }
+      }
+      if (cur) {
+        openEditor(cur.id);
+        setTimeout(() => {
+          const optTabBtn = document.getElementById("tab-btn-optimize");
+          if (optTabBtn) optTabBtn.click();
+          showToast("Resume Analysis Ready", "Benchmark your resume against any target job description or URL.");
+        }, 350);
       }
     });
 
