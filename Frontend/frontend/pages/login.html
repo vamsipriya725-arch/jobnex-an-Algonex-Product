@@ -8,10 +8,15 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
-  <!-- Three.js CDN -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-  <!-- Google Identity Services (OAuth 2.0) -->
-  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <!-- Preconnect to Google Auth & Font CDNs for instant handshake -->
+  <link rel="preconnect" href="https://accounts.google.com" />
+  <link rel="preconnect" href="https://ssl.gstatic.com" crossorigin />
+  <link rel="dns-prefetch" href="https://accounts.google.com" />
+  <link rel="dns-prefetch" href="https://ssl.gstatic.com" />
+  <!-- Google Identity Services (OAuth 2.0) - High-priority async load -->
+  <script src="https://accounts.google.com/gsi/client" async onload="window.initGoogleGSI && window.initGoogleGSI()"></script>
+  <!-- Three.js CDN - deferred to prevent blocking critical UI and Google auth -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js" defer></script>
 
   <style>
     * {
@@ -304,6 +309,12 @@
       background: #d8e0f2;
     }
 
+    .google-login-wrap {
+      position: relative;
+      width: 100%;
+      margin-bottom: 20px;
+    }
+
     .btn-google {
       width: 100%;
       padding: 12px;
@@ -320,11 +331,34 @@
       justify-content: center;
       gap: 10px;
       transition: background 0.2s;
-      margin-bottom: 20px;
+      margin-bottom: 0;
     }
 
     .btn-google:hover {
       background: #d8e0f2;
+    }
+
+    #gsi-button-container {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      opacity: 0.001;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 2;
+      cursor: pointer;
+    }
+
+    #gsi-button-container iframe {
+      width: 100% !important;
+      height: 100% !important;
+      min-width: 100% !important;
+      cursor: pointer !important;
+      transform: scale(1.15);
+      transform-origin: center center;
     }
 
     .footer-switch {
@@ -448,16 +482,18 @@
 
           <button type="submit" id="btn-submit" class="btn-login">Login</button>
 
-          <button type="button" id="btn-google" class="btn-google">
-            <svg width="18" height="18" viewBox="0 0 24 24">
-              <path fill="#EA4335" d="M12 5c1.5 0 2.8.5 3.9 1.4l2.9-2.9C17 1.8 14.7 1 12 1 7.5 1 3.7 3.6 1.9 7.3l3.7 2.9C6.5 7.4 9 5 12 5z"/>
-              <path fill="#4285F4" d="M23.5 12.3c0-.8-.1-1.7-.2-2.3H12v4.6h6.5c-.3 1.5-1.1 2.8-2.4 3.7l3.7 2.9c2.2-2 3.7-5 3.7-8.9z"/>
-              <path fill="#FBBC05" d="M5.6 14.8c-.2-.7-.4-1.5-.4-2.8s.2-2.1.4-2.8L1.9 6.3C.7 8.7 0 10.3 0 12s.7 3.3 1.9 5.7l3.7-2.9z"/>
-              <path fill="#34A853" d="M12 23c3.2 0 6-1.1 8-3l-3.7-2.9c-1.1.7-2.5 1.2-4.3 1.2-3 0-5.5-2.4-6.4-5.2L1.9 16C3.7 19.7 7.5 23 12 23z"/>
-            </svg>
-            <span>Continue with Google</span>
-          </button>
-          <div id="gsi-button-container" style="display:flex; justify-content:center; margin-top:8px; min-height: 40px;"></div>
+          <div class="google-login-wrap">
+            <button type="button" id="btn-google" class="btn-google">
+              <svg width="18" height="18" viewBox="0 0 24 24">
+                <path fill="#EA4335" d="M12 5c1.5 0 2.8.5 3.9 1.4l2.9-2.9C17 1.8 14.7 1 12 1 7.5 1 3.7 3.6 1.9 7.3l3.7 2.9C6.5 7.4 9 5 12 5z"/>
+                <path fill="#4285F4" d="M23.5 12.3c0-.8-.1-1.7-.2-2.3H12v4.6h6.5c-.3 1.5-1.1 2.8-2.4 3.7l3.7 2.9c2.2-2 3.7-5 3.7-8.9z"/>
+                <path fill="#FBBC05" d="M5.6 14.8c-.2-.7-.4-1.5-.4-2.8s.2-2.1.4-2.8L1.9 6.3C.7 8.7 0 10.3 0 12s.7 3.3 1.9 5.7l3.7-2.9z"/>
+                <path fill="#34A853" d="M12 23c3.2 0 6-1.1 8-3l-3.7-2.9c-1.1.7-2.5 1.2-4.3 1.2-3 0-5.5-2.4-6.4-5.2L1.9 16C3.7 19.7 7.5 23 12 23z"/>
+              </svg>
+              <span>Continue with Google</span>
+            </button>
+            <div id="gsi-button-container" title="Continue with Google"></div>
+          </div>
 
           <p class="footer-switch">
             <span id="switch-prompt">New to Jobnex?</span>
@@ -1081,30 +1117,28 @@
         setTimeout(navigateToNext, 800);
       });
 
-      // Supabase Google OAuth handler
-      const btnGoogle = document.getElementById("btn-google");
-      if (btnGoogle) {
-        btnGoogle.addEventListener("click", async () => {
-          const sbClient = window.JobNexSupabase ? window.JobNexSupabase.getClient() : null;
-          if (sbClient && sbClient.auth) {
-            try {
-              const { error } = await sbClient.auth.signInWithOAuth({
-                provider: 'google',
-                options: {
-                  redirectTo: window.location.origin + (window.location.pathname.includes('/pages/') ? '/index.html' : '/index.html')
-                }
-              });
-              if (error) {
-                showAuthError(error.message);
-              }
-            } catch (ex) {
-              console.warn("Supabase Google OAuth fallback:", ex);
-            }
-          }
-        });
+      // Unified Google Sign-In & Instant GSI Handler
+      const GOOGLE_CLIENT_ID = "530050814425-2hvfcnoba5ujoo0tsel740sru1meob4g.apps.googleusercontent.com";
+
+      function getApiBaseUrl() {
+        if (window.JOBNEX_API_BASE) return window.JOBNEX_API_BASE;
+        try {
+          const stored = localStorage.getItem("jobnex_api_base");
+          if (stored) return stored;
+        } catch (e) {}
+        if (window.location.port === "8000") return "";
+        if (window.location.protocol === "https:") return "";
+        const host = window.location.hostname || "localhost";
+        return `${window.location.protocol}//${host}:8000`;
       }
 
-      const GOOGLE_CLIENT_ID = "530050814425-2hvfcnoba5ujoo0tsel740sru1meob4g.apps.googleusercontent.com";
+      function showToastMessage(msg) {
+        const t = document.getElementById("toast-msg");
+        if (t) {
+          t.textContent = msg;
+          t.style.display = "block";
+        }
+      }
 
       function decodeGoogleJwt(token) {
         try {
@@ -1124,6 +1158,29 @@
         }
       }
 
+      async function triggerGoogleOAuthFallback() {
+        const sbClient = window.JobNexSupabase ? window.JobNexSupabase.getClient() : null;
+        if (sbClient && sbClient.auth) {
+          try {
+            const redirectUrl = window.location.origin + (window.location.pathname.includes('/pages/') ? '/pages/index.html' : '/index.html');
+            const { error } = await sbClient.auth.signInWithOAuth({
+              provider: 'google',
+              options: { redirectTo: redirectUrl }
+            });
+            if (error) {
+              const errBanner = document.getElementById("error-banner");
+              const errText = document.getElementById("error-text");
+              if (errBanner && errText) {
+                errText.textContent = error.message;
+                errBanner.style.display = "block";
+              }
+            }
+          } catch (ex) {
+            console.warn("Supabase Google OAuth fallback:", ex);
+          }
+        }
+      }
+
       async function handleGoogleCredentialResponse(response) {
         if (!response || !response.credential) return;
         const payload = decodeGoogleJwt(response.credential) || {};
@@ -1132,10 +1189,8 @@
         const userAvatar = payload.picture || `https://ui-avatars.com/api/?name=${encodeURIComponent(userName)}&background=2563eb&color=fff&bold=true`;
         const googleSub = payload.sub || "";
 
-        toast.textContent = `Welcome ${userName}! Signing in with Google…`;
-        toast.style.display = "block";
+        showToastMessage(`Welcome ${userName}! Signing in with Google…`);
 
-        // Store immediately in JobNexAuth with user's real Google photo and email
         if (window.JobNexAuth) {
           window.JobNexAuth.login({
             id: googleSub || `u-${Date.now()}`,
@@ -1147,7 +1202,6 @@
           });
         }
 
-        // Persist to Supabase profiles
         const syncPayload = {
           credential: response.credential,
           email: userEmail,
@@ -1156,11 +1210,11 @@
           google_sub: googleSub,
         };
 
+        const base = getApiBaseUrl();
         const syncUrls = [
-          "http://127.0.0.1:8000/auth/google",
-          "http://127.0.0.1:3000/auth/google",
-          "/auth/google",
+          base ? `${base}/auth/google` : "/auth/google",
           "/api/auth/google",
+          "http://127.0.0.1:8000/auth/google",
         ];
 
         for (const url of syncUrls) {
@@ -1177,9 +1231,7 @@
               }
               break;
             }
-          } catch (e) {
-            // Continue fallback
-          }
+          } catch (e) {}
         }
 
         finishGoogleSignIn(userName, userEmail, userAvatar);
@@ -1187,8 +1239,7 @@
 
       function finishGoogleSignIn(userName = "Candidate", userEmail = "", userAvatar = "") {
         playSound("success");
-        toast.textContent = `Signed in as ${userEmail || userName}! Welcome to JobNex…`;
-        toast.style.display = "block";
+        showToastMessage(`Signed in as ${userEmail || userName}! Welcome to JobNex…`);
 
         if (window.JobNexAuth) {
           window.JobNexAuth.login({
@@ -1212,50 +1263,78 @@
         setTimeout(navigateToNext, 800);
       }
 
-      function initGoogleGSI() {
-        if (window.google && window.google.accounts && window.google.accounts.id) {
+      window.initGoogleGSI = function initGoogleGSI() {
+        if (!window.google?.accounts?.id) return;
+
+        // Initialize Google One-Tap Client immediately
+        if (!window._gsiClientInitialized) {
           try {
             window.google.accounts.id.initialize({
               client_id: GOOGLE_CLIENT_ID,
               callback: handleGoogleCredentialResponse,
               auto_select: false,
               cancel_on_tap_outside: true,
+              itp_support: true,
             });
-
-            // Render native Google button in container if available
-            const gsiContainer = document.getElementById("gsi-button-container");
-            if (gsiContainer) {
-              window.google.accounts.id.renderButton(gsiContainer, {
-                theme: "outline",
-                size: "large",
-                width: 320,
-                text: "continue_with",
-                shape: "pill",
-              });
-            }
-
-            // Prompt One-Tap
+            window._gsiClientInitialized = true;
+            // Immediate One-Tap prompt with zero artificial delay
             window.google.accounts.id.prompt();
           } catch (e) {
-            console.warn("Google GIS init note:", e);
+            console.warn("Google GIS init warning:", e);
           }
         }
+
+        // Render native button seamlessly inside container over custom button
+        const gsiContainer = document.getElementById("gsi-button-container");
+        if (gsiContainer && !window._gsiButtonRendered) {
+          try {
+            window.google.accounts.id.renderButton(gsiContainer, {
+              theme: "outline",
+              size: "large",
+              width: 340,
+              text: "continue_with",
+              shape: "rectangular",
+            });
+            window._gsiButtonRendered = true;
+          } catch (e) {
+            console.warn("Google GSI render button warning:", e);
+          }
+        }
+      };
+
+      // Poll aggressively every 15ms right away so GSI initializes the millisecond script loads
+      let pollCount = 0;
+      const gsiPollTimer = setInterval(() => {
+        pollCount++;
+        if (window._gsiClientInitialized && window._gsiButtonRendered) {
+          clearInterval(gsiPollTimer);
+        } else if (window.google?.accounts?.id) {
+          window.initGoogleGSI();
+          if (window._gsiClientInitialized && window._gsiButtonRendered) {
+            clearInterval(gsiPollTimer);
+          }
+        }
+        if (pollCount > 250) clearInterval(gsiPollTimer);
+      }, 15);
+
+      // Single Unified Click Handler for Google Login
+      const btnGoogle = document.getElementById("btn-google");
+      if (btnGoogle) {
+        btnGoogle.addEventListener("click", () => {
+          if (window.google?.accounts?.id) {
+            window.google.accounts.id.prompt((notification) => {
+              if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
+                triggerGoogleOAuthFallback();
+              }
+            });
+          } else {
+            triggerGoogleOAuthFallback();
+          }
+        });
       }
 
-      window.addEventListener("load", () => {
-        setTimeout(initGoogleGSI, 600);
-      });
-
-      document.getElementById("btn-google").addEventListener("click", () => {
-        if (window.google && window.google.accounts && window.google.accounts.id) {
-          window.google.accounts.id.prompt((notification) => {
-            if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
-              const gsiBtn = document.querySelector("#gsi-button-container div[role=button]");
-              if (gsiBtn) gsiBtn.click();
-            }
-          });
-        }
-      });
+      // Trigger immediately in case DOM is already ready
+      window.initGoogleGSI();
     });
   </script>
 </body>
