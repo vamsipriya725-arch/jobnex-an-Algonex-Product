@@ -3,10 +3,11 @@ import * as THREE from "three";
 import { useRouter } from "@/lib/nav";
 import { useJobNex } from "@/frontend/context/JobNexContext";
 import { UserRole } from "@/domain/types";
+import { supabase } from "@/integrations/supabase/client";
 
 export function LoginView({ initialMode = "login" }: { initialMode?: "login" | "signup" } = {}) {
   const router = useRouter();
-  const { login } = useJobNex();
+  const { login, isLoggedIn } = useJobNex();
 
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const cardRef = useRef<HTMLDivElement | null>(null);
@@ -542,6 +543,82 @@ export function LoginView({ initialMode = "login" }: { initialMode?: "login" | "
     }
   }, [reducedMotion]);
 
+  const playSound = (type: "success" | "error") => {
+    if (!soundEnabled) return;
+    try {
+      const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      if (type === "success") {
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(523.25, ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(783.99, ctx.currentTime + 0.15);
+        gain.gain.setValueAtTime(0.12, ctx.currentTime);
+        gain.gain.linearRampToValueAtTime(0.001, ctx.currentTime + 0.35);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.35);
+      } else {
+        osc.type = "sawtooth";
+        osc.frequency.setValueAtTime(220, ctx.currentTime);
+        osc.frequency.linearRampToValueAtTime(140, ctx.currentTime + 0.2);
+        gain.gain.setValueAtTime(0.1, ctx.currentTime);
+        gain.gain.linearRampToValueAtTime(0.001, ctx.currentTime + 0.25);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.25);
+      }
+    } catch (e) {}
+  };
+
+  // PublicOnlyRoute: If already logged in, redirect to "/"
+  useEffect(() => {
+    if (isLoggedIn) {
+      router.push("/");
+    }
+  }, [isLoggedIn, router]);
+
+  // Handle OAuth Return & Errors
+  useEffect(() => {
+    // 1. Check for OAuth error in URL (e.g. user cancelled or provider failed)
+    const params = new URLSearchParams(window.location.search);
+    const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+    const errorDesc =
+      params.get("error_description") ||
+      hashParams.get("error_description") ||
+      params.get("error") ||
+      hashParams.get("error");
+
+    if (errorDesc) {
+      window.history.replaceState(null, "", window.location.pathname);
+      setFailedBanner(decodeURIComponent(errorDesc.replace(/\+/g, " ")));
+      if (triggerShotRef.current) {
+        triggerShotRef.current("fail", 2400); // Shrug animation
+      }
+      playSound("error");
+      return;
+    }
+
+    // 2. Check if Supabase session is present on mount
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        if (
+          window.location.hash.includes("access_token") ||
+          window.location.search.includes("code=")
+        ) {
+          window.history.replaceState(null, "", window.location.pathname);
+        }
+        setToastMessage("Signed in via Google! Taking you to your dashboard…");
+        playSound("success");
+        if (triggerShotRef.current) {
+          triggerShotRef.current("success", 1200, () => router.push("/"));
+        } else {
+          router.push("/");
+        }
+      }
+    });
+  }, [router]);
+
   // Initial enter wave
   useEffect(() => {
     if (triggerShotRef.current) {
@@ -674,18 +751,33 @@ export function LoginView({ initialMode = "login" }: { initialMode?: "login" | "
 
   const handleGoogleAuth = async () => {
     setIsGoogleSubmitting(true);
-    await new Promise((r) => setTimeout(r, 600));
-    setIsGoogleSubmitting(false);
+    setFailedBanner(null);
 
-    setToastMessage("Signed in via Google! Entering JobNex…");
-    const doGoogleRedirect = () => {
-      login(email || "google.user@jobnex.ai", role);
-      router.push("/");
-    };
-    if (triggerShotRef.current) {
-      triggerShotRef.current("success", 750, doGoogleRedirect);
+    try {
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          redirectTo: `${window.location.origin}/`,
+          queryParams: { prompt: "select_account" },
+        },
+      });
+
+      if (error) {
+        setIsGoogleSubmitting(false);
+        setFailedBanner(error.message || "Failed to sign in with Google.");
+        if (triggerShotRef.current) {
+          triggerShotRef.current("fail", 2400); // Shrug animation
+        }
+        playSound("error");
+      }
+    } catch (err: any) {
+      setIsGoogleSubmitting(false);
+      setFailedBanner(err?.message || "Google sign in error.");
+      if (triggerShotRef.current) {
+        triggerShotRef.current("fail", 2400); // Shrug animation
+      }
+      playSound("error");
     }
-    setTimeout(doGoogleRedirect, 800);
   };
 
   return (
@@ -911,27 +1003,36 @@ export function LoginView({ initialMode = "login" }: { initialMode?: "login" | "
                   type="button"
                   onClick={handleGoogleAuth}
                   disabled={isGoogleSubmitting}
-                  className="w-full py-3 px-4 rounded-xl font-medium text-sm border border-white/20 bg-white/5 hover:bg-white/10 text-white transition-all flex items-center justify-center gap-2.5"
+                  className="w-full py-3 px-4 rounded-xl font-medium text-sm border border-white/20 bg-white/5 hover:bg-white/10 text-white transition-all flex items-center justify-center gap-2.5 disabled:opacity-75 disabled:cursor-not-allowed"
                 >
-                  <svg width="16" height="16" viewBox="0 0 24 24">
-                    <path
-                      fill="#EA4335"
-                      d="M12 5c1.6 0 3 .6 4.1 1.6l3.1-3.1C17.3 1.7 14.8 1 12 1 7.5 1 3.7 3.6 1.9 7.3l3.7 2.9C6.5 7.4 9 5 12 5z"
-                    />
-                    <path
-                      fill="#4285F4"
-                      d="M23.5 12.3c0-.8-.1-1.7-.2-2.3H12v4.6h6.5c-.3 1.5-1.1 2.8-2.4 3.7l3.7 2.9c2.2-2 3.7-5 3.7-8.9z"
-                    />
-                    <path
-                      fill="#FBBC05"
-                      d="M5.6 14.8c-.2-.7-.4-1.5-.4-2.3s.1-1.6.4-2.3L1.9 7.3C.7 9.7 0 10.8 0 12.5s.7 2.8 1.9 5.2l3.7-2.9z"
-                    />
-                    <path
-                      fill="#34A853"
-                      d="M12 24c3.2 0 6-1.1 8-3l-3.7-2.9c-1.1.7-2.5 1.2-4.3 1.2-3 0-5.5-2-6.4-4.8L1.9 17.4C3.7 21.1 7.5 24 12 24z"
-                    />
-                  </svg>
-                  <span>Continue with Google</span>
+                  {isGoogleSubmitting ? (
+                    <>
+                      <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      <span>Connecting to Google…</span>
+                    </>
+                  ) : (
+                    <>
+                      <svg width="16" height="16" viewBox="0 0 24 24">
+                        <path
+                          fill="#EA4335"
+                          d="M12 5c1.6 0 3 .6 4.1 1.6l3.1-3.1C17.3 1.7 14.8 1 12 1 7.5 1 3.7 3.6 1.9 7.3l3.7 2.9C6.5 7.4 9 5 12 5z"
+                        />
+                        <path
+                          fill="#4285F4"
+                          d="M23.5 12.3c0-.8-.1-1.7-.2-2.3H12v4.6h6.5c-.3 1.5-1.1 2.8-2.4 3.7l3.7 2.9c2.2-2 3.7-5 3.7-8.9z"
+                        />
+                        <path
+                          fill="#FBBC05"
+                          d="M5.6 14.8c-.2-.7-.4-1.5-.4-2.3s.1-1.6.4-2.3L1.9 7.3C.7 9.7 0 10.8 0 12.5s.7 2.8 1.9 5.2l3.7-2.9z"
+                        />
+                        <path
+                          fill="#34A853"
+                          d="M12 24c3.2 0 6-1.1 8-3l-3.7-2.9c-1.1.7-2.5 1.2-4.3 1.2-3 0-5.5-2-6.4-4.8L1.9 17.4C3.7 21.1 7.5 24 12 24z"
+                        />
+                      </svg>
+                      <span>Continue with Google</span>
+                    </>
+                  )}
                 </button>
 
                 {/* Switch to Signup */}
@@ -1093,6 +1194,43 @@ export function LoginView({ initialMode = "login" }: { initialMode?: "login" | "
                   className="w-full py-3 px-4 rounded-xl font-semibold text-sm bg-[#8B8CF6] hover:bg-[#9d9ef8] text-[#0b0b18] shadow-md transition-all active:scale-[0.99] flex items-center justify-center gap-2 mt-2"
                 >
                   {isSubmitting ? "Creating account…" : "Create account"}
+                </button>
+
+                {/* Google Sign-in */}
+                <button
+                  type="button"
+                  onClick={handleGoogleAuth}
+                  disabled={isGoogleSubmitting}
+                  className="w-full py-3 px-4 rounded-xl font-medium text-sm border border-white/20 bg-white/5 hover:bg-white/10 text-white transition-all flex items-center justify-center gap-2.5 disabled:opacity-75 disabled:cursor-not-allowed mt-2"
+                >
+                  {isGoogleSubmitting ? (
+                    <>
+                      <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      <span>Connecting to Google…</span>
+                    </>
+                  ) : (
+                    <>
+                      <svg width="16" height="16" viewBox="0 0 24 24">
+                        <path
+                          fill="#EA4335"
+                          d="M12 5c1.6 0 3 .6 4.1 1.6l3.1-3.1C17.3 1.7 14.8 1 12 1 7.5 1 3.7 3.6 1.9 7.3l3.7 2.9C6.5 7.4 9 5 12 5z"
+                        />
+                        <path
+                          fill="#4285F4"
+                          d="M23.5 12.3c0-.8-.1-1.7-.2-2.3H12v4.6h6.5c-.3 1.5-1.1 2.8-2.4 3.7l3.7 2.9c2.2-2 3.7-5 3.7-8.9z"
+                        />
+                        <path
+                          fill="#FBBC05"
+                          d="M5.6 14.8c-.2-.7-.4-1.5-.4-2.3s.1-1.6.4-2.3L1.9 7.3C.7 9.7 0 10.8 0 12.5s.7 2.8 1.9 5.2l3.7-2.9z"
+                        />
+                        <path
+                          fill="#34A853"
+                          d="M12 24c3.2 0 6-1.1 8-3l-3.7-2.9c-1.1.7-2.5 1.2-4.3 1.2-3 0-5.5-2-6.4-4.8L1.9 17.4C3.7 21.1 7.5 24 12 24z"
+                        />
+                      </svg>
+                      <span>Continue with Google</span>
+                    </>
+                  )}
                 </button>
 
                 {/* Switch to Login */}

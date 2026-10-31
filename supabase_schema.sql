@@ -77,6 +77,7 @@ BEGIN
     )
     ON CONFLICT (id) DO UPDATE SET
         full_name = EXCLUDED.full_name,
+        email = EXCLUDED.email,
         avatar_url = EXCLUDED.avatar_url;
     RETURN new;
 END;

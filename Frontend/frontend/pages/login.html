@@ -8,14 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
-  <!-- Preconnect to Google Auth & Font CDNs for instant handshake -->
-  <link rel="preconnect" href="https://accounts.google.com" />
-  <link rel="preconnect" href="https://ssl.gstatic.com" crossorigin />
-  <link rel="dns-prefetch" href="https://accounts.google.com" />
-  <link rel="dns-prefetch" href="https://ssl.gstatic.com" />
-  <!-- Google Identity Services (OAuth 2.0) - High-priority async load -->
-  <script src="https://accounts.google.com/gsi/client" async onload="window.initGoogleGSI && window.initGoogleGSI()"></script>
-  <!-- Three.js CDN - deferred to prevent blocking critical UI and Google auth -->
+  <!-- Three.js CDN - deferred to prevent blocking critical UI -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js" defer></script>
 
   <style>
@@ -1089,21 +1082,7 @@
         setTimeout(navigateToNext, 800);
       });
 
-      // Active Google Sign-In & One-Tap Integration
-      const GOOGLE_CLIENT_ID = "530050814425-2hvfcnoba5ujoo0tsel740sru1meob4g.apps.googleusercontent.com";
-
-      function getApiBaseUrl() {
-        if (window.JOBNEX_API_BASE) return window.JOBNEX_API_BASE;
-        try {
-          const stored = localStorage.getItem("jobnex_api_base");
-          if (stored) return stored;
-        } catch (e) {}
-        if (window.location.port === "8000") return "";
-        if (window.location.protocol === "https:") return "";
-        const host = window.location.hostname || "localhost";
-        return `${window.location.protocol}//${host}:8000`;
-      }
-
+      // Google OAuth via Supabase Authentication (No direct Google SDK)
       function showToastMessage(msg) {
         const t = document.getElementById("toast-msg");
         if (t) {
@@ -1112,267 +1091,107 @@
         }
       }
 
-      function decodeGoogleJwt(token) {
-        try {
-          const base64Url = token.split(".")[1];
-          if (!base64Url) return null;
-          const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
-          const jsonPayload = decodeURIComponent(
-            atob(base64)
-              .split("")
-              .map(c => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2))
-              .join("")
-          );
-          return JSON.parse(jsonPayload);
-        } catch (e) {
-          console.warn("Google JWT decode error:", e);
-          return null;
-        }
+      function hideAuthError() {
+        const errBanner = document.getElementById("error-banner");
+        if (errBanner) errBanner.style.display = "none";
       }
 
-      // Handle OAuth 2.0 Access Token received from popup or redirect
-      async function handleGoogleAccessToken(accessToken) {
-        try {
-          showToastMessage("Connecting to Google…");
-          const userRes = await fetch("https://www.googleapis.com/oauth2/v3/userinfo", {
-            headers: { Authorization: `Bearer ${accessToken}` }
-          });
-          if (!userRes.ok) throw new Error("Could not retrieve user info from Google");
-          const userInfo = await userRes.json();
-
-          const userName = userInfo.name || userInfo.given_name || "Google User";
-          const userEmail = (userInfo.email || "").toLowerCase().trim();
-          const userAvatar = userInfo.picture || `https://ui-avatars.com/api/?name=${encodeURIComponent(userName)}&background=2563eb&color=fff&bold=true`;
-          const googleSub = userInfo.sub || "";
-
-          // Sync with backend API
-          const syncPayload = {
-            credential: accessToken,
-            email: userEmail,
-            name: userName,
-            avatar: userAvatar,
-            google_sub: googleSub,
-          };
-
-          const base = getApiBaseUrl();
-          const syncUrls = [
-            base ? `${base}/auth/google` : "/auth/google",
-            "/api/auth/google",
-            "http://127.0.0.1:8000/auth/google",
-          ];
-
-          for (const url of syncUrls) {
-            try {
-              const res = await fetch(url, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(syncPayload),
-              });
-              if (res.ok) {
-                const resData = await res.json();
-                if (resData.access_token) {
-                  localStorage.setItem("jobnex_access_token", resData.access_token);
-                }
-                break;
-              }
-            } catch (e) {}
-          }
-
-          finishGoogleSignIn(userName, userEmail, userAvatar);
-        } catch (err) {
-          console.error("Google userinfo error:", err);
-          const btnGoogleText = document.getElementById("btn-google-text");
-          if (btnGoogleText) btnGoogleText.textContent = "Continue with Google";
-          const errBanner = document.getElementById("error-banner");
-          const errText = document.getElementById("error-text");
-          if (errBanner && errText) {
-            errText.textContent = "Google Sign-In failed to load user profile. Please try again.";
-            errBanner.style.display = "block";
-          }
-        }
-      }
-
-      // Handle ID Token from One-Tap
-      async function handleGoogleCredentialResponse(response) {
-        if (!response || !response.credential) return;
-        const payload = decodeGoogleJwt(response.credential) || {};
-        const userName = payload.name || payload.given_name || "Google User";
-        const userEmail = (payload.email || "").toLowerCase().trim();
-        const userAvatar = payload.picture || `https://ui-avatars.com/api/?name=${encodeURIComponent(userName)}&background=2563eb&color=fff&bold=true`;
-        const googleSub = payload.sub || "";
-
-        showToastMessage(`Welcome ${userName}! Signing in with Google…`);
-
-        if (window.JobNexAuth) {
-          window.JobNexAuth.login({
-            id: googleSub || `u-${Date.now()}`,
-            name: userName,
-            email: userEmail,
-            avatar: userAvatar,
-            role: "JOB_SEEKER",
-            google_sub: googleSub,
-          });
-        }
-
-        const syncPayload = {
-          credential: response.credential,
-          email: userEmail,
-          name: userName,
-          avatar: userAvatar,
-          google_sub: googleSub,
-        };
-
-        const base = getApiBaseUrl();
-        const syncUrls = [
-          base ? `${base}/auth/google` : "/auth/google",
-          "/api/auth/google",
-          "http://127.0.0.1:8000/auth/google",
-        ];
-
-        for (const url of syncUrls) {
-          try {
-            const res = await fetch(url, {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify(syncPayload),
-            });
-            if (res.ok) {
-              const resData = await res.json();
-              if (resData.access_token) {
-                localStorage.setItem("jobnex_access_token", resData.access_token);
-              }
-              break;
-            }
-          } catch (e) {}
-        }
-
-        finishGoogleSignIn(userName, userEmail, userAvatar);
-      }
-
-      function finishGoogleSignIn(userName = "Candidate", userEmail = "", userAvatar = "") {
-        playSound("success");
-        showToastMessage(`Signed in as ${userEmail || userName}! Welcome to JobNex…`);
-
-        if (window.JobNexAuth) {
-          window.JobNexAuth.login({
-            name: userName,
-            email: userEmail,
-            avatar: userAvatar || (userName ? `https://ui-avatars.com/api/?name=${encodeURIComponent(userName)}&background=2563eb&color=fff&bold=true` : ""),
-            role: "JOB_SEEKER",
-          });
-        }
-
-        let navigated = false;
-        const navigateToNext = () => {
-          if (navigated) return;
-          navigated = true;
-          const homeUrl = window.location.pathname.includes("/pages/") ? "../index.html" : "index.html";
-          window.location.href = homeUrl;
-        };
-        if (triggerShot) {
-          triggerShot("success", 750, navigateToNext);
-        }
-        setTimeout(navigateToNext, 800);
-      }
-
-      // Passive One-Tap Initialization on page load
-      window.initGoogleGSI = function initGoogleGSI() {
-        if (!window.google?.accounts?.id || window._oneTapInitialized) return;
-        try {
-          window.google.accounts.id.initialize({
-            client_id: GOOGLE_CLIENT_ID,
-            callback: handleGoogleCredentialResponse,
-            auto_select: false,
-            cancel_on_tap_outside: true,
-            itp_support: true,
-          });
-          window._oneTapInitialized = true;
-          window.google.accounts.id.prompt();
-        } catch (e) {
-          console.warn("Google One-Tap note:", e);
-        }
-      };
-
-      // Active Click Handler: Opens Google OAuth popup / sign-in window
-      function triggerActiveGoogleLogin() {
-        const btnGoogleText = document.getElementById("btn-google-text");
-        if (btnGoogleText) btnGoogleText.textContent = "Opening Google…";
-
-        // 1. Primary: Use Google Identity Services OAuth 2.0 Token Client (Popup)
-        if (window.google?.accounts?.oauth2) {
-          try {
-            const tokenClient = window.google.accounts.oauth2.initTokenClient({
-              client_id: GOOGLE_CLIENT_ID,
-              scope: "email profile openid",
-              callback: async (tokenResponse) => {
-                if (tokenResponse && tokenResponse.access_token) {
-                  await handleGoogleAccessToken(tokenResponse.access_token);
-                } else {
-                  if (btnGoogleText) btnGoogleText.textContent = "Continue with Google";
-                  if (tokenResponse?.error) {
-                    console.warn("Google OAuth cancelled or error:", tokenResponse.error);
-                  }
-                }
-              },
-              error_callback: (err) => {
-                console.warn("Google OAuth token client error:", err);
-                redirectToDirectGoogleOAuth();
-              }
-            });
-
-            tokenClient.requestAccessToken({ prompt: "select_account" });
-            return;
-          } catch (e) {
-            console.warn("Error launching token client, using direct OAuth:", e);
-          }
-        }
-
-        // 2. Secondary: Direct Google OAuth popup/redirect
-        redirectToDirectGoogleOAuth();
-      }
-
-      function redirectToDirectGoogleOAuth() {
-        const redirectUrl = window.location.origin + window.location.pathname;
-        const oauthUrl = "https://accounts.google.com/o/oauth2/v2/auth?" + new URLSearchParams({
-          client_id: GOOGLE_CLIENT_ID,
-          redirect_uri: redirectUrl,
-          response_type: "token",
-          scope: "email profile openid",
-          prompt: "select_account",
-        }).toString();
-
-        // Try opening in popup first
-        const popup = window.open(oauthUrl, "google_login_popup", "width=500,height=600,menubar=no,toolbar=no");
-        if (!popup || popup.closed || typeof popup.closed === "undefined") {
-          // If popup blocker blocked it, redirect in current window
-          window.location.href = oauthUrl;
-        }
-      }
-
-      // Check if URL has returned an access_token from direct OAuth
-      if (window.location.hash && window.location.hash.includes("access_token=")) {
-        const hashParams = new URLSearchParams(window.location.hash.substring(1));
-        const token = hashParams.get("access_token");
-        if (token) {
-          try {
-            history.replaceState(null, "", window.location.pathname + window.location.search);
-          } catch (e) {}
-          handleGoogleAccessToken(token);
-        }
-      }
-
-      // Attach Click Listener to button
       const btnGoogle = document.getElementById("btn-google");
+      const btnGoogleText = document.getElementById("btn-google-text");
+
       if (btnGoogle) {
-        btnGoogle.addEventListener("click", (e) => {
+        btnGoogle.addEventListener("click", async (e) => {
           e.preventDefault();
-          triggerActiveGoogleLogin();
+          const sbClient = window.JobNexSupabase ? window.JobNexSupabase.getClient() : null;
+          if (!sbClient) {
+            showAuthError("Authentication service is unavailable.");
+            return;
+          }
+
+          btnGoogle.disabled = true;
+          if (btnGoogleText) btnGoogleText.textContent = "Connecting to Google…";
+          hideAuthError();
+
+          try {
+            const { data, error } = await sbClient.auth.signInWithOAuth({
+              provider: "google",
+              options: {
+                redirectTo: `${window.location.origin}/`,
+                queryParams: { prompt: "select_account" }
+              }
+            });
+
+            if (error) {
+              btnGoogle.disabled = false;
+              if (btnGoogleText) btnGoogleText.textContent = "Continue with Google";
+              showAuthError(error.message || "Failed to sign in with Google.");
+              if (triggerShot) triggerShot("fail", 2400); // Shrug animation
+              playSound("error");
+            }
+          } catch (err) {
+            btnGoogle.disabled = false;
+            if (btnGoogleText) btnGoogleText.textContent = "Continue with Google";
+            showAuthError(err?.message || "Google sign-in encountered an error.");
+            if (triggerShot) triggerShot("fail", 2400); // Shrug animation
+            playSound("error");
+          }
         });
       }
 
-      // Initialize passive One-Tap as soon as script is ready
-      if (window.google?.accounts?.id) {
-        window.initGoogleGSI();
+      // PublicOnlyRoute & OAuth Return Handling
+      const urlParams = new URLSearchParams(window.location.search);
+      const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+      const oauthError =
+        urlParams.get("error_description") ||
+        hashParams.get("error_description") ||
+        urlParams.get("error") ||
+        hashParams.get("error");
+
+      if (oauthError) {
+        window.history.replaceState(null, "", window.location.pathname);
+        showAuthError(decodeURIComponent(oauthError.replace(/\+/g, " ")));
+        if (triggerShot) triggerShot("fail", 2400); // Shrug animation
+        playSound("error");
+      } else {
+        const sbClient = window.JobNexSupabase ? window.JobNexSupabase.getClient() : null;
+        if (sbClient) {
+          sbClient.auth.getSession().then(({ data: { session } }) => {
+            if (session?.user) {
+              // Remove OAuth hash/code from URL after sign-in (detectSessionInUrl stays true)
+              if (
+                window.location.hash.includes("access_token") ||
+                window.location.search.includes("code=")
+              ) {
+                window.history.replaceState(null, "", window.location.pathname);
+              }
+              const u = session.user;
+              const meta = u.user_metadata || {};
+              const displayName = meta.full_name || meta.name || (u.email ? u.email.split("@")[0] : "Candidate");
+              const avatarUrl = meta.avatar_url || meta.picture || `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=2563eb&color=fff&bold=true`;
+
+              if (window.JobNexAuth) {
+                window.JobNexAuth.login({
+                  id: u.id,
+                  name: displayName,
+                  email: u.email || "",
+                  avatar: avatarUrl,
+                  role: (meta.role || "seeker").toUpperCase() === "RECRUITER" ? "RECRUITER" : "JOB_SEEKER",
+                });
+              }
+
+              playSound("success");
+              showToastMessage(`Signed in as ${displayName}! Welcome to JobNex…`);
+              const homeUrl = window.location.pathname.includes("/pages/") ? "../index.html" : "index.html";
+              if (triggerShot) {
+                triggerShot("success", 1200, () => {
+                  window.location.href = homeUrl;
+                });
+              } else {
+                window.location.href = homeUrl;
+              }
+            }
+          });
+        }
       }
     });
   </script>

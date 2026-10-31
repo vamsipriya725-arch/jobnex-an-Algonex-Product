@@ -65,3 +65,85 @@ All assets, links, and components use relative paths and load with zero installa
 - **Dynamic Interactions**: State management, live search filtering, speech-to-text recording simulation, skill sliders, and timeline drawers are fully functional in vanilla JavaScript.
 - **Demo Quick Accounts**: 1-click login as Sandeep Kumar (Job Seeker) or Sarah Jenkins (Recruiter) on `pages/login.html`.
 - **Responsive**: Mobile drawer navigation, tablet layouts, and desktop wide screens.
+
+---
+
+## 🔐 Google OAuth & Supabase Authentication Configuration Checklist
+
+JobNex uses Google OAuth provisioned through **Supabase Auth**. No Google client secrets or Google SDK scripts reside in the frontend code.
+
+### 1. Google Cloud Console Setup
+1. Create a project in [Google Cloud Console](https://console.cloud.google.com/).
+2. Navigate to **APIs & Services → OAuth consent screen**:
+   - User Type: **External**
+   - App Name: `JobNex`
+   - Scopes: `email`, `profile`, `openid`
+3. Navigate to **Credentials → Create Credentials → OAuth client ID**:
+   - Application type: **Web application**
+   - Name: `JobNex Supabase Web Client`
+   - **Authorized JavaScript origins**:
+     - `http://localhost:5173`
+     - `http://localhost:3000`
+     - `https://<your-production-domain>`
+   - **Authorized redirect URIs**:
+     - `https://swqebafkntjlgjglylcr.supabase.co/auth/v1/callback` (format: `https://<project-ref>.supabase.co/auth/v1/callback`)
+4. Copy the generated **Client ID** and **Client Secret**.
+
+---
+
+### 2. Supabase Dashboard Setup
+1. Open your project at [Supabase Dashboard](https://supabase.com/dashboard/project/swqebafkntjlgjglylcr).
+2. Go to **Authentication → Providers → Google**:
+   - Toggle **Enable Google provider** to **ON**.
+   - Paste **Client ID** from Google Cloud Console.
+   - Paste **Client Secret** from Google Cloud Console.
+   - Click **Save**.
+3. Go to **Authentication → URL Configuration**:
+   - **Site URL**: `http://localhost:5173` (or your production URL).
+   - **Redirect URLs** (add all environments):
+     - `http://localhost:5173/**`
+     - `http://localhost:3000/**`
+     - `http://localhost:8000/**`
+     - `https://<your-production-domain>/**`
+   - Click **Save**.
+
+---
+
+### 3. Database Trigger (`profiles` creation)
+Run the following SQL in your Supabase SQL Editor (also in `supabase_schema.sql`):
+```sql
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS TRIGGER AS $$
+BEGIN
+    INSERT INTO public.profiles (id, full_name, email, phone, role, avatar_url)
+    VALUES (
+        new.id,
+        COALESCE(new.raw_user_meta_data->>'full_name', new.raw_user_meta_data->>'name', ''),
+        new.email,
+        COALESCE(new.raw_user_meta_data->>'phone', ''),
+        COALESCE(new.raw_user_meta_data->>'role', 'seeker'),
+        COALESCE(new.raw_user_meta_data->>'avatar_url', new.raw_user_meta_data->>'picture', '')
+    )
+    ON CONFLICT (id) DO UPDATE SET
+        full_name = EXCLUDED.full_name,
+        email = EXCLUDED.email,
+        avatar_url = EXCLUDED.avatar_url;
+    RETURN new;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+CREATE TRIGGER on_auth_user_created
+    AFTER INSERT ON auth.users
+    FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+```
+
+---
+
+### 4. Frontend Environment Variables
+In `Frontend/.env.local`:
+```env
+VITE_SUPABASE_URL=https://swqebafkntjlgjglylcr.supabase.co
+VITE_SUPABASE_ANON_KEY=sb_publishable_ax9iQjGlK5pP34biLoMcag_0egUp2qE
+```
+

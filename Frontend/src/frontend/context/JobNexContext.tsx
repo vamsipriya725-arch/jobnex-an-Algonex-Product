@@ -1,6 +1,7 @@
 // @ts-nocheck -- imported source; written without strict optional-property typing
 
 import React, { createContext, useContext, useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import {
   User,
   UserRole,
@@ -237,6 +238,65 @@ export const JobNexProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [isChatLoading, setIsChatLoading] = useState<boolean>(false);
 
   // Auth Methods
+  useEffect(() => {
+    const syncUserSession = (session: any) => {
+      if (session?.user) {
+        const u = session.user;
+        const meta = u.user_metadata || {};
+        const displayName =
+          meta.full_name || meta.name || (u.email ? u.email.split("@")[0] : "Candidate");
+        const avatarUrl =
+          meta.avatar_url ||
+          meta.picture ||
+          `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=2563eb&color=fff&bold=true`;
+        const userRole: UserRole =
+          (meta.role || "seeker").toUpperCase() === "RECRUITER" ? "RECRUITER" : "JOB_SEEKER";
+
+        setIsLoggedIn(true);
+        setCurrentUser({
+          id: u.id,
+          name: displayName,
+          email: u.email || "",
+          phone: meta.phone || "",
+          role: userRole,
+          avatar: avatarUrl,
+          headline:
+            userRole === "RECRUITER" ? "Senior Talent Acquisition Partner" : "Software Engineer",
+          currentCompany: userRole === "RECRUITER" ? "JobNex Global Hiring" : "Tech Innovators",
+        });
+
+        // Clean up OAuth tokens from URL if present (detectSessionInUrl stays true)
+        if (
+          typeof window !== "undefined" &&
+          (window.location.hash.includes("access_token") || window.location.search.includes("code="))
+        ) {
+          window.history.replaceState(null, "", window.location.pathname);
+        }
+      }
+    };
+
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) {
+        syncUserSession(session);
+      }
+    });
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      if (session?.user) {
+        syncUserSession(session);
+      } else if (event === "SIGNED_OUT") {
+        setIsLoggedIn(false);
+        setCurrentUser(DEFAULT_USER);
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
+
   const setUserRole = (role: UserRole) => {
     setCurrentUser((prev) => ({ ...prev, role }));
   };
@@ -258,8 +318,12 @@ export const JobNexProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     });
   };
 
-  const logout = () => {
+  const logout = async () => {
     setIsLoggedIn(false);
+    setCurrentUser(DEFAULT_USER);
+    try {
+      await supabase.auth.signOut();
+    } catch (e) {}
   };
 
   // Bookmark Toggle

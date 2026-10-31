@@ -3,8 +3,8 @@
  * Exposes window.JobNexSupabase client for authentication, jobs, applications, and storage.
  */
 (function () {
-  let SUPABASE_URL = window.JOBNEX_SUPABASE_URL || localStorage.getItem("jobnex_supabase_url") || "https://your-project-id.supabase.co";
-  let SUPABASE_ANON_KEY = window.JOBNEX_SUPABASE_ANON_KEY || localStorage.getItem("jobnex_supabase_anon_key") || "your_supabase_anon_key_here";
+  let SUPABASE_URL = window.JOBNEX_SUPABASE_URL || localStorage.getItem("jobnex_supabase_url") || "https://swqebafkntjlgjglylcr.supabase.co";
+  let SUPABASE_ANON_KEY = window.JOBNEX_SUPABASE_ANON_KEY || localStorage.getItem("jobnex_supabase_anon_key") || "sb_publishable_ax9iQjGlK5pP34biLoMcag_0egUp2qE";
 
   let client = null;
 
