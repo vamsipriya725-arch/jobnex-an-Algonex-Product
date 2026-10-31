@@ -2033,9 +2033,9 @@ STRICT ZERO-HALLUCINATION & REWRITING RULES:
 """
 
     models_to_try = [
-        "gemini-2.5-flash",
-        "gemini-2.0-flash",
-        "gemini-1.5-flash",
+        "gemini-3.5-flash",
+        "gemini-3.5-flash-lite",
+        "gemini-flash-latest",
     ]
 
     for model in models_to_try:
@@ -2702,7 +2702,7 @@ STRICT ZERO-HALLUCINATION RULES:
   "explanation": "One clear sentence explaining the recruiter rationale."
 }}
 """
-    models = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash"]
+    models = ["gemini-3.5-flash", "gemini-3.5-flash-lite", "gemini-flash-latest"]
     for m in models:
         raw_resp = generate_content_with_backoff(
             client=client,
@@ -3171,11 +3171,9 @@ SCHEMA:
 """
 
     models_to_try = [
-        "gemini-2.5-flash",
-        "gemini-2.0-flash",
-        "gemini-1.5-flash",
+        "gemini-3.5-flash",
         "gemini-3.5-flash-lite",
-        "gemini-3.8-flash",
+        "gemini-flash-latest",
     ]
 
     for model in models_to_try:
