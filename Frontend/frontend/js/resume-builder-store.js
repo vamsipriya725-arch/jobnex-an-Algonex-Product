@@ -18,11 +18,16 @@
   }
 
   function getApiBaseUrl() {
-    // Check if hosted directly under FastAPI or standalone http.server on 3000
-    if (window.location.port === "8000") {
-      return "";
-    }
-    return "http://127.0.0.1:8000";
+    if (window.JOBNEX_API_BASE) return window.JOBNEX_API_BASE;
+    try {
+      const stored = localStorage.getItem("jobnex_api_base");
+      if (stored) return stored;
+    } catch (e) {}
+
+    if (window.location.port === "8000") return "";
+    if (window.location.protocol === "https:") return "";
+    const host = window.location.hostname || "localhost";
+    return `${window.location.protocol}//${host}:8000`;
   }
 
   function getAuthHeaders() {
@@ -132,8 +137,21 @@
         this.notify("resumes_loaded", data);
         return data;
       } catch (err) {
-        console.error("[ResumeBuilderStore] fetchResumes failed:", err);
-        throw err;
+        console.warn("[ResumeBuilderStore] Remote fetchResumes failed, checking local cache:", err.message);
+        try {
+          const cached = localStorage.getItem("jobnex_resumes_cache");
+          if (cached) {
+            this.resumes = JSON.parse(cached);
+            const active = this.resumes.find((r) => r.is_active);
+            this.activeResumeId = active ? active.id : null;
+            const data = { resumes: this.resumes, total: this.resumes.length, page: 1, total_pages: 1 };
+            this.notify("resumes_loaded", data);
+            return data;
+          }
+        } catch (e) {}
+        this.resumes = [];
+        this.notify("resumes_loaded", { resumes: [], total: 0 });
+        return { resumes: [], total: 0 };
       }
     }
 
@@ -165,6 +183,22 @@
         this.notify("resume_loaded", this.currentResume);
         return this.currentResume;
       } catch (err) {
+        console.warn(`[ResumeBuilderStore] Remote loadResume for ${resumeId} failed, checking local storage:`, err.message);
+        try {
+          const localStr = localStorage.getItem("jobnex_resume_" + resumeId);
+          if (localStr) {
+            const data = JSON.parse(localStr);
+            this.currentResume = data;
+            this.activeResumeId = data.is_active ? data.id : this.activeResumeId;
+            this.past = [];
+            this.future = [];
+            this.isDirty = false;
+            this.saveStatus = "Saved";
+            this.lastSavedAt = data.updated_at || new Date().toISOString();
+            this.notify("resume_loaded", this.currentResume);
+            return this.currentResume;
+          }
+        } catch (e) {}
         this.saveStatus = "Error";
         this.notify("error", err.message);
         throw err;
@@ -352,7 +386,22 @@
         this.lastSavedAt = saved.updated_at || new Date().toISOString();
         this.notify("saved", this.lastSavedAt);
       } catch (err) {
-        console.error("[ResumeBuilderStore] Autosave failed:", err);
+        console.warn("[ResumeBuilderStore] Remote autosave failed, persisting to local cache:", err.message);
+        try {
+          localStorage.setItem("jobnex_resume_" + this.currentResume.id, JSON.stringify(this.currentResume));
+          const idx = this.resumes.findIndex(r => r.id === this.currentResume.id);
+          if (idx !== -1) {
+            this.resumes[idx] = { ...this.resumes[idx], ...this.currentResume, updated_at: new Date().toISOString() };
+          } else {
+            this.resumes.unshift(this.currentResume);
+          }
+          localStorage.setItem("jobnex_resumes_cache", JSON.stringify(this.resumes));
+          this.isDirty = false;
+          this.saveStatus = "Saved (Offline)";
+          this.lastSavedAt = new Date().toISOString();
+          this.notify("saved", this.lastSavedAt);
+          return;
+        } catch (e) {}
         this.saveStatus = "Error";
         this.notify("save_error", err.message);
       }

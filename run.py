@@ -36,30 +36,34 @@ def main():
     venv_python = os.path.join(ROOT_DIR, ".venv", "Scripts", "python.exe")
     python_exec = venv_python if os.path.exists(venv_python) else sys.executable
 
+    port_str = os.environ.get("PORT", "8000")
+    host_str = os.environ.get("HOST", "0.0.0.0" if os.environ.get("PORT") else "127.0.0.1")
+
     # 1. Start FastAPI Backend via uvicorn
     backend_cmd = [
         python_exec, "-m", "uvicorn",
         "main:app",
-        "--host", "127.0.0.1",
-        "--port", "8000"
+        "--host", host_str,
+        "--port", port_str
     ]
     backend_process = subprocess.Popen(
         backend_cmd,
         cwd=BACKEND_DIR
     )
 
-    # 2. Start Frontend server on port 3000
+    # 2. Start Frontend server on port 3000 (only in local dev mode)
     frontend_process = None
-    portal_dir = os.path.join(FRONTEND_DIR, "frontend")
-    serve_target = portal_dir if os.path.exists(portal_dir) else FRONTEND_DIR
-    frontend_cmd = [python_exec, "-m", "http.server", "3000", "--directory", serve_target]
-    try:
-        frontend_process = subprocess.Popen(
-            frontend_cmd,
-            cwd=ROOT_DIR
-        )
-    except Exception as e:
-        print(f"[Warning] Could not start Frontend server ({e}). Backend running standalone.")
+    if not os.environ.get("PORT"):
+        portal_dir = os.path.join(FRONTEND_DIR, "frontend")
+        serve_target = portal_dir if os.path.exists(portal_dir) else FRONTEND_DIR
+        frontend_cmd = [python_exec, "-m", "http.server", "3000", "--directory", serve_target]
+        try:
+            frontend_process = subprocess.Popen(
+                frontend_cmd,
+                cwd=ROOT_DIR
+            )
+        except Exception as e:
+            print(f"[Warning] Could not start Frontend server ({e}). Backend running standalone.")
 
     print("\n[OK] System active! Press Ctrl+C to terminate both servers cleanly.\n")
 
