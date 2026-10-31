@@ -26,8 +26,9 @@
 
     if (window.location.port === "8000") return "";
     if (window.location.protocol === "https:") return "";
+    if (window.location.protocol === "file:") return "http://localhost:8000";
     const host = window.location.hostname || "localhost";
-    return `${window.location.protocol}//${host}:8000`;
+    return `http://${host}:8000`;
   }
 
   function getAuthHeaders() {
@@ -173,6 +174,11 @@
         this.currentResume = data;
         this.activeResumeId = data.is_active ? data.id : this.activeResumeId;
 
+        // Persist local copy
+        try {
+          localStorage.setItem("jobnex_resume_" + resumeId, JSON.stringify(data));
+        } catch (e) {}
+
         // Reset history stack for newly loaded resume
         this.past = [];
         this.future = [];
@@ -185,9 +191,18 @@
       } catch (err) {
         console.warn(`[ResumeBuilderStore] Remote loadResume for ${resumeId} failed, checking local storage:`, err.message);
         try {
+          let data = null;
           const localStr = localStorage.getItem("jobnex_resume_" + resumeId);
           if (localStr) {
-            const data = JSON.parse(localStr);
+            data = JSON.parse(localStr);
+          } else if (this.currentResume && this.currentResume.id === resumeId) {
+            data = this.currentResume;
+          } else {
+            const found = this.resumes.find((r) => r.id === resumeId);
+            if (found) data = found;
+          }
+
+          if (data) {
             this.currentResume = data;
             this.activeResumeId = data.is_active ? data.id : this.activeResumeId;
             this.past = [];
@@ -199,10 +214,151 @@
             return this.currentResume;
           }
         } catch (e) {}
-        this.saveStatus = "Error";
-        this.notify("error", err.message);
-        throw err;
+
+        // If not found in cache, create a local fallback so editor opens cleanly
+        const fallback = this.createLocalResume({ name: "My Professional Resume" });
+        return fallback;
       }
+    }
+
+    createLocalResume({ name = "My Professional Resume", isActive = false, cloneFromId = null } = {}) {
+      const resumeId = "res-" + Date.now().toString(36) + "-" + Math.random().toString(36).substring(2, 7);
+      const nowIso = new Date().toISOString();
+
+      let newResume = null;
+      if (cloneFromId) {
+        let source = this.resumes.find((r) => r.id === cloneFromId);
+        if (!source) {
+          try {
+            const raw = localStorage.getItem("jobnex_resume_" + cloneFromId);
+            if (raw) source = JSON.parse(raw);
+          } catch (e) {}
+        }
+        if (source) {
+          newResume = deepClone(source);
+          newResume.id = resumeId;
+          newResume.name = name || `Copy of ${source.name || "Resume"}`;
+          newResume.is_active = Boolean(isActive);
+          newResume.created_at = nowIso;
+          newResume.updated_at = nowIso;
+        }
+      }
+
+      if (!newResume) {
+        newResume = {
+          id: resumeId,
+          name: name || "My Professional Resume",
+          is_active: Boolean(isActive),
+          readiness_score: 0,
+          readiness_label: "Poor",
+          personal: {
+            name: "",
+            email: "",
+            phone: "",
+            location: "",
+            links: [],
+          },
+          summary: "",
+          sections: [
+            {
+              id: "sec-work-" + Math.random().toString(36).substring(2, 8),
+              type: "work",
+              title: "Work Experience",
+              hidden: false,
+              items: [],
+            },
+            {
+              id: "sec-edu-" + Math.random().toString(36).substring(2, 8),
+              type: "education",
+              title: "Education",
+              hidden: false,
+              items: [],
+            },
+            {
+              id: "sec-proj-" + Math.random().toString(36).substring(2, 8),
+              type: "projects",
+              title: "Projects",
+              hidden: false,
+              items: [],
+            },
+            {
+              id: "sec-skills-" + Math.random().toString(36).substring(2, 8),
+              type: "skills",
+              title: "Skills",
+              hidden: false,
+              items: [],
+            },
+            {
+              id: "sec-cert-" + Math.random().toString(36).substring(2, 8),
+              type: "certifications",
+              title: "Certifications",
+              hidden: false,
+              items: [],
+            },
+          ],
+          templateSettings: {
+            templateId: "modern-clean",
+            fontFamily: "Plus Jakarta Sans",
+            fontSize: 10.5,
+            lineHeight: 1.45,
+            sectionGap: 16,
+            itemSpacing: 10,
+            paddingTop: 24,
+            paddingBottom: 24,
+            paddingSide: 28,
+            primaryColor: "#2e3049",
+            headingStyle: "bold",
+          },
+          atsSuggestions: [],
+          analyses: [],
+          created_at: nowIso,
+          updated_at: nowIso,
+        };
+      }
+
+      // If user has no other resumes or isActive was requested, make this one active
+      if (this.resumes.length === 0 || newResume.is_active) {
+        newResume.is_active = true;
+        this.activeResumeId = newResume.id;
+        this.resumes.forEach((r) => {
+          r.is_active = false;
+          try {
+            localStorage.setItem("jobnex_resume_" + r.id, JSON.stringify(r));
+          } catch (e) {}
+        });
+      }
+
+      try {
+        localStorage.setItem("jobnex_resume_" + newResume.id, JSON.stringify(newResume));
+      } catch (e) {}
+
+      // Add to store resumes array
+      const existingIdx = this.resumes.findIndex((r) => r.id === newResume.id);
+      if (existingIdx >= 0) {
+        this.resumes[existingIdx] = newResume;
+      } else {
+        this.resumes.unshift(newResume);
+      }
+
+      try {
+        localStorage.setItem("jobnex_resumes_cache", JSON.stringify(this.resumes));
+      } catch (e) {}
+
+      this.currentResume = newResume;
+      this.past = [];
+      this.future = [];
+      this.isDirty = false;
+      this.saveStatus = "Saved";
+      this.lastSavedAt = newResume.updated_at;
+
+      this.notify("resumes_loaded", {
+        resumes: this.resumes,
+        total: this.resumes.length,
+        page: 1,
+        total_pages: 1,
+      });
+
+      return newResume;
     }
 
     async createResume({ name = "Untitled Resume", isActive = false, cloneFromId = null } = {}) {
@@ -218,15 +374,18 @@
         });
 
         if (!res.ok) {
-          throw new Error("Failed to create resume");
+          throw new Error("Failed to create resume: " + res.statusText);
         }
 
         const newResume = await res.json();
+        try {
+          localStorage.setItem("jobnex_resume_" + newResume.id, JSON.stringify(newResume));
+        } catch (e) {}
         await this.fetchResumes();
         return newResume;
       } catch (err) {
-        console.error("[ResumeBuilderStore] createResume failed:", err);
-        throw err;
+        console.warn("[ResumeBuilderStore] Remote createResume failed, falling back to local creation:", err.message);
+        return this.createLocalResume({ name, isActive, cloneFromId });
       }
     }
 
@@ -239,11 +398,14 @@
 
         if (!res.ok) throw new Error("Failed to duplicate resume");
         const duplicated = await res.json();
+        try {
+          localStorage.setItem("jobnex_resume_" + duplicated.id, JSON.stringify(duplicated));
+        } catch (e) {}
         await this.fetchResumes();
         return duplicated;
       } catch (err) {
-        console.error("[ResumeBuilderStore] duplicateResume failed:", err);
-        throw err;
+        console.warn("[ResumeBuilderStore] Remote duplicateResume failed, falling back to local clone:", err.message);
+        return this.createLocalResume({ cloneFromId: resumeId });
       }
     }
 
@@ -262,12 +424,37 @@
           this.currentResume.name = updated.name;
         }
 
+        try {
+          localStorage.setItem("jobnex_resume_" + resumeId, JSON.stringify(this.currentResume || updated));
+        } catch (e) {}
+
         await this.fetchResumes();
         this.notify("resume_renamed", updated);
         return updated;
       } catch (err) {
-        console.error("[ResumeBuilderStore] renameResume failed:", err);
-        throw err;
+        console.warn("[ResumeBuilderStore] Remote renameResume failed, updating locally:", err.message);
+        const resume = this.resumes.find((r) => r.id === resumeId);
+        const updated = { id: resumeId, name: newName, updated_at: new Date().toISOString() };
+        if (resume) {
+          resume.name = newName;
+          resume.updated_at = updated.updated_at;
+        }
+        if (this.currentResume && this.currentResume.id === resumeId) {
+          this.currentResume.name = newName;
+          this.currentResume.updated_at = updated.updated_at;
+        }
+        try {
+          const raw = localStorage.getItem("jobnex_resume_" + resumeId);
+          if (raw) {
+            const parsed = JSON.parse(raw);
+            parsed.name = newName;
+            parsed.updated_at = updated.updated_at;
+            localStorage.setItem("jobnex_resume_" + resumeId, JSON.stringify(parsed));
+          }
+          localStorage.setItem("jobnex_resumes_cache", JSON.stringify(this.resumes));
+        } catch (e) {}
+        this.notify("resume_renamed", updated);
+        return updated;
       }
     }
 
@@ -290,8 +477,27 @@
         this.notify("active_changed", resumeId);
         return updated;
       } catch (err) {
-        console.error("[ResumeBuilderStore] setActiveResume failed:", err);
-        throw err;
+        console.warn("[ResumeBuilderStore] Remote setActiveResume failed, updating locally:", err.message);
+        this.activeResumeId = resumeId;
+        this.resumes.forEach((r) => {
+          r.is_active = (r.id === resumeId);
+          try {
+            const raw = localStorage.getItem("jobnex_resume_" + r.id);
+            if (raw) {
+              const p = JSON.parse(raw);
+              p.is_active = (r.id === resumeId);
+              localStorage.setItem("jobnex_resume_" + r.id, JSON.stringify(p));
+            }
+          } catch (e) {}
+        });
+        if (this.currentResume && this.currentResume.id === resumeId) {
+          this.currentResume.is_active = true;
+        }
+        try {
+          localStorage.setItem("jobnex_resumes_cache", JSON.stringify(this.resumes));
+        } catch (e) {}
+        this.notify("active_changed", resumeId);
+        return { id: resumeId, is_active: true };
       }
     }
 
@@ -307,12 +513,32 @@
           this.currentResume = null;
         }
 
+        try {
+          localStorage.removeItem("jobnex_resume_" + resumeId);
+        } catch (e) {}
+
         await this.fetchResumes();
         this.notify("resume_deleted", resumeId);
         return true;
       } catch (err) {
-        console.error("[ResumeBuilderStore] deleteResume failed:", err);
-        throw err;
+        console.warn("[ResumeBuilderStore] Remote deleteResume failed, deleting locally:", err.message);
+        this.resumes = this.resumes.filter((r) => r.id !== resumeId);
+        if (this.currentResume && this.currentResume.id === resumeId) {
+          this.currentResume = null;
+        }
+        if (this.activeResumeId === resumeId) {
+          this.activeResumeId = this.resumes.length > 0 ? this.resumes[0].id : null;
+          if (this.activeResumeId) {
+            const act = this.resumes.find((r) => r.id === this.activeResumeId);
+            if (act) act.is_active = true;
+          }
+        }
+        try {
+          localStorage.removeItem("jobnex_resume_" + resumeId);
+          localStorage.setItem("jobnex_resumes_cache", JSON.stringify(this.resumes));
+        } catch (e) {}
+        this.notify("resume_deleted", resumeId);
+        return true;
       }
     }
 

@@ -3185,11 +3185,17 @@
   // =========================================================================
 
   function openEditor(resumeId) {
+    if (!DOM.dashboardView) DOM.dashboardView = document.getElementById("builder-dashboard-view");
+    if (!DOM.editorView) DOM.editorView = document.getElementById("builder-editor-view");
+
     window.JobNexResumeStore.loadResume(resumeId)
       .then((resume) => {
         // Toggle view from Dashboard to Editor
-        DOM.dashboardView.classList.add("hidden");
-        DOM.editorView.classList.remove("hidden");
+        if (DOM.dashboardView) DOM.dashboardView.classList.add("hidden");
+        if (DOM.editorView) DOM.editorView.classList.remove("hidden");
+        try {
+          window.scrollTo({ top: 0, behavior: "smooth" });
+        } catch (e) {}
 
         populateEditorInputs(resume);
         renderResumePreview(resume);
@@ -3209,6 +3215,7 @@
         showToast("Resume Loaded", `Ready to edit "${resume.name}"`);
       })
       .catch((err) => {
+        console.error("openEditor failed:", err);
         showToast("Error", err.message, true);
       });
   }
@@ -4729,7 +4736,14 @@
         showToast("Resume Created", "Blank ATS resume created.");
         openEditor(created.id);
       } catch (e) {
-        showToast("Creation Failed", e.message, true);
+        console.warn("empty-btn-blank error:", e);
+        try {
+          const fallback = window.JobNexResumeStore.createLocalResume({ name: "My Professional Resume" });
+          showToast("Resume Created", "Blank ATS resume created.");
+          openEditor(fallback.id);
+        } catch (inner) {
+          showToast("Creation Failed", e.message, true);
+        }
       }
     });
 
@@ -4751,7 +4765,14 @@
         showToast("Resume Created", "Blank ATS resume canvas created.");
         openEditor(created.id);
       } catch (e) {
-        showToast("Creation Failed", e.message, true);
+        console.warn("choice-card-blank error:", e);
+        try {
+          const fallback = window.JobNexResumeStore.createLocalResume({ name: "My Professional Resume" });
+          showToast("Resume Created", "Blank ATS resume canvas created.");
+          openEditor(fallback.id);
+        } catch (inner) {
+          showToast("Creation Failed", e.message, true);
+        }
       }
     });
 
@@ -4801,7 +4822,14 @@
         showToast("Blank Resume Created", "Started with fresh layout.");
         openEditor(created.id);
       } catch (e) {
-        showToast("Error", e.message, true);
+        console.warn("btn-error-blank-fallback error:", e);
+        try {
+          const fallback = window.JobNexResumeStore.createLocalResume({ name: "My Professional Resume" });
+          showToast("Blank Resume Created", "Started with fresh layout.");
+          openEditor(fallback.id);
+        } catch (inner) {
+          showToast("Error", e.message, true);
+        }
       }
     });
 
@@ -4824,7 +4852,14 @@
         showToast("Blank Resume Created", "Started with fresh layout.");
         openEditor(created.id);
       } catch (e) {
-        showToast("Error", e.message, true);
+        console.warn("btn-progress-blank-fallback error:", e);
+        try {
+          const fallback = window.JobNexResumeStore.createLocalResume({ name: "My Professional Resume" });
+          showToast("Blank Resume Created", "Started with fresh layout.");
+          openEditor(fallback.id);
+        } catch (inner) {
+          showToast("Error", e.message, true);
+        }
       }
     });
 
