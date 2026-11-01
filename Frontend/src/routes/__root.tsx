@@ -19,6 +19,7 @@ import { AgentPanel } from "@/frontend/components/agent/AgentPanel";
 import { supabase } from "@/integrations/supabase/client";
 import appCss from "../frontend/styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
+import { SpeedInsights } from "@vercel/speed-insights/react";
 
 function NotFoundComponent() {
   return (
@@ -143,6 +144,7 @@ function RootLayoutContent() {
       </main>
       {!isAuthPage && !isJobsPage && <Footer />}
       {!isAuthPage && <AgentPanel />}
+      <SpeedInsights />
     </>
   );
 }
