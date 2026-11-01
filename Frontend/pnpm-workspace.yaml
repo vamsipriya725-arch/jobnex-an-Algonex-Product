@@ -3,3 +3,9 @@ allowBuilds:
   prisma: true
   "@prisma/client": true
   "@prisma/engines": true
+
+peerDependencyRules:
+  ignoreMissing:
+    - "*"
+  allowedVersions:
+    ocache: "*"
