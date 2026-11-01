@@ -17,6 +17,9 @@ export default defineConfig({
     server: { entry: "server" },
   },
   vite: {
+    build: {
+      chunkSizeWarningLimit: 2500,
+    },
     resolve: {
       alias: {
         "@/components": path.resolve(__dirname, "./src/frontend/components"),

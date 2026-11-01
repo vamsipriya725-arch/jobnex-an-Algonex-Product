@@ -78,3 +78,8 @@ Backend/.agents/
 Backend/.aider*/
 skills-lock.json
 Backend/skills-lock.json
+
+# Local Docker exercises
+bindmount-apps/
+multi-container-app/
+welcome-to-docker/

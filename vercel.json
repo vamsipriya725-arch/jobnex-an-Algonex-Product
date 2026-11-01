@@ -16,10 +16,6 @@
     "backend": {
       "root": "backend",
       "framework": "fastapi"
-    },
-    "app": {
-      "root": ".",
-      "framework": "fastapi"
     }
   },
   "rewrites": [
