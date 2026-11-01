@@ -574,7 +574,11 @@ export function LoginView({ initialMode = "login" }: { initialMode?: "login" | "
   // PublicOnlyRoute: If already logged in, redirect to "/"
   useEffect(() => {
     if (isLoggedIn) {
-      router.push("/");
+      if (typeof window !== "undefined") {
+        window.location.href = "/";
+      } else {
+        router.push("/");
+      }
     }
   }, [isLoggedIn, router]);
 
@@ -610,10 +614,17 @@ export function LoginView({ initialMode = "login" }: { initialMode?: "login" | "
         }
         setToastMessage("Signed in via Google! Taking you to your dashboard…");
         playSound("success");
+        const redirectToHome = () => {
+          if (typeof window !== "undefined") {
+            window.location.href = "/";
+          } else {
+            router.push("/");
+          }
+        };
         if (triggerShotRef.current) {
-          triggerShotRef.current("success", 1200, () => router.push("/"));
+          triggerShotRef.current("success", 1200, redirectToHome);
         } else {
-          router.push("/");
+          redirectToHome();
         }
       }
     });
@@ -697,7 +708,11 @@ export function LoginView({ initialMode = "login" }: { initialMode?: "login" | "
     setToastMessage("You're in! Taking you to your JobNex dashboard…");
     const doLoginRedirect = () => {
       login(email.trim(), role);
-      router.push("/");
+      if (typeof window !== "undefined") {
+        window.location.href = "/";
+      } else {
+        router.push("/");
+      }
     };
     if (triggerShotRef.current) {
       triggerShotRef.current("success", 750, doLoginRedirect);
@@ -741,7 +756,11 @@ export function LoginView({ initialMode = "login" }: { initialMode?: "login" | "
     setToastMessage("Account created! Entering JobNex platform…");
     const doSignupRedirect = () => {
       login(email.trim(), role);
-      router.push("/");
+      if (typeof window !== "undefined") {
+        window.location.href = "/";
+      } else {
+        router.push("/");
+      }
     };
     if (triggerShotRef.current) {
       triggerShotRef.current("success", 750, doSignupRedirect);

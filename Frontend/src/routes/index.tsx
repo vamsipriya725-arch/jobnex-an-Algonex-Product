@@ -1,26 +1,16 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { HomeView } from "@/frontend/views/HomeView";
-import { LoginView } from "@/frontend/views/LoginView";
-import { useJobNex } from "@/frontend/context/JobNexContext";
-
-function MainIndexComponent() {
-  const { isLoggedIn } = useJobNex();
-  if (!isLoggedIn) {
-    return <LoginView />;
-  }
-  return <HomeView />;
-}
 
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Jobnex: sign in" },
+      { title: "JobNex - AI Career Platform" },
       {
         name: "description",
         content:
           "AI career platform with job search, auto-apply, interview simulator, skill gap diagnostics and cold referrals.",
       },
-      { property: "og:title", content: "Jobnex: sign in" },
+      { property: "og:title", content: "JobNex - AI Career Platform" },
       {
         property: "og:description",
         content:
@@ -30,5 +20,5 @@ export const Route = createFileRoute("/")({
       { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
-  component: MainIndexComponent,
+  component: HomeView,
 });

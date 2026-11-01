@@ -1088,7 +1088,7 @@
         const navigateToNext = () => {
           if (navigated) return;
           navigated = true;
-          window.location.href = "frontend/index.html";
+          window.location.href = window.location.protocol === "file:" ? "frontend/index.html" : "/";
         };
 
         if (triggerShot) {
@@ -1118,7 +1118,7 @@
         const navigateToNext = () => {
           if (navigated) return;
           navigated = true;
-          window.location.href = "frontend/index.html";
+          window.location.href = window.location.protocol === "file:" ? "frontend/index.html" : "/";
         };
 
         if (triggerShot) {

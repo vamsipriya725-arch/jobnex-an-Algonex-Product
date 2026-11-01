@@ -169,7 +169,9 @@ document.addEventListener("DOMContentLoaded", () => {
         window.JobNexUtils.showToast(`Welcome, ${displayName}!`, "success");
       }
       setTimeout(() => {
-        const homeUrl = window.location.pathname.includes("/pages/") ? "../index.html" : "index.html";
+        const homeUrl = window.location.protocol === "file:" 
+          ? (window.location.pathname.includes("/pages/") ? "../index.html" : "index.html")
+          : "/";
         window.location.href = homeUrl;
       }, 600);
       return;
@@ -195,7 +197,9 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     setTimeout(() => {
-      const homeUrl = window.location.pathname.includes("/pages/") ? "../index.html" : "index.html";
+      const homeUrl = window.location.protocol === "file:" 
+        ? (window.location.pathname.includes("/pages/") ? "../index.html" : "index.html")
+        : "/";
       window.location.href = homeUrl;
     }, 600);
   }

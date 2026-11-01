@@ -126,12 +126,27 @@ const DEFAULT_AUTO_APPLY: AutoApplyConfig = {
   lastRun: "2025-04-12 14:30",
 };
 
+const getInitialAuthState = (): { user: User; isLoggedIn: boolean } => {
+  if (typeof window === "undefined") {
+    return { user: DEFAULT_USER, isLoggedIn: false };
+  }
+  try {
+    const storedLoggedIn = localStorage.getItem("jobnex_is_logged_in") === "true";
+    const storedUser = localStorage.getItem("jobnex_user");
+    if (storedLoggedIn && storedUser) {
+      return { user: JSON.parse(storedUser), isLoggedIn: true };
+    }
+  } catch (e) {}
+  return { user: DEFAULT_USER, isLoggedIn: false };
+};
+
 const JobNexContext = createContext<JobNexContextType | undefined>(undefined);
 
 export const JobNexProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   // Auth state
-  const [currentUser, setCurrentUser] = useState<User>(DEFAULT_USER);
-  const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
+  const initialAuth = getInitialAuthState();
+  const [currentUser, setCurrentUser] = useState<User>(initialAuth.user);
+  const [isLoggedIn, setIsLoggedIn] = useState<boolean>(initialAuth.isLoggedIn);
 
   // Jobs & Bookmarks
   const [jobs, setJobs] = useState<JobPosting[]>(INITIAL_JOBS);
@@ -253,7 +268,7 @@ export const JobNexProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           (meta.role || "seeker").toUpperCase() === "RECRUITER" ? "RECRUITER" : "JOB_SEEKER";
 
         setIsLoggedIn(true);
-        setCurrentUser({
+        const newUser: User = {
           id: u.id,
           name: displayName,
           email: u.email || "",
@@ -263,7 +278,14 @@ export const JobNexProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           headline:
             userRole === "RECRUITER" ? "Senior Talent Acquisition Partner" : "Software Engineer",
           currentCompany: userRole === "RECRUITER" ? "JobNex Global Hiring" : "Tech Innovators",
-        });
+        };
+        setCurrentUser(newUser);
+        if (typeof window !== "undefined") {
+          try {
+            localStorage.setItem("jobnex_is_logged_in", "true");
+            localStorage.setItem("jobnex_user", JSON.stringify(newUser));
+          } catch (e) {}
+        }
 
         // Clean up OAuth tokens from URL if present (detectSessionInUrl stays true)
         if (
@@ -302,8 +324,7 @@ export const JobNexProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   };
 
   const login = (email: string, role: UserRole) => {
-    setIsLoggedIn(true);
-    setCurrentUser({
+    const newUser: User = {
       id: "u-active",
       name: email
         .split("@")[0]
@@ -315,12 +336,27 @@ export const JobNexProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=128&auto=format&fit=crop&q=80",
       headline: role === "RECRUITER" ? "Senior Talent Acquisition Partner" : "Software Engineer",
       currentCompany: role === "RECRUITER" ? "JobNex Global Hiring" : "Tech Innovators",
-    });
+    };
+    setIsLoggedIn(true);
+    setCurrentUser(newUser);
+    if (typeof window !== "undefined") {
+      try {
+        localStorage.setItem("jobnex_is_logged_in", "true");
+        localStorage.setItem("jobnex_user", JSON.stringify(newUser));
+      } catch (e) {}
+    }
   };
 
   const logout = async () => {
     setIsLoggedIn(false);
     setCurrentUser(DEFAULT_USER);
+    if (typeof window !== "undefined") {
+      try {
+        localStorage.removeItem("jobnex_is_logged_in");
+        localStorage.removeItem("jobnex_user");
+        localStorage.removeItem("jobnex_access_token");
+      } catch (e) {}
+    }
     try {
       await supabase.auth.signOut();
     } catch (e) {}

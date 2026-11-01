@@ -131,9 +131,7 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function RootLayoutContent() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const { isLoggedIn } = useJobNex();
-  const isAuthPage =
-    pathname === "/login" || pathname === "/signup" || (!isLoggedIn && pathname === "/");
+  const isAuthPage = pathname === "/login" || pathname === "/signup";
   const isJobsPage = pathname === "/jobs";
 
   return (
