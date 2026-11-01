@@ -20,6 +20,7 @@ import { supabase } from "@/integrations/supabase/client";
 import appCss from "../frontend/styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { SpeedInsights } from "@vercel/speed-insights/react";
+import { Analytics } from "@vercel/analytics/react";
 
 function NotFoundComponent() {
   return (
@@ -145,6 +146,7 @@ function RootLayoutContent() {
       {!isAuthPage && !isJobsPage && <Footer />}
       {!isAuthPage && <AgentPanel />}
       <SpeedInsights />
+      <Analytics />
     </>
   );
 }
