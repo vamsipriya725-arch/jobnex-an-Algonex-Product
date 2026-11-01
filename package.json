@@ -7,6 +7,11 @@
     "dev": "cd Frontend && vite dev",
     "build": "cd Frontend && vite build",
     "start": "python run.py",
+    "docker:build": "docker compose build",
+    "docker:up": "docker compose up -d",
+    "docker:down": "docker compose down",
+    "docker:logs": "docker compose logs -f",
+    "docker:restart": "docker compose restart",
     "prisma:generate": "prisma generate",
     "prisma:push": "prisma db push"
   },

@@ -119,8 +119,17 @@ try:
     from fastapi.staticfiles import StaticFiles
     from fastapi.responses import FileResponse
     frontend_dir = backend_dir.parent / "Frontend"
-    if (frontend_dir / "frontend").exists():
-        app.mount("/frontend", StaticFiles(directory=str(frontend_dir / "frontend"), html=True), name="frontend_portal")
+    portal_dir = frontend_dir / "frontend"
+    if portal_dir.exists():
+        app.mount("/frontend", StaticFiles(directory=str(portal_dir), html=True), name="frontend_portal")
+        if (portal_dir / "pages").exists():
+            app.mount("/pages", StaticFiles(directory=str(portal_dir / "pages"), html=True), name="frontend_pages")
+        if (portal_dir / "js").exists():
+            app.mount("/js", StaticFiles(directory=str(portal_dir / "js")), name="frontend_js")
+        if (portal_dir / "css").exists():
+            app.mount("/css", StaticFiles(directory=str(portal_dir / "css")), name="frontend_css")
+        if (portal_dir / "data").exists():
+            app.mount("/data", StaticFiles(directory=str(portal_dir / "data")), name="frontend_data")
     if frontend_dir.exists():
         app.mount("/static", StaticFiles(directory=str(frontend_dir)), name="frontend_static")
 except Exception as e:
@@ -224,9 +233,19 @@ analyseRequest = AnalyzeRequest
 
 @app.get("/")
 def home():
+    index_file = backend_dir.parent / "Frontend" / "frontend" / "index.html"
+    if index_file.exists():
+        return FileResponse(index_file)
     return {
-        "message": "Resume Analyzer Backend is Running"
+        "message": "Resume Analyzer Backend is Running",
+        "status": "healthy"
     }
+
+
+@app.get("/health", include_in_schema=False)
+@app.get("/api/health", include_in_schema=False)
+def health_check():
+    return {"status": "ok", "app": "JobNex"}
 
 
 @app.get("/favicon.ico", include_in_schema=False)
