@@ -6,6 +6,8 @@
   "scripts": {
     "dev": "cd Frontend && vite dev",
     "build": "cd Frontend && vite build",
+    "lint": "cd Frontend && pnpm lint",
+    "typecheck": "cd Frontend && pnpm exec tsc --noEmit",
     "start": "python run.py",
     "docker:build": "docker compose build",
     "docker:up": "docker compose up -d",

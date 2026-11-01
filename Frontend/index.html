@@ -1,13 +1,16 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="JobNex - Next-Gen AI Career and Hiring Portal. Log in or create an account for autonomous vector matching and blind resume privacy." />
+  <meta name="description"
+    content="JobNex - Next-Gen AI Career and Hiring Portal. Log in or create an account for autonomous vector matching and blind resume privacy." />
   <title>JobNex | Log In & Sign Up</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap"
+    rel="stylesheet" />
   <!-- Three.js CDN -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 
@@ -55,9 +58,17 @@
     }
 
     @keyframes failFxAnim {
-      0% { opacity: 0; }
-      15% { opacity: 1; }
-      100% { opacity: 0; }
+      0% {
+        opacity: 0;
+      }
+
+      15% {
+        opacity: 1;
+      }
+
+      100% {
+        opacity: 0;
+      }
     }
 
     /* Top Left Accessibility Badges */
@@ -156,10 +167,27 @@
     }
 
     @keyframes cardShake {
-      10%, 90% { transform: translateX(-2px); }
-      20%, 80% { transform: translateX(5px); }
-      30%, 50%, 70% { transform: translateX(-9px); }
-      40%, 60% { transform: translateX(9px); }
+
+      10%,
+      90% {
+        transform: translateX(-2px);
+      }
+
+      20%,
+      80% {
+        transform: translateX(5px);
+      }
+
+      30%,
+      50%,
+      70% {
+        transform: translateX(-9px);
+      }
+
+      40%,
+      60% {
+        transform: translateX(9px);
+      }
     }
 
     .card-shake {
@@ -395,6 +423,7 @@
     }
   </style>
 </head>
+
 <body>
   <!-- Ambient glow layer -->
   <div class="ambient-glow"></div>
@@ -446,38 +475,21 @@
           <!-- Full Name (Sign Up only) -->
           <div id="group-fullname" class="form-group" style="display: none;">
             <label class="form-label" for="input-fullname">Full Name</label>
-            <input
-              type="text"
-              id="input-fullname"
-              class="form-input focus-text"
-              placeholder="Your Full Name"
-            />
+            <input type="text" id="input-fullname" class="form-input focus-text" placeholder="Your Full Name" />
           </div>
 
           <!-- Email -->
           <div class="form-group">
             <label class="form-label" for="input-email">Email</label>
-            <input
-              type="email"
-              id="input-email"
-              class="form-input focus-text"
-              placeholder="you@example.com"
-              required
-            />
+            <input type="email" id="input-email" class="form-input focus-text" placeholder="you@example.com" required />
           </div>
 
           <!-- Password -->
           <div class="form-group">
             <label class="form-label" for="input-password">Password</label>
             <div class="input-wrapper">
-              <input
-                type="password"
-                id="input-password"
-                class="form-input focus-password"
-                placeholder="Minimum 8 characters"
-                value="password123"
-                required
-              />
+              <input type="password" id="input-password" class="form-input focus-password"
+                placeholder="Minimum 8 characters" value="password123" required />
               <button type="button" id="btn-show-pass" class="show-password-btn">Show</button>
             </div>
           </div>
@@ -497,10 +509,14 @@
           <!-- Continue with Google -->
           <button type="button" id="btn-google" class="btn-google">
             <svg width="18" height="18" viewBox="0 0 24 24">
-              <path fill="#EA4335" d="M12 5c1.5 0 2.8.5 3.9 1.4l2.9-2.9C17 1.8 14.7 1 12 1 7.5 1 3.7 3.6 1.9 7.3l3.7 2.9C6.5 7.4 9 5 12 5z"/>
-              <path fill="#4285F4" d="M23.5 12.3c0-.8-.1-1.7-.2-2.3H12v4.6h6.5c-.3 1.5-1.1 2.8-2.4 3.7l3.7 2.9c2.2-2 3.7-5 3.7-8.9z"/>
-              <path fill="#FBBC05" d="M5.6 14.8c-.2-.7-.4-1.5-.4-2.8s.2-2.1.4-2.8L1.9 6.3C.7 8.7 0 10.3 0 12s.7 3.3 1.9 5.7l3.7-2.9z"/>
-              <path fill="#34A853" d="M12 23c3.2 0 6-1.1 8-3l-3.7-2.9c-1.1.7-2.5 1.2-4.3 1.2-3 0-5.5-2.4-6.4-5.2L1.9 16C3.7 19.7 7.5 23 12 23z"/>
+              <path fill="#EA4335"
+                d="M12 5c1.5 0 2.8.5 3.9 1.4l2.9-2.9C17 1.8 14.7 1 12 1 7.5 1 3.7 3.6 1.9 7.3l3.7 2.9C6.5 7.4 9 5 12 5z" />
+              <path fill="#4285F4"
+                d="M23.5 12.3c0-.8-.1-1.7-.2-2.3H12v4.6h6.5c-.3 1.5-1.1 2.8-2.4 3.7l3.7 2.9c2.2-2 3.7-5 3.7-8.9z" />
+              <path fill="#FBBC05"
+                d="M5.6 14.8c-.2-.7-.4-1.5-.4-2.8s.2-2.1.4-2.8L1.9 6.3C.7 8.7 0 10.3 0 12s.7 3.3 1.9 5.7l3.7-2.9z" />
+              <path fill="#34A853"
+                d="M12 23c3.2 0 6-1.1 8-3l-3.7-2.9c-1.1.7-2.5 1.2-4.3 1.2-3 0-5.5-2.4-6.4-5.2L1.9 16C3.7 19.7 7.5 23 12 23z" />
             </svg>
             <span>Continue with Google</span>
           </button>
@@ -549,7 +565,7 @@
           osc.start();
           osc.stop(ctx.currentTime + 0.25);
         }
-      } catch (e) {}
+      } catch (e) { }
     }
 
     // Three.js 3D Character Engine
@@ -1137,7 +1153,7 @@
           };
           localStorage.setItem("jobnex_user", JSON.stringify(userObj));
           localStorage.setItem("jobnex_is_logged_in", "true");
-        } catch (e) {}
+        } catch (e) { }
 
         const getFrontPageUrl = () => {
           if (window.location.protocol === "file:" || window.location.pathname.includes("/Frontend/")) {
@@ -1164,4 +1180,5 @@
     });
   </script>
 </body>
+
 </html>
