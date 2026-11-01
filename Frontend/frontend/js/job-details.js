@@ -52,7 +52,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   let currentJob = null;
 
   async function loadJobDetails() {
-    const API_BASE = window.location.port === "8000" ? "" : "http://127.0.0.1:8000";
+    const API_BASE = (window.location.protocol === "https:" || !window.location.port || window.location.port === "80" || window.location.port === "443" || window.location.port === "8000" || window.location.port === "3000") ? "" : "http://127.0.0.1:8000";
     try {
       const res = await fetch(`${API_BASE}/api/jobs/${jobId}`);
       if (res.ok) {

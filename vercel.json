@@ -1,38 +1,39 @@
 {
-  "version": 2,
-  "cleanUrls": true,
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "services": {
+    "frontend": {
+      "root": "Frontend",
+      "framework": "tanstack-start-lovable",
+      "bindings": [
+        {
+          "type": "service",
+          "service": "backend",
+          "format": "url",
+          "env": "BACKEND_URL"
+        }
+      ]
+    },
+    "backend": {
+      "root": "backend",
+      "framework": "fastapi"
+    },
+    "app": {
+      "root": ".",
+      "framework": "fastapi"
+    }
+  },
   "rewrites": [
     {
-      "source": "/",
-      "destination": "/Frontend/frontend/index.html"
+      "source": "/api/(.*)",
+      "destination": {
+        "service": "backend"
+      }
     },
     {
-      "source": "/frontend/(.*)",
-      "destination": "/Frontend/frontend/$1"
-    },
-    {
-      "source": "/pages/(.*)",
-      "destination": "/Frontend/frontend/pages/$1"
-    },
-    {
-      "source": "/js/(.*)",
-      "destination": "/Frontend/frontend/js/$1"
-    },
-    {
-      "source": "/css/(.*)",
-      "destination": "/Frontend/frontend/css/$1"
-    },
-    {
-      "source": "/assets/(.*)",
-      "destination": "/Frontend/frontend/assets/$1"
-    },
-    {
-      "source": "/components/(.*)",
-      "destination": "/Frontend/frontend/components/$1"
-    },
-    {
-      "source": "/data/(.*)",
-      "destination": "/Frontend/frontend/data/$1"
+      "source": "/(.*)",
+      "destination": {
+        "service": "frontend"
+      }
     }
   ]
 }

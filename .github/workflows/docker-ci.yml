@@ -41,3 +41,4 @@ jobs:
         if: always()
         run: |
           docker compose down
+

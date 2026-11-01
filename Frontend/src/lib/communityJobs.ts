@@ -1,7 +1,38 @@
 import type { JobPosting, ExperienceLevel, Region } from "@/domain/types";
 
-const API_BASE: string =
-    (import.meta as any).env?.VITE_API_URL || "http://127.0.0.1:8000";
+function getApiBase(): string {
+    const meta = import.meta as Record<string, any>;
+    const metaEnv = meta["env"] as Record<string, string | undefined> | undefined;
+    const viteApi = metaEnv ? metaEnv["VITE_API_URL"] : undefined;
+    if (viteApi) return viteApi.replace(/\/+$/, "");
+
+    // Server-side (SSR / TanStack Start server functions): use Vercel internal service binding
+    if (typeof window === "undefined") {
+        const proc = (globalThis as Record<string, any>)["process"];
+        const procEnv = proc ? (proc["env"] as Record<string, string | undefined> | undefined) : undefined;
+        const boundBackend = procEnv ? procEnv["BACKEND_URL"] : undefined;
+        if (boundBackend) return boundBackend.replace(/\/+$/, "");
+        return "http://127.0.0.1:8000";
+    }
+
+    // Client-side browser: in production (HTTPS, Vercel domain, or port 3000), use same-origin relative URLs
+    const isProdOrProxy =
+        window.location.protocol === "https:" ||
+        !window.location.port ||
+        window.location.port === "80" ||
+        window.location.port === "443" ||
+        window.location.port === "3000";
+    if (isProdOrProxy) return "";
+
+    return "http://127.0.0.1:8000";
+}
+
+function buildApiUrl(path: string): string {
+    const base = getApiBase();
+    const cleanPath = path.startsWith("/") ? path.slice(1) : path;
+    if (!base) return `/${cleanPath}`;
+    return `${base.replace(/\/+$/, "")}/${cleanPath}`;
+}
 
 export const EXPERIENCE_OPTIONS: ExperienceLevel[] = ["Fresher", "1-2 yrs", "3-5 yrs", "5+ yrs"];
 
@@ -93,7 +124,7 @@ async function readError(res: Response): Promise<string> {
 }
 
 export async function fetchCommunityJobs(): Promise<JobPosting[]> {
-    const res = await fetch(`${API_BASE}/api/community-jobs`);
+    const res = await fetch(buildApiUrl("api/community-jobs"));
     if (!res.ok) throw new Error(await readError(res));
     const data = await res.json();
     return (data.jobs as CommunityJobApi[]).map(toJobPosting);
@@ -103,7 +134,7 @@ export async function uploadCommunityJob(
     form: CommunityJobForm,
     uploadedBy?: string,
 ): Promise<JobPosting> {
-    const res = await fetch(`${API_BASE}/api/community-jobs`, {
+    const res = await fetch(buildApiUrl("api/community-jobs"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

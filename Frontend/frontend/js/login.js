@@ -111,7 +111,10 @@ document.addEventListener("DOMContentLoaded", () => {
       ? { email, password: password || "password123", full_name: name, role: chosenRole }
       : { email, password: password || "password123" };
 
-    const urls = [
+    const isProdOrProxy = window.location.protocol === "https:" || !window.location.port || window.location.port === "80" || window.location.port === "443" || window.location.port === "3000";
+    const urls = isProdOrProxy
+      ? [endpoint, `http://127.0.0.1:8000${endpoint}`, `http://127.0.0.1:3000${endpoint}`]
+      : [
       `http://127.0.0.1:8000${endpoint}`,
       `http://127.0.0.1:3000${endpoint}`,
       endpoint,
