@@ -22,7 +22,9 @@ import { Route as ResourcesRouteImport } from './routes/resources'
 import { Route as ResumePrivacyRouteImport } from './routes/resume-privacy'
 import { Route as SignupRouteImport } from './routes/signup'
 import { Route as SkillGapRouteImport } from './routes/skill-gap'
+import { Route as AdminJobsRouteImport } from './routes/admin/jobs'
 import { Route as ApiChatRouteImport } from './routes/api/chat'
+import { Route as JobsIdRouteImport } from './routes/jobs.$id'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -89,10 +91,20 @@ const SkillGapRoute = SkillGapRouteImport.update({
   path: '/skill-gap',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminJobsRoute = AdminJobsRouteImport.update({
+  id: '/admin/jobs',
+  path: '/admin/jobs',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiChatRoute = ApiChatRouteImport.update({
   id: '/api/chat',
   path: '/api/chat',
   getParentRoute: () => rootRouteImport,
+} as any)
+const JobsIdRoute = JobsIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => JobsRoute,
 } as any)
 
 export interface FileRoutesByFullPath {
@@ -103,13 +115,15 @@ export interface FileRoutesByFullPath {
   '/courses': typeof CoursesRoute
   '/dashboard': typeof DashboardRoute
   '/interview-prep': typeof InterviewPrepRoute
-  '/jobs': typeof JobsRoute
+  '/jobs': typeof JobsRouteWithChildren
   '/login': typeof LoginRoute
   '/resources': typeof ResourcesRoute
   '/resume-privacy': typeof ResumePrivacyRoute
   '/signup': typeof SignupRoute
   '/skill-gap': typeof SkillGapRoute
+  '/admin/jobs': typeof AdminJobsRoute
   '/api/chat': typeof ApiChatRoute
+  '/jobs/$id': typeof JobsIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -119,13 +133,15 @@ export interface FileRoutesByTo {
   '/courses': typeof CoursesRoute
   '/dashboard': typeof DashboardRoute
   '/interview-prep': typeof InterviewPrepRoute
-  '/jobs': typeof JobsRoute
+  '/jobs': typeof JobsRouteWithChildren
   '/login': typeof LoginRoute
   '/resources': typeof ResourcesRoute
   '/resume-privacy': typeof ResumePrivacyRoute
   '/signup': typeof SignupRoute
   '/skill-gap': typeof SkillGapRoute
+  '/admin/jobs': typeof AdminJobsRoute
   '/api/chat': typeof ApiChatRoute
+  '/jobs/$id': typeof JobsIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -136,13 +152,15 @@ export interface FileRoutesById {
   '/courses': typeof CoursesRoute
   '/dashboard': typeof DashboardRoute
   '/interview-prep': typeof InterviewPrepRoute
-  '/jobs': typeof JobsRoute
+  '/jobs': typeof JobsRouteWithChildren
   '/login': typeof LoginRoute
   '/resources': typeof ResourcesRoute
   '/resume-privacy': typeof ResumePrivacyRoute
   '/signup': typeof SignupRoute
   '/skill-gap': typeof SkillGapRoute
+  '/admin/jobs': typeof AdminJobsRoute
   '/api/chat': typeof ApiChatRoute
+  '/jobs/$id': typeof JobsIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -160,7 +178,9 @@ export interface FileRouteTypes {
     | '/resume-privacy'
     | '/signup'
     | '/skill-gap'
+    | '/admin/jobs'
     | '/api/chat'
+    | '/jobs/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -176,7 +196,9 @@ export interface FileRouteTypes {
     | '/resume-privacy'
     | '/signup'
     | '/skill-gap'
+    | '/admin/jobs'
     | '/api/chat'
+    | '/jobs/$id'
   id:
     | '__root__'
     | '/'
@@ -192,7 +214,9 @@ export interface FileRouteTypes {
     | '/resume-privacy'
     | '/signup'
     | '/skill-gap'
+    | '/admin/jobs'
     | '/api/chat'
+    | '/jobs/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -203,12 +227,13 @@ export interface RootRouteChildren {
   CoursesRoute: typeof CoursesRoute
   DashboardRoute: typeof DashboardRoute
   InterviewPrepRoute: typeof InterviewPrepRoute
-  JobsRoute: typeof JobsRoute
+  JobsRoute: typeof JobsRouteWithChildren
   LoginRoute: typeof LoginRoute
   ResourcesRoute: typeof ResourcesRoute
   ResumePrivacyRoute: typeof ResumePrivacyRoute
   SignupRoute: typeof SignupRoute
   SkillGapRoute: typeof SkillGapRoute
+  AdminJobsRoute: typeof AdminJobsRoute
   ApiChatRoute: typeof ApiChatRoute
 }
 
@@ -305,6 +330,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SkillGapRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/jobs': {
+      id: '/admin/jobs'
+      path: '/admin/jobs'
+      fullPath: '/admin/jobs'
+      preLoaderRoute: typeof AdminJobsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/chat': {
       id: '/api/chat'
       path: '/api/chat'
@@ -312,8 +344,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiChatRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/jobs/$id': {
+      id: '/jobs/$id'
+      path: '/$id'
+      fullPath: '/jobs/$id'
+      preLoaderRoute: typeof JobsIdRouteImport
+      parentRoute: typeof JobsRoute
+    }
   }
 }
+
+interface JobsRouteChildren {
+  JobsIdRoute: typeof JobsIdRoute
+}
+
+const JobsRouteChildren: JobsRouteChildren = {
+  JobsIdRoute: JobsIdRoute,
+}
+
+const JobsRouteWithChildren = JobsRoute._addFileChildren(JobsRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
@@ -323,12 +372,13 @@ const rootRouteChildren: RootRouteChildren = {
   CoursesRoute: CoursesRoute,
   DashboardRoute: DashboardRoute,
   InterviewPrepRoute: InterviewPrepRoute,
-  JobsRoute: JobsRoute,
+  JobsRoute: JobsRouteWithChildren,
   LoginRoute: LoginRoute,
   ResourcesRoute: ResourcesRoute,
   ResumePrivacyRoute: ResumePrivacyRoute,
   SignupRoute: SignupRoute,
   SkillGapRoute: SkillGapRoute,
+  AdminJobsRoute: AdminJobsRoute,
   ApiChatRoute: ApiChatRoute,
 }
 export const routeTree = rootRouteImport

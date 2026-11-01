@@ -36,6 +36,9 @@ export interface JobPosting {
   isFeatured?: boolean;
   postedAt: string;
   matchScore?: number;
+  salaryText?: string;
+  sourceUrl?: string;
+  isCommunity?: boolean;
 }
 
 export interface ApplicationTimelineEvent {

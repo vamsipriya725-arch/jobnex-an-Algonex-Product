@@ -1,14 +1,18 @@
 import { createClient } from "@supabase/supabase-js";
 
+const meta = typeof import.meta !== "undefined" ? (import.meta as Record<string, any>) : undefined;
+const metaEnv = meta ? (meta["env"] as Record<string, string | undefined> | undefined) : undefined;
+const proc = typeof process !== "undefined" ? (process as Record<string, any>) : undefined;
+const procEnv = proc ? (proc["env"] as Record<string, string | undefined> | undefined) : undefined;
+
 const supabaseUrl =
-  (typeof import.meta !== "undefined" && import.meta.env && import.meta.env.VITE_SUPABASE_URL) ||
-  (typeof process !== "undefined" && process.env && process.env.SUPABASE_URL) ||
+  metaEnv?.["VITE_SUPABASE_URL"] ||
+  procEnv?.["SUPABASE_URL"] ||
   "https://your-project-id.supabase.co";
 
 const supabaseAnonKey =
-  (typeof import.meta !== "undefined" && import.meta.env && import.meta.env.VITE_SUPABASE_ANON_KEY) ||
-  (typeof process !== "undefined" && process.env && process.env.SUPABASE_ANON_KEY) ||
+  metaEnv?.["VITE_SUPABASE_ANON_KEY"] ||
+  procEnv?.["SUPABASE_ANON_KEY"] ||
   "your_supabase_anon_key_here";
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
-

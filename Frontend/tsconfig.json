@@ -9,14 +9,18 @@
     "target": "ES2022",
     "jsx": "react-jsx",
     "module": "ESNext",
-    "lib": ["ES2022", "DOM", "DOM.Iterable"],
-    "types": ["vite/client"],
-
+    "lib": [
+      "ES2022",
+      "DOM",
+      "DOM.Iterable"
+    ],
+    "types": [
+      "vite/client"
+    ],
     "moduleResolution": "Bundler",
     "allowImportingTsExtensions": true,
     "verbatimModuleSyntax": false,
     "noEmit": true,
-
     "skipLibCheck": true,
     "strict": true,
     "noUnusedLocals": false,
@@ -29,11 +33,24 @@
     "exactOptionalPropertyTypes": true,
     "noUncheckedSideEffectImports": true,
     "paths": {
-      "@/*": ["./src/*"],
-      "@/frontend/*": ["./src/frontend/*"],
-      "@/components/*": ["./src/frontend/components/*"],
-      "@/context/*": ["./src/frontend/context/*"],
-      "@/hooks/*": ["./src/frontend/hooks/*"]
+      "@/*": [
+        "./src/*"
+      ],
+      "@/frontend/*": [
+        "./src/frontend/*"
+      ],
+      "@/components/*": [
+        "./src/frontend/components/*"
+      ],
+      "@/context/*": [
+        "./src/frontend/context/*"
+      ],
+      "@/hooks/*": [
+        "./src/frontend/hooks/*"
+      ]
     }
-  }
+  },
+  "exclude": [
+    "src/utils/**"
+  ]
 }

@@ -148,7 +148,7 @@ export function JobDetailsView() {
     );
   }
 
-  const isSaved = savedJobIds?.has(job.id);
+  const isSaved = savedJobIds?.includes(job.id);
   const skillsList = job.skills || (job.key_skills ? job.key_skills.split(",").map(s => s.trim()) : []);
 
   const handleApply = () => {
