@@ -1,19 +1,6 @@
-# Static Assets Ignore for Cloudflare Workers & Pages
-node_modules
-Frontend/node_modules
-Frontend/src
-Frontend/frontend
-backend
-prisma
-.git
-.github
-.wrangler
-.output
-*.ts
-*.tsx
-*.py
-*.json
-*.jsonc
-*.yaml
-*.yml
-*.md
+# Static Assets Ignore for Cloudflare Workers
+node_modules/
+.git/
+*.map
+
+

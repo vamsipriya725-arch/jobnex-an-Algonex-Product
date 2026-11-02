@@ -1,10 +1,6 @@
 # Static Assets Ignore for Cloudflare
-node_modules
-src
-frontend
-.output/server
-.wrangler
-package.json
-tsconfig.json
-vite.config.ts
-eslint.config.js
+node_modules/
+.git/
+*.map
+
+
