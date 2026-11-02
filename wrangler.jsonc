@@ -16,6 +16,13 @@
       "custom_domain": true
     }
   ],
+  "vars": {
+    "GOOGLE_CLIENT_ID": "29523482392-lfhea4ot72omctqbcvq4e9qfrbp692ju.apps.googleusercontent.com",
+    "NEXT_PUBLIC_GOOGLE_CLIENT_ID": "29523482392-lfhea4ot72omctqbcvq4e9qfrbp692ju.apps.googleusercontent.com",
+    "VITE_GOOGLE_CLIENT_ID": "29523482392-lfhea4ot72omctqbcvq4e9qfrbp692ju.apps.googleusercontent.com",
+    "VITE_SUPABASE_URL": "https://swqebafkntjlgjglylcr.supabase.co",
+    "VITE_SUPABASE_ANON_KEY": "sb_publishable_ax9iQjGlK5pP34biLoMcag_0egUp2qE"
+  },
   "build": {
     "command": "pnpm run build"
   },
