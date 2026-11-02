@@ -33,9 +33,9 @@ function createSupabaseFetch(supabaseKey: string): typeof fetch {
 }
 
 function createSupabaseAdminClient() {
-  const SUPABASE_URL = process.env["SUPABASE_URL"] || "https://mock.supabase.co";
+  const SUPABASE_URL = process.env["SUPABASE_URL"] || "https://swqebafkntjlgjglylcr.supabase.co";
   const SUPABASE_SERVICE_ROLE_KEY =
-    process.env["SUPABASE_SERVICE_ROLE_KEY"] || "sb_secret_mock_local_service_key";
+    process.env["SUPABASE_SERVICE_ROLE_KEY"] || "sb_publishable_ax9iQjGlK5pP34biLoMcag_0egUp2qE";
 
   return createClient<Database>(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
     global: {

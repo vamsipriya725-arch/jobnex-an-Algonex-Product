@@ -60,11 +60,11 @@ function createSupabaseClient() {
   const SUPABASE_URL =
     import.meta.env["VITE_SUPABASE_URL"] ||
     (typeof process !== "undefined" ? process.env?.["SUPABASE_URL"] : undefined) ||
-    "https://mock.supabase.co";
+    "https://swqebafkntjlgjglylcr.supabase.co";
   const SUPABASE_PUBLISHABLE_KEY =
     import.meta.env["VITE_SUPABASE_PUBLISHABLE_KEY"] ||
     (typeof process !== "undefined" ? process.env?.["SUPABASE_PUBLISHABLE_KEY"] : undefined) ||
-    "sb_publishable_mock_local_client_key";
+    "sb_publishable_ax9iQjGlK5pP34biLoMcag_0egUp2qE";
 
   return createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
     global: {

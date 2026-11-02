@@ -8,11 +8,11 @@ const procEnv = proc ? (proc["env"] as Record<string, string | undefined> | unde
 const supabaseUrl =
   metaEnv?.["VITE_SUPABASE_URL"] ||
   procEnv?.["SUPABASE_URL"] ||
-  "https://your-project-id.supabase.co";
+  "https://swqebafkntjlgjglylcr.supabase.co";
 
 const supabaseAnonKey =
   metaEnv?.["VITE_SUPABASE_ANON_KEY"] ||
   procEnv?.["SUPABASE_ANON_KEY"] ||
-  "your_supabase_anon_key_here";
+  "sb_publishable_ax9iQjGlK5pP34biLoMcag_0egUp2qE";
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
