@@ -1,7 +1,7 @@
 import { createUIMessageStream, createUIMessageStreamResponse } from "ai";
 
 const GEMINI_API_KEY =
-  (typeof process !== "undefined" && (process.env?.["GEMINI_API_KEY"] || process.env?.["VITE_GEMINI_API_KEY"])) ||
+  process.env.GEMINI_API_KEY ||
   (typeof atob !== "undefined"
     ? atob("QVEuQWI4Uk42SnNXQUdoNVFjTExhSlE1bi1EM2pkUWxtUVhZTXh5TGZGdUJQbEp5RHpMa1E=")
     : "");
