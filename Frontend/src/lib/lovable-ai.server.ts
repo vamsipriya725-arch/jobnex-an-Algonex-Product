@@ -99,13 +99,13 @@ function getSmartFallbackReply(userMessage: string): string {
   const lower = userMessage.toLowerCase().trim();
 
   // Telugu casual / greetings
-  if (lower.includes("thinnava") || lower.includes("tinnava") || lower.includes("thinnara") || lower.includes("tinnara")) {
+  if (lower.includes("thinn") || lower.includes("tinn")) {
     return "Nenu AI ni kada, nenu tinalenu! 😊 Kani meeru thinnara? Ela unnaru? Ee roju meeku em sahayam kavaali?";
   }
-  if (lower.includes("ela unna") || lower.includes("bagunnara") || lower.includes("baagunna")) {
+  if (lower.includes("ela un") || lower.includes("bagun") || lower.includes("baagun")) {
     return "Nenu chaala baagunnanu, dhanyavaadhalu! Meeru ela unnaru? Ee roju meeku em sahayam kavaali?";
   }
-  if (lower.includes("namaskaram") || lower.includes("namaste")) {
+  if (lower.includes("namask") || lower.includes("namast")) {
     return "Namaskaram! Nenu Nexa, mee JobNex AI Assistant. Ee roju meeku em sahayam cheyagalanu?";
   }
 

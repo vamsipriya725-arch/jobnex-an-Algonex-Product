@@ -1130,7 +1130,7 @@
           try {
             const origin = (window.location.origin && window.location.origin !== "null")
               ? window.location.origin
-              : "http://localhost:3000";
+              : "https://jobnex.dpdns.org";
 
             const { data, error } = await sbClient.auth.signInWithOAuth({
               provider: "google",
