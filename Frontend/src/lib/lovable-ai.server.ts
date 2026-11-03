@@ -7,10 +7,10 @@ const GEMINI_API_KEY =
     : "");
 
 const GEMINI_MODELS = [
+  "gemini-3.1-flash-lite",
+  "gemini-flash-lite-latest",
   "gemini-3.5-flash-lite",
-  "gemini-3.5-flash",
-  "gemini-flash-latest",
-  "gemini-3.8-flash",
+  "gemini-3.1-flash-lite-preview",
 ];
 
 const SYSTEM_PROMPT = `You are Nexa, the smart, helpful, and friendly AI Assistant & Career Copilot for JobNex (an Algonex product).
@@ -56,7 +56,7 @@ async function queryGemini(
       });
 
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 9000);
+      const timeoutId = setTimeout(() => controller.abort(), 4500);
 
       const res = await fetch(url, {
         method: "POST",
