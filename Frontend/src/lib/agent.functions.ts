@@ -79,3 +79,18 @@ export async function getThreadMessages({
     return [];
   }
 }
+
+export async function saveThreadMessages({
+  threadId,
+  messages,
+}: {
+  threadId: string;
+  messages: AgentStoredMessage[];
+}): Promise<void> {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.setItem(`${STORAGE_MESSAGES_KEY}_${threadId}`, JSON.stringify(messages));
+  } catch {
+    // ignore
+  }
+}

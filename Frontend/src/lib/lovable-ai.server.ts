@@ -1,32 +1,193 @@
+import { createUIMessageStream, createUIMessageStreamResponse } from "ai";
+
+const GEMINI_API_KEY =
+  (typeof process !== "undefined" && (process.env?.["GEMINI_API_KEY"] || process.env?.["VITE_GEMINI_API_KEY"])) ||
+  "";
+
+const GEMINI_MODELS = [
+  "gemini-3.5-flash-lite",
+  "gemini-3.5-flash",
+  "gemini-flash-latest",
+  "gemini-3.8-flash",
+];
+
+const SYSTEM_PROMPT = `You are Nexa, the official AI Career Copilot for JobNex (an Algonex product).
+Your role:
+- Help users improve their ATS resume match score and fix missing skills.
+- Guide users through the AI Mock Interview simulator with tips and practice questions.
+- Recommend career pathways, in-demand technical skills, and certifications.
+- Explain JobNex features: Resume Privacy & Analyzer, ATS Job Matching, Auto-Apply engine, Academy Courses, and Cold Referral outreach generator.
+
+Tone: Professional, supportive, concise, and highly actionable. Keep responses under 150 words unless the user requests a deep breakdown. Format clearly with bullet points and bold highlights when useful.`;
+
+interface ChatHistoryItem {
+  role: "user" | "model";
+  parts: [{ text: string }];
+}
+
+async function queryGemini(
+  prompt: string,
+  history: ChatHistoryItem[] = [],
+  analysisContext = ""
+): Promise<string | null> {
+  if (!GEMINI_API_KEY) {
+    return null;
+  }
+
+  const fullSystemPrompt = analysisContext
+    ? `${SYSTEM_PROMPT}\n\nCandidate Analysis Context: ${analysisContext}`
+    : SYSTEM_PROMPT;
+
+  for (const model of GEMINI_MODELS) {
+    try {
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_API_KEY}`;
+      const contents: Array<{ role: string; parts: Array<{ text: string }> }> = [];
+
+      for (const h of history.slice(-6)) {
+        contents.push({
+          role: h.role,
+          parts: [{ text: h.parts[0]?.text || "" }],
+        });
+      }
+
+      contents.push({
+        role: "user",
+        parts: [{ text: prompt }],
+      });
+
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 9000);
+
+      const res = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        signal: controller.signal,
+        body: JSON.stringify({
+          system_instruction: {
+            parts: [{ text: fullSystemPrompt }],
+          },
+          contents,
+          generationConfig: {
+            temperature: 0.45,
+            maxOutputTokens: 600,
+          },
+        }),
+      });
+
+      clearTimeout(timeoutId);
+
+      if (!res.ok) {
+        continue;
+      }
+
+      const data = (await res.json()) as Record<string, any>;
+      const candidates = data["candidates"] as Array<Record<string, any>> | undefined;
+      const candidateText = candidates?.[0]?.["content"]?.["parts"]?.[0]?.["text"];
+      if (candidateText && typeof candidateText === "string" && candidateText.trim()) {
+        return candidateText.trim();
+      }
+    } catch {
+      // Try next model
+      continue;
+    }
+  }
+
+  return null;
+}
+
+function getSmartFallbackReply(userMessage: string): string {
+  const lower = userMessage.toLowerCase().trim();
+
+  if (
+    lower === "hi" ||
+    lower === "hello" ||
+    lower === "hey" ||
+    lower.startsWith("hi ") ||
+    lower.startsWith("hello ")
+  ) {
+    return "Hi there! I'm Nexa, your JobNex Career Copilot. I can help analyze your ATS resume score, find matching jobs, practice for interviews, or level up your skills. What would you like to focus on today?";
+  }
+
+  if (lower.includes("resume") || lower.includes("ats") || lower.includes("score") || lower.includes("cv")) {
+    return "To boost your resume match score, make sure your core technical skills, metrics, and measurable impact (e.g. 'Improved speed by 35%') match the target job description. You can upload and analyze your resume on our **Resume Privacy & Analyzer** page!";
+  }
+
+  if (lower.includes("interview") || lower.includes("question") || lower.includes("prep")) {
+    return "JobNex features an interactive **AI Interview Simulator** with 5 dynamic technical and behavioral questions tailored to your field. Would you like to launch the simulator or practice specific questions here?";
+  }
+
+  if (lower.includes("job") || lower.includes("apply") || lower.includes("opening") || lower.includes("hiring")) {
+    return "You can explore active job openings in our **Jobs** tab, filter by region and experience, and use our **Auto-Apply Engine** to queue batch applications with daily safety rate limits!";
+  }
+
+  if (lower.includes("course") || lower.includes("skill") || lower.includes("learn") || lower.includes("certification")) {
+    return "Explore curated industry learning tracks in **JobNex Academy** to fill critical skill gaps in Python, SQL, Cloud Architecture, and Machine Learning!";
+  }
+
+  return `I'm here to assist your career journey on JobNex! You can ask me to evaluate your resume, suggest high-match job opportunities, draft cold referral messages, or simulate technical interviews. How can I help?`;
+}
+
 export async function handleCareerAgent(request: Request): Promise<Response> {
   try {
     const body = (await request.json().catch(() => ({}))) as Record<string, any>;
     const rawMessages = body["messages"] as unknown;
     const messages = Array.isArray(rawMessages) ? rawMessages : [];
-    const lastMsg =
-      messages.length > 0
-        ? (messages[messages.length - 1] as Record<string, any> | undefined)
-        : undefined;
+    const isStreamRequested =
+      body["stream"] !== false && (messages.length > 0 || !request.headers.get("accept")?.includes("application/json"));
 
+    // Extract prompt from AI-SDK UIMessage array or simple fields
     let userMessage = "";
-    if (lastMsg && typeof lastMsg === "object") {
-      if (typeof lastMsg["content"] === "string") {
-        userMessage = lastMsg["content"];
-      } else if (Array.isArray(lastMsg["parts"]) && lastMsg["parts"].length > 0) {
-        const firstPart = lastMsg["parts"][0] as Record<string, any> | undefined;
-        if (firstPart && typeof firstPart["text"] === "string") {
-          userMessage = firstPart["text"];
+    const history: ChatHistoryItem[] = [];
+
+    for (let i = 0; i < messages.length; i++) {
+      const m = messages[i] as Record<string, any>;
+      let text = "";
+      if (typeof m["content"] === "string") {
+        text = m["content"];
+      } else if (Array.isArray(m["parts"])) {
+        for (const p of m["parts"]) {
+          if (p && typeof p["text"] === "string") {
+            text += p["text"] + " ";
+          }
         }
       }
+      text = text.trim();
+      if (!text) continue;
+
+      if (i === messages.length - 1 && m["role"] === "user") {
+        userMessage = text;
+      } else if (m["role"] === "user") {
+        history.push({ role: "user", parts: [{ text }] });
+      } else if (m["role"] === "assistant" || m["role"] === "model") {
+        history.push({ role: "model", parts: [{ text }] });
+      }
     }
+
     if (!userMessage) {
-      userMessage = String(body["prompt"] || body["message"] || "");
+      userMessage = String(body["prompt"] || body["message"] || "").trim();
+    }
+
+    if (!userMessage) {
+      userMessage = "Hello";
     }
 
     const sessionId = (body["session_id"] || body["sessionId"] || body["threadId"]) as string | undefined;
     const analysis = body["analysis"] as unknown;
 
-    // Attempt proxying to JobNex backend career chatbot if running
+    let analysisContext = "";
+    if (analysis && typeof analysis === "object") {
+      const parts: string[] = [];
+      const an = analysis as Record<string, any>;
+      if (an["matched_score"]) parts.push(`Match: ${an["matched_score"]}%`);
+      if (Array.isArray(an["matched_skills"]) && an["matched_skills"].length)
+        parts.push(`Matched skills: ${an["matched_skills"].join(", ")}`);
+      if (Array.isArray(an["missing_skills"]) && an["missing_skills"].length)
+        parts.push(`Missing skills: ${an["missing_skills"].join(", ")}`);
+      if (parts.length) analysisContext = parts.join("; ");
+    }
+
+    // 1. Try local/configured Python FastAPI backend if reachable
+    let replyText = "";
     try {
       const proc = (globalThis as Record<string, any>)["process"];
       const procEnv = proc ? (proc["env"] as Record<string, string | undefined> | undefined) : undefined;
@@ -34,54 +195,75 @@ export async function handleCareerAgent(request: Request): Promise<Response> {
       const baseWithSlash = rawBackendUrl.endsWith("/") ? rawBackendUrl : `${rawBackendUrl}/`;
       const targetUrl = new URL("api/chat", baseWithSlash);
 
-      const payload: Record<string, any> = { message: userMessage };
-      if (sessionId) payload["session_id"] = sessionId;
-      if (analysis) payload["analysis"] = analysis;
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 1800);
 
       const apiRes = await fetch(targetUrl.toString(), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        signal: controller.signal,
+        body: JSON.stringify({
+          message: userMessage,
+          session_id: sessionId,
+          analysis,
+        }),
       });
+      clearTimeout(timer);
 
       if (apiRes.ok) {
         const data = (await apiRes.json()) as Record<string, any>;
-        const replyText = String(
-          data["reply"] ||
-          data["content"] ||
-          data["message"] ||
-          "I am your JobNex AI Career Assistant. How can I help you today?"
-        );
-
-        return new Response(
-          JSON.stringify({
-            role: "assistant",
-            content: replyText,
-            parts: [{ type: "text", text: replyText }],
-            reply: replyText,
-            session_id: data["session_id"] || sessionId,
-            actionLinks: data["actionLinks"] || [],
-            suggestedChips: data["suggestedChips"] || [],
-          }),
-          {
-            status: 200,
-            headers: { "Content-Type": "application/json" },
-          }
-        );
+        replyText = String(data["reply"] || data["content"] || data["message"] || "").trim();
       }
     } catch {
-      // Backend unavailable fallback
+      // Backend not running / unreachable in cloud environment; proceed to Gemini
     }
 
-    const fallbackText =
-      "I am your JobNex AI Career Assistant. How can I help you accelerate your job search, improve your ATS resume match score, or prepare for technical interviews today?";
+    // 2. Query Google Gemini AI API directly
+    if (!replyText) {
+      const geminiReply = await queryGemini(userMessage, history, analysisContext);
+      if (geminiReply) {
+        replyText = geminiReply;
+      }
+    }
 
+    // 3. Fallback to intelligent local rules
+    if (!replyText) {
+      replyText = getSmartFallbackReply(userMessage);
+    }
+
+    // Return AI-SDK UI Message Stream for AgentPanel's useChat
+    if (isStreamRequested) {
+      const stream = createUIMessageStream({
+        async execute({ writer }) {
+          writer.write({ type: "start" });
+          const partId = `text-${Date.now()}`;
+          writer.write({ type: "text-start", id: partId });
+
+          // Chunk words smoothly for a live typing effect
+          const words = replyText.split(" ");
+          const chunkSize = 3;
+          for (let i = 0; i < words.length; i += chunkSize) {
+            const piece = words.slice(i, i + chunkSize).join(" ") + (i + chunkSize < words.length ? " " : "");
+            writer.write({ type: "text-delta", id: partId, delta: piece });
+            await new Promise((r) => setTimeout(r, 15));
+          }
+
+          writer.write({ type: "text-end", id: partId });
+          writer.write({ type: "finish" });
+        },
+      });
+
+      return createUIMessageStreamResponse({ stream });
+    }
+
+    // Non-streaming JSON response for standard API callers
     return new Response(
       JSON.stringify({
         role: "assistant",
-        content: fallbackText,
-        parts: [{ type: "text", text: fallbackText }],
-        reply: fallbackText,
+        content: replyText,
+        reply: replyText,
+        session_id: sessionId,
+        parts: [{ type: "text", text: replyText }],
       }),
       {
         status: 200,
@@ -90,9 +272,23 @@ export async function handleCareerAgent(request: Request): Promise<Response> {
     );
   } catch (err: unknown) {
     const errorMsg = err instanceof Error ? err.message : "Internal server error";
-    return new Response(
-      JSON.stringify({ error: errorMsg }),
-      { status: 500, headers: { "Content-Type": "application/json" } }
-    );
+
+    // In streaming mode, return an error part in the stream so the UI stays stable
+    const stream = createUIMessageStream({
+      execute({ writer }) {
+        writer.write({ type: "start" });
+        const partId = `err-${Date.now()}`;
+        writer.write({ type: "text-start", id: partId });
+        writer.write({
+          type: "text-delta",
+          id: partId,
+          delta: "I encountered a brief hiccup connecting to the career model. Please try sending your message again.",
+        });
+        writer.write({ type: "text-end", id: partId });
+        writer.write({ type: "finish" });
+      },
+    });
+
+    return createUIMessageStreamResponse({ stream });
   }
 }

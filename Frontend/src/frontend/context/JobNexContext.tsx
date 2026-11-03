@@ -652,49 +652,56 @@ ${currentUser.email} | ${currentUser.phone || "+91 98765 43210"}`;
     setChatMessages((prev) => [...prev, userMsg]);
     setIsChatLoading(true);
 
-    setTimeout(() => {
-      let botReply = "Here is what I found for your career goals!";
-      let actionLinks = undefined;
-      const lower = content.toLowerCase();
+    (async () => {
+      let botReply = "";
+      let actionLinks: Array<{ title: string; url: string; type: "JOB" | "COURSE" | "SKILL" | "INTERVIEW" }> | undefined = undefined;
 
-      if (lower.includes("data science") || lower.includes("skills")) {
-        botReply =
-          "For **Data Science & ML**, the most in-demand industry skills are **Python**, **SQL**, **Data Visualization (Seaborn/Plotly)**, and **Machine Learning pipelines (Scikit-Learn/PyTorch)**. Based on your skill gap analysis, leveling up on Data Visualization will boost your profile match by +18%!";
-        actionLinks = [
-          { title: "View Skill Gap Diagnostic", url: "/skill-gap", type: "SKILL" as const },
-          { title: "Data Scientist at Amazon", url: "/jobs", type: "JOB" as const },
-        ];
-      } else if (
-        lower.includes("interview") ||
-        lower.includes("tips") ||
-        lower.includes("google")
-      ) {
-        botReply =
-          "For top tier companies like **Google**, focus on **System Design** and **Algorithmic efficiency (Time/Space complexity)**. Would you like to practice our interactive 5-question interview simulator right now?";
-        actionLinks = [
-          {
-            title: "Start Technical Interview Prep",
-            url: "/interview-prep",
-            type: "INTERVIEW" as const,
-          },
-        ];
-      } else if (lower.includes("fresher") || lower.includes("companies")) {
-        botReply =
-          "Currently, companies like **Accenture**, **TCS**, and **RemoteBase** have open roles for freshers and 1-2 year candidates with strong React and SQL knowledge.";
-        actionLinks = [
-          { title: "View Filtered Jobs", url: "/jobs", type: "JOB" as const },
-          { title: "Setup Auto-Apply", url: "/auto-apply", type: "JOB" as const },
-        ];
-      } else {
-        botReply = `Great question regarding "${content}"! With JobNex, you can analyze your skill gaps, practice tailored interview questions, or dispatch automated cold outreach emails to hiring managers.`;
-        actionLinks = [
-          { title: "Find Matching Jobs", url: "/jobs", type: "JOB" as const },
-          {
-            title: "Launch Interview Simulator",
-            url: "/interview-prep",
-            type: "INTERVIEW" as const,
-          },
-        ];
+      try {
+        const res = await fetch("/api/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Accept: "application/json" },
+          body: JSON.stringify({ message: content, stream: false }),
+        });
+        if (res.ok) {
+          const data = (await res.json()) as Record<string, any>;
+          const text = data["reply"] || data["content"] || data["message"];
+          if (typeof text === "string" && text.trim()) {
+            botReply = text.trim();
+          }
+        }
+      } catch {
+        // Fallback to local intelligence
+      }
+
+      if (!botReply) {
+        const lower = content.toLowerCase();
+        if (lower.includes("data science") || lower.includes("skills")) {
+          botReply =
+            "For **Data Science & ML**, the most in-demand industry skills are **Python**, **SQL**, **Data Visualization (Seaborn/Plotly)**, and **Machine Learning pipelines (Scikit-Learn/PyTorch)**. Based on your skill gap analysis, leveling up on Data Visualization will boost your profile match by +18%!";
+          actionLinks = [
+            { title: "View Skill Gap Diagnostic", url: "/skill-gap", type: "SKILL" as const },
+            { title: "Data Scientist at Amazon", url: "/jobs", type: "JOB" as const },
+          ];
+        } else if (lower.includes("interview") || lower.includes("tips") || lower.includes("google")) {
+          botReply =
+            "For top tier companies like **Google**, focus on **System Design** and **Algorithmic efficiency (Time/Space complexity)**. Would you like to practice our interactive 5-question interview simulator right now?";
+          actionLinks = [
+            { title: "Start Technical Interview Prep", url: "/interview-prep", type: "INTERVIEW" as const },
+          ];
+        } else if (lower.includes("fresher") || lower.includes("companies")) {
+          botReply =
+            "Currently, companies like **Accenture**, **TCS**, and **RemoteBase** have open roles for freshers and 1-2 year candidates with strong React and SQL knowledge.";
+          actionLinks = [
+            { title: "View Filtered Jobs", url: "/jobs", type: "JOB" as const },
+            { title: "Setup Auto-Apply", url: "/auto-apply", type: "JOB" as const },
+          ];
+        } else {
+          botReply = `Great question regarding "${content}"! With JobNex, you can analyze your skill gaps, practice tailored interview questions, or dispatch automated cold outreach emails to hiring managers.`;
+          actionLinks = [
+            { title: "Find Matching Jobs", url: "/jobs", type: "JOB" as const },
+            { title: "Launch Interview Simulator", url: "/interview-prep", type: "INTERVIEW" as const },
+          ];
+        }
       }
 
       const botMsg: ChatMessage = {
@@ -712,7 +719,7 @@ ${currentUser.email} | ${currentUser.phone || "+91 98765 43210"}`;
 
       setChatMessages((prev) => [...prev, botMsg]);
       setIsChatLoading(false);
-    }, 800);
+    })();
   };
 
   return (

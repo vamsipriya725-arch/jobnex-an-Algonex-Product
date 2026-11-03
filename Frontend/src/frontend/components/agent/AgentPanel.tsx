@@ -13,6 +13,7 @@ import {
   createThread,
   deleteThread,
   getThreadMessages,
+  saveThreadMessages,
   listThreads,
   type AgentStoredMessage,
   type AgentThread,
@@ -271,6 +272,20 @@ function ChatWindow({ threadId }: { threadId: string }) {
       cancelled = true;
     };
   }, [threadId, setMessages]);
+
+  useEffect(() => {
+    if (historyLoaded && messages.length > 0) {
+      saveThreadMessages({
+        threadId,
+        messages: messages.map((m) => ({
+          id: m.id,
+          role: m.role as "user" | "assistant" | "system",
+          parts: m.parts,
+          createdAt: new Date().toISOString(),
+        })),
+      });
+    }
+  }, [messages, historyLoaded, threadId]);
 
   const busy = status === "submitted" || status === "streaming";
   const composerRef = useRef<HTMLDivElement | null>(null);

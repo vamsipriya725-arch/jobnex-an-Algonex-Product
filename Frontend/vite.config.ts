@@ -33,6 +33,9 @@ export default defineConfig({
         process.env["VITE_GOOGLE_CLIENT_ID"] ||
           "29523482392-lfhea4ot72omctqbcvq4e9qfrbp692ju.apps.googleusercontent.com",
       ),
+      "process.env.GEMINI_API_KEY": JSON.stringify(
+        process.env["GEMINI_API_KEY"] || process.env["VITE_GEMINI_API_KEY"] || "",
+      ),
     },
     build: {
       chunkSizeWarningLimit: 2500,
