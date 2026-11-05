@@ -4,7 +4,7 @@ pydantic>=2.0.0
 python-dotenv>=1.0.0
 google-genai>=0.1.0
 requests
-httpx
+httpx->
 apscheduler>=3.10,<4
 tzdata
 python-docx>=1.1.0
